@@ -1,6 +1,10 @@
-using PsP.Models;
-using PsP.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
+using PsP.Models;                 
+using PsP.Services.Implementations;                
+using PsP.Contracts.GiftCards;    
+using PsP.Contracts.Common;
+using PsP.Services.Interfaces; 
 
 namespace PsP.Controllers
 {
@@ -8,71 +12,177 @@ namespace PsP.Controllers
     [Route("api/giftcards")]
     public class GiftCardsController : ControllerBase
     {
-        private readonly IGiftCardService _svc;
-        public GiftCardsController(IGiftCardService svc) => _svc = svc;
+        private readonly IGiftCardService _giftCardService;
+        private readonly ILogger<GiftCardsController> _logger;
 
-        [HttpPost]
-        public async Task<ActionResult<GiftCard>> Create([FromBody] GiftCard gc)
+        public GiftCardsController(
+            IGiftCardService giftCardService,
+            ILogger<GiftCardsController> logger)
         {
-            var created = await _svc.CreateAsync(gc);
-            return CreatedAtAction(nameof(GetById), new { id = created.GiftCardId }, created);
+            _giftCardService = giftCardService;
+            _logger = logger;
         }
+
+        // ========== GET OPERATIONS ==========
 
         [HttpGet("{id:int}")]
-        public async Task<ActionResult<GiftCard>> GetById(int id)
+        [ProducesResponseType(typeof(GiftCardResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<GiftCardResponse>> GetById(int id)
         {
-            var card = await _svc.GetByIdAsync(id); // <-- kviečiam servisą
-            return card is null ? NotFound() : Ok(card);
+            _logger.LogInformation("Getting gift card by ID: {GiftCardId}", id);
+
+            var giftCard = await _giftCardService.GetByIdAsync(id);
+            if (giftCard is null)
+            {
+                _logger.LogWarning("Gift card {GiftCardId} not found", id);
+                return NotFound(new ApiErrorResponse("Gift card not found"));
+            }
+
+            return Ok(GiftCardResponse.FromEntity(giftCard));
         }
 
-        // jei nori likti prie raw string body – palik šitą
-        [HttpPost("validate")]
-        public async Task<IActionResult> Validate([FromBody] string code)
+        [HttpGet("code/{code}")]
+        [ProducesResponseType(typeof(GiftCardResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<GiftCardResponse>> GetByCode(string code)
         {
-            try
+            _logger.LogInformation("Getting gift card by code: {Code}", code);
+
+            var giftCard = await _giftCardService.GetByCodeAsync(code);
+            if (giftCard is null)
             {
-                var c = await _svc.ValidateAsync(code);
-                return c is null ? NotFound(new { error = "not_found" })
-                                 : Ok(new { c.Balance, c.Status, c.ExpiresAt, id = c.GiftCardId });
+                _logger.LogWarning("Gift card with code {Code} not found", code);
+                return NotFound(new ApiErrorResponse("Gift card not found"));
             }
-            catch (InvalidOperationException ex)
-            {
-                return UnprocessableEntity(new { error = ex.Message });
-            }
+
+            return Ok(GiftCardResponse.FromEntity(giftCard));
         }
 
-        [HttpPost("{id:int}/topup")]
-        public async Task<IActionResult> TopUp(int id, [FromBody] decimal amount)
+        // ========== CREATE OPERATIONS ==========
+
+        [HttpPost]
+        [ProducesResponseType(typeof(GiftCardResponse), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<GiftCardResponse>> Create([FromBody] CreateGiftCardRequest request)
         {
+            _logger.LogInformation("Creating new gift card for business {BusinessId}", request.BusinessId);
+
+            if (!ModelState.IsValid)
+                return ValidationProblem(ModelState);
+
             try
             {
-                var ok = await _svc.TopUpAsync(id, amount);
-                return ok ? Ok() : NotFound();
+                var giftCard = new GiftCard
+                {
+                    Code       = request.Code,
+                    Balance    = request.Balance,
+                    ExpiresAt  = request.ExpiresAt,
+                    Status     = "Active",
+                    BusinessId = request.BusinessId   // 👈 ŠITA EILUTĖ BUVO TRŪKSTAMA
+                };
+
+                var created = await _giftCardService.CreateAsync(giftCard);
+
+                _logger.LogInformation("Gift card created with ID: {GiftCardId} for business {BusinessId}",
+                    created.GiftCardId, created.BusinessId);
+
+                return CreatedAtAction(
+                    nameof(GetById),
+                    new { id = created.GiftCardId },
+                    GiftCardResponse.FromEntity(created));
             }
             catch (Exception ex)
             {
-                return UnprocessableEntity(new { error = ex.Message });
+                _logger.LogError(ex, "Failed to create gift card");
+                return BadRequest(new ApiErrorResponse("Failed to create gift card", ex.Message));
             }
         }
 
-        [HttpPost("redeem")]
-        public async Task<IActionResult> Redeem([FromBody] RedeemReq req)
+
+        // ========== UPDATE OPERATIONS ==========
+
+        [HttpPatch("{id:int}/balance")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status422UnprocessableEntity)]
+        public async Task<IActionResult> UpdateBalance(int id, [FromBody] UpdateBalanceRequest request)
         {
+            _logger.LogInformation("Updating balance for gift card {GiftCardId} by {Amount}", id, request.Amount);
+
+            if (!ModelState.IsValid)
+                return ValidationProblem(ModelState);
+
             try
             {
-                var (charged, remaining) = await _svc.RedeemAsync(req.Code, req.Amount);
-                return Ok(new { charged, remaining });
-            }
-            catch (KeyNotFoundException)
-            {
-                return NotFound(new { error = "not_found" });
+                var success = await _giftCardService.TopUpAsync(id, request.Amount);
+                if (!success)
+                {
+                    _logger.LogWarning("Gift card {GiftCardId} not found for balance update", id);
+                    return NotFound(new ApiErrorResponse("Gift card not found"));
+                }
+
+                _logger.LogInformation("Balance updated for gift card {GiftCardId}", id);
+                return NoContent();
             }
             catch (InvalidOperationException ex)
             {
-                return UnprocessableEntity(new { error = ex.Message });
+                _logger.LogWarning(ex, "Business rule violation for gift card {GiftCardId}", id);
+                return UnprocessableEntity(new ApiErrorResponse("Operation failed", ex.Message));
             }
         }
 
-        public record RedeemReq(string Code, decimal Amount);
+        // ========== BUSINESS OPERATIONS ==========
+
+        [HttpPost("{id:int}/transactions")]
+        [ProducesResponseType(typeof(RedeemResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status422UnprocessableEntity)]
+        public async Task<ActionResult<RedeemResponse>> Redeem(int id, [FromBody] RedeemRequest request)
+        {
+            _logger.LogInformation("Redeeming {Amount} from gift card {GiftCardId}", request.Amount, id);
+
+            if (!ModelState.IsValid)
+                return ValidationProblem(ModelState);
+
+            try
+            {
+                var (charged, remaining) = await _giftCardService.RedeemAsync(id, request.Amount);
+
+                _logger.LogInformation(
+                    "Redeemed {Charged} from gift card {GiftCardId}, remaining: {Remaining}",
+                    charged, id, remaining);
+
+                return Ok(new RedeemResponse(charged, remaining));
+            }
+            catch (KeyNotFoundException)
+            {
+                _logger.LogWarning("Gift card {GiftCardId} not found for redeem", id);
+                return NotFound(new ApiErrorResponse("Gift card not found"));
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "Business rule violation during redeem for gift card {GiftCardId}", id);
+                return UnprocessableEntity(new ApiErrorResponse("Redeem failed", ex.Message));
+            }
+        }
+
+        [HttpPost("{id:int}/deactivate")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> Deactivate(int id)
+        {
+            _logger.LogInformation("Deactivating gift card {GiftCardId}", id);
+
+            var success = await _giftCardService.DeactivateAsync(id);
+            if (!success)
+            {
+                _logger.LogWarning("Gift card {GiftCardId} not found for deactivation", id);
+                return NotFound(new ApiErrorResponse("Gift card not found"));
+            }
+
+            _logger.LogInformation("Gift card {GiftCardId} deactivated", id);
+            return NoContent();
+        }
     }
 }

@@ -3,7 +3,7 @@ using PsP.Settings;
 using Stripe;
 using Stripe.Checkout;
 
-namespace PsP.Services;
+namespace PsP.Services.Implementations;
 
 public class StripePaymentService
 {
@@ -15,7 +15,12 @@ public class StripePaymentService
         StripeConfiguration.ApiKey = _settings.SecretKey;
     }
 
-    public Session CreateCheckoutSession(string successUrl, string cancelUrl)
+    public Session CreateCheckoutSession(
+        long amountCents,
+        string currency,
+        string successUrl,
+        string cancelUrl,
+        int paymentId)
     {
         var options = new SessionCreateOptions
         {
@@ -29,14 +34,18 @@ public class StripePaymentService
                     Quantity = 1,
                     PriceData = new SessionLineItemPriceDataOptions
                     {
-                        UnitAmount = 2000, // 20.00 (centais)
-                        Currency = "usd",
+                        UnitAmount = amountCents,
+                        Currency = currency.ToLower(),
                         ProductData = new SessionLineItemPriceDataProductDataOptions
                         {
-                            Name = "T-shirt",
+                            Name = "Cart payment"
                         },
                     }
                 },
+            },
+            Metadata = new Dictionary<string, string>
+            {
+                { "paymentId", paymentId.ToString() }
             }
         };
 

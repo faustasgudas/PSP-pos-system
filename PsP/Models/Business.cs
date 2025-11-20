@@ -11,6 +11,7 @@ public class Business
     public bool PriceIncludesTax { get; set; }
     public string BusinessStatus { get; set; } = "Active";
 
-    
+    public List<Payment> Payments { get; set; } = new();
+
     
 }

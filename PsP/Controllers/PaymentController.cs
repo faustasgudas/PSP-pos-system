@@ -1,70 +1,97 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using PsP.Data;
-using PsP.Models;
-using PsP.Services;
+using Microsoft.AspNetCore.Http;
+using PsP.Contracts.Common;
+using PsP.Contracts.Payments;
+using PsP.Services.Implementations;
 
 namespace PsP.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/payments")]
 public class PaymentController : ControllerBase
 {
-    private readonly StripePaymentService _paymentService;
-    private readonly AppDbContext _context;
+    private readonly PaymentService _payments;
+    private readonly ILogger<PaymentController> _logger;
 
-    public PaymentController(StripePaymentService paymentService, AppDbContext context)
+    public PaymentController(PaymentService payments, ILogger<PaymentController> logger)
     {
-        _paymentService = paymentService;
-        _context = context;
+        _payments = payments;
+        _logger = logger;
     }
 
-    [HttpPost("create-checkout-session")]
-    public ActionResult CreateCheckoutSession()
+    /// <summary>
+    /// Sukuria naują apmokėjimą (Stripe + optional GiftCard).
+    /// </summary>
+    [HttpPost]
+    [ProducesResponseType(typeof(PaymentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PaymentResult>> Create([FromBody] CreatePaymentRequest request)
     {
-        var session = _paymentService.CreateCheckoutSession(
-            "https://yourdomain.com/payment/success?sessionId={CHECKOUT_SESSION_ID}",
-            "https://yourdomain.com/payment/cancel?sessionId={CHECKOUT_SESSION_ID}"
+        _logger.LogInformation(
+            "Creating payment for business {BusinessId}, amount {AmountCents} {Currency}, giftCard: {GiftCardCode}",
+            request.BusinessId, request.AmountCents, request.Currency, request.GiftCardCode
         );
 
-        _context.PaymentRecords.Add(new PaymentRecord
-        {
-            StripeSessionId = session.Id,
-            Created = DateTime.UtcNow,
-            Status = "Created"
-        });
-        _context.SaveChanges();
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
 
-        return Ok(new { sessionId = session.Id, url = session.Url });
+        try
+        {
+            var baseUrl = $"{Request.Scheme}://{Request.Host}";
+
+            var result = await _payments.CreatePaymentAsync(
+                request.AmountCents,
+                request.Currency,
+                request.BusinessId,
+                request.GiftCardCode,
+                request.GiftCardAmountCents,
+                baseUrl);
+
+            return Ok(result);
+        }
+        catch (ArgumentOutOfRangeException ex)
+        {
+            _logger.LogWarning(ex, "Invalid amount for payment");
+            return BadRequest(new ApiErrorResponse("Invalid payment amount", ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            // pvz. invalid_gift_card / wrong_business / blocked / expired
+            _logger.LogWarning(ex, "Business rule violation when creating payment");
+            return BadRequest(new ApiErrorResponse("Payment failed", ex.Message));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error when creating payment");
+            return BadRequest(new ApiErrorResponse("Unexpected error while creating payment", ex.Message));
+        }
     }
 
+    /// <summary>
+    /// Stripe success callback (/api/payments/success?sessionId=...).
+    /// </summary>
     [HttpGet("success")]
-    public async Task<IActionResult> Success(string sessionId)
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> Success([FromQuery] string sessionId)
     {
-        var paymentRecord = await _context.PaymentRecords
-            .FirstOrDefaultAsync(p => p.StripeSessionId == sessionId);
+        _logger.LogInformation("Stripe payment success callback. SessionId: {SessionId}", sessionId);
 
-        if (paymentRecord != null)
-        {
-            paymentRecord.Status = "Success";
-            await _context.SaveChangesAsync();
-        }
+        await _payments.ConfirmStripeSuccessAsync(sessionId);
 
+        // jei norėsi – gali gražinti daugiau info apie paymentą
         return Ok("Payment successful.");
     }
 
+    /// <summary>
+    /// Stripe cancel callback (/api/payments/cancel?sessionId=...).
+    /// </summary>
     [HttpGet("cancel")]
-    public async Task<IActionResult> Cancel(string sessionId)
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public IActionResult Cancel([FromQuery] string sessionId)
     {
-        var paymentRecord = await _context.PaymentRecords
-            .FirstOrDefaultAsync(p => p.StripeSessionId == sessionId);
+        _logger.LogInformation("Stripe payment cancelled. SessionId: {SessionId}", sessionId);
 
-        if (paymentRecord != null)
-        {
-            paymentRecord.Status = "Cancelled";
-            await _context.SaveChangesAsync();
-        }
-
+        // čia galėtum atnaujinti Payment.Status į "Cancelled", jei norėsi
         return Ok("Payment cancelled.");
     }
 }

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PsP.Data;
-using PsP.Services;
+using PsP.Services.Interfaces;
+using PsP.Services.Implementations;
 using PsP.Settings;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,7 +16,10 @@ Stripe.StripeConfiguration.ApiKey = builder.Configuration["Stripe:SecretKey"];
 
 // Service layer
 builder.Services.AddScoped<IGiftCardService, GiftCardService>();
+builder.Services.AddScoped<PaymentService>();
+builder.Services.AddScoped<StripePaymentService>();
 builder.Services.AddScoped<IBusinessService, BusinessService>();
+
 
 // Stripe service – TIK VIENAS registravimas
 builder.Services.AddScoped<StripePaymentService>();

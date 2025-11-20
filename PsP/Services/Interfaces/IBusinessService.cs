@@ -1,6 +1,6 @@
 using PsP.Models;
 
-namespace PsP.Services;
+namespace PsP.Services.Interfaces;
 
 public interface IBusinessService
 {
