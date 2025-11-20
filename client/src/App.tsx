@@ -8,7 +8,7 @@ function App() {
     const [apiMessage, setApiMessage] = useState("Loading from API...");
 
     useEffect(() => {
-        fetch("https://localhost:44317/api/hello")
+        fetch("http://localhost:5269/api/hello")
             .then(async (res) => {
                 if (!res.ok) throw new Error(`Status ${res.status}`);
                 const text = await res.text();   // 👈 read plain text, not JSON
