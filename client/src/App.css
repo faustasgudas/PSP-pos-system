@@ -29,12 +29,13 @@ body {
     position: relative;
     background-color: #219ebc;
     width: 100%;
-    min-height: 7.5vh;
+    min-height: 7vh;
     border-radius: 12px 12px 0 0;
 }
+/*
 .log-in-button{
     position: absolute;
-    top: 12px;
+    top: 8px;
     right: 10px;
     background-color: #8ecae6;
     border: #023047;
@@ -49,11 +50,11 @@ body {
     cursor: pointer;
     font-weight: bold;
 }
-
+*/
 .title{
     position: absolute;
-    top: -2px;
-    left: 10px;
+    top: -10%;
+    left: 45%;
     color: #023047;
     font-size: 20px;
 }
@@ -63,43 +64,70 @@ body {
 }
 .navigation-bar{
     position: relative;
-    background-color: gray;
-    top: 20;
-}
-/*keeping this just in case
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+    background-color: #8ecae6;
+    width: 100%;
+    min-height: 5.5vh;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.nav{
+    background-color: #8ecae6;
+    border: none;
+    width: 20%;
+    height: 5.5vh;
+}
+.nav:hover{
+    background-color: #023047;
+    color: white;
+    cursor: pointer;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.login{
+    position: relative;
+    background: linear-gradient(to bottom, #023047, #8ecae6);
+    width: 35%;
+    height: 40vh;
+    border-radius: 12px;
+    margin-top: 100px;
+    right: -31.5%;
 }
 
-.card {
-  padding: 2em;
+.login-text{
+    color: white;
+    font-size: 25px;
+    margin-top: 51px;
 }
 
-.read-the-docs {
-  color: #888;
+.dropdown{
+    width: 80%;
+    padding: 0.8rem;
+    font-size: 1rem;
+    border-radius: 8px;
+    border: 2px solid #023047;
+    margin-bottom: 1.5rem;
+    cursor: pointer;
+    margin-top: 5px;
 }
-*/
+
+.dropdown:focus{
+    outline: none;
+    border-color: #023047;
+}
+
+.login-btn{
+    width: 50%;
+    padding: 0.8rem;
+    font-size: 1.1rem;
+    background-color: #667eea;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+.login-btn:hover{
+    background-color: #535bf2;
+}
+.login-info{
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    font-style: italic;
+}
