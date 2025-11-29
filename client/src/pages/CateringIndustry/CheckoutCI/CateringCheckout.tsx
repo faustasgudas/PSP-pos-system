@@ -10,7 +10,7 @@ function CateringCheckout() {
     // @ts-ignore
     const [totalAmount, setTotalAmount] = useState(0.00);
 
-    //todo: add split payments
+    //todo - add input fields for splitting based on amount chosen
     return (
         <div className="content-box">
             <div className="top-bar">
@@ -24,6 +24,11 @@ function CateringCheckout() {
                 <p>Add tip (optional):</p>
                 <input type="number">€</input>
                 <p>Final calculated amount: {totalAmount}</p>
+                <input type="radio" value="split">Split payment</input>
+                <div className="show-if-split">
+                    <p>Split into:</p>
+                    <input type="range" value="payers" min="1" max="9"></input>
+                </div>
                 <p>Select payment method:</p>
                 <select
                     id="payment-method"
