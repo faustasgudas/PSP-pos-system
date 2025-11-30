@@ -1,3 +1,4 @@
+using System;
 using Microsoft.EntityFrameworkCore;
 using PsP.Data;
 using PsP.Models;
@@ -6,6 +7,9 @@ namespace TestProject1;
 
 public static class TestHelpers
 {
+    /// <summary>
+    /// Tikra PostgreSQL DB – integration testams.
+    /// </summary>
     public static AppDbContext NewContext()
     {
         // Same connection string as your appsettings (include error detail for easier debugging)
@@ -15,6 +19,18 @@ public static class TestHelpers
         var opts = new DbContextOptionsBuilder<AppDbContext>()
             .UseNpgsql(cs)
             .EnableSensitiveDataLogging()
+            .Options;
+
+        return new AppDbContext(opts);
+    }
+
+    /// <summary>
+    /// InMemory DB – greitiems unit testams (be tikros DB).
+    /// </summary>
+    public static AppDbContext NewInMemoryContext()
+    {
+        var opts = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
 
         return new AppDbContext(opts);

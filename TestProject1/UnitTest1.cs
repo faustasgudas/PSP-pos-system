@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using TestProject1.Fixtures;
 using PsP.Models;
 
-namespace TestProject1;
+namespace PsP.Tests;
 
 [Collection("db")]
 public class CreateOrderFlowTests
