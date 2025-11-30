@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using PsP.Models;
 using PsP.Contracts.Businesses;
 using PsP.Contracts.Common;
+using PsP.Mappings;             
 using PsP.Services.Interfaces;
 
 namespace PsP.Controllers;
@@ -32,8 +32,9 @@ public class BusinessesController : ControllerBase
         _logger.LogInformation("Getting all businesses");
 
         var businesses = await _businessService.GetAllAsync();
+
         var response = businesses
-            .Select(BusinessResponse.FromEntity)
+            .Select(b => b.ToResponse())   // 👈 mapperis
             .ToList();
 
         return Ok(response);
@@ -55,7 +56,7 @@ public class BusinessesController : ControllerBase
             return NotFound(new ApiErrorResponse("Business not found"));
         }
 
-        return Ok(BusinessResponse.FromEntity(business));
+        return Ok(business.ToResponse());  // 👈 mapperis
     }
 
     // ========== POST: /api/businesses ==========
@@ -72,16 +73,7 @@ public class BusinessesController : ControllerBase
 
         try
         {
-            var entity = new Business
-            {
-                Name = request.Name,
-                Address = request.Address,
-                Phone = request.Phone,
-                Email = request.Email,
-                CountryCode = request.CountryCode,
-                PriceIncludesTax = request.PriceIncludesTax,
-                BusinessStatus = "Active"
-            };
+            var entity = request.ToNewEntity();              // 👈 mapperis
 
             var created = await _businessService.CreateAsync(entity);
 
@@ -90,7 +82,7 @@ public class BusinessesController : ControllerBase
             return CreatedAtAction(
                 nameof(GetById),
                 new { id = created.BusinessId },
-                BusinessResponse.FromEntity(created));
+                created.ToResponse());                       // 👈 mapperis
         }
         catch (Exception ex)
         {
@@ -116,16 +108,7 @@ public class BusinessesController : ControllerBase
 
         try
         {
-            var updatedEntity = new Business
-            {
-                BusinessId = id, // nebūtina, bet ok
-                Name = request.Name,
-                Address = request.Address,
-                Phone = request.Phone,
-                Email = request.Email,
-                CountryCode = request.CountryCode,
-                PriceIncludesTax = request.PriceIncludesTax
-            };
+            var updatedEntity = request.ToUpdatedEntity(id);   // 👈 mapperis
 
             var updated = await _businessService.UpdateAsync(id, updatedEntity);
             if (updated is null)
@@ -134,7 +117,7 @@ public class BusinessesController : ControllerBase
                 return NotFound(new ApiErrorResponse("Business not found"));
             }
 
-            return Ok(BusinessResponse.FromEntity(updated));
+            return Ok(updated.ToResponse());                   // 👈 mapperis
         }
         catch (Exception ex)
         {
