@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using PsP.Contracts.Orders;
+using PsP.Services.Interfaces;
 
 
 namespace PsP.Controllers;
@@ -70,11 +71,14 @@ public class OrdersController : ControllerBase
 
 
     [HttpPost]
-    public IActionResult CreateOrder(
+    public async Task<ActionResult<OrderDetailResponse>> CreateOrder(
         [FromRoute] int businessId,
-        [FromBody] CreateOrderRequest body)
+        [FromBody] CreateOrderRequest body,
+        [FromServices] IOrdersService ordersService)
     {
-        return StatusCode(StatusCodes.Status201Created);
+        var dto = await ordersService.CreateOrderAsync(businessId, body);
+        
+        return CreatedAtAction(nameof(GetOrder), new { businessId, orderId = dto.OrderId, callerEmployeeId = body.EmployeeId }, dto);
     }
 
     // Update an OPEN order (move table, set/cancel status, set order-level discountId, tip)

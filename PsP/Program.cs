@@ -30,7 +30,7 @@ builder.Services.AddControllers();
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
+builder.Services.AddScoped<IOrdersService, OrdersService>();
 // CORS
 builder.Services.AddCors(options =>
 {

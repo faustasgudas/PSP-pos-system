@@ -32,11 +32,11 @@ public class BusinessesController : ControllerBase
         _logger.LogInformation("Getting all businesses");
 
         var businesses = await _businessService.GetAllAsync();
-
+        
         var response = businesses
             .Select(b => b.ToResponse())   // 👈 mapperis
             .ToList();
-
+        
         return Ok(response);
     }
 
