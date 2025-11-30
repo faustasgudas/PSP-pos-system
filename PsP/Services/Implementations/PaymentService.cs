@@ -1,7 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using PsP.Contracts.Payments;
 using PsP.Data;
 using PsP.Models;
-using PsP.Services.Interfaces; // čia IGiftCardService
+using PsP.Services.Interfaces;
 
 namespace PsP.Services.Implementations;
 
@@ -18,14 +19,29 @@ public class PaymentService
         _stripe = stripe;
     }
 
-    public async Task<PaymentResult> CreatePaymentAsync(
+    public async Task<PaymentResponse> CreatePaymentAsync(
         long amountCents,
         string currency,
         int businessId,
+        int orderId,
         string? giftCardCode,
         long? giftCardAmountCents,
         string baseUrl)
     {
+        if (amountCents <= 0)
+            throw new ArgumentOutOfRangeException(nameof(amountCents));
+
+        // ----- tikrinam, kad order egzistuoja ir priklauso tam business -----
+        var order = await _db.Orders
+            .AsNoTracking()
+            .FirstOrDefaultAsync(o => o.OrderId == orderId);
+
+        if (order is null)
+            throw new InvalidOperationException("order_not_found");
+
+        if (order.BusinessId != businessId)
+            throw new InvalidOperationException("wrong_business");
+
         GiftCard? card = null;
         long plannedFromGiftCard = 0;
         long remainingForStripe = amountCents;
@@ -36,7 +52,6 @@ public class PaymentService
             card = await _giftCards.GetByCodeAsync(giftCardCode)
                    ?? throw new InvalidOperationException("invalid_gift_card");
 
-            // verslo taisyklės (seniau buvo ValidateAsync)
             if (card.BusinessId != businessId)
                 throw new InvalidOperationException("wrong_business");
 
@@ -57,12 +72,21 @@ public class PaymentService
             }
             else
             {
-                // senas elgesys: naudoti maksimumą iš kortelės
+                // jei nenurodytas konkretus kiekis – imam kiek galima iki sumos
                 plannedFromGiftCard = maxFromCard;
             }
 
             remainingForStripe = amountCents - plannedFromGiftCard;
         }
+
+        // nusprendžiam metodą
+        string method;
+        if (plannedFromGiftCard == 0 && remainingForStripe > 0)
+            method = "Stripe";
+        else if (plannedFromGiftCard > 0 && remainingForStripe == 0)
+            method = "GiftCard";
+        else
+            method = "GiftCard+Stripe";
 
         // ---------- PAYMENT ĮRAŠAS DB ----------
         var p = new Payment
@@ -71,9 +95,10 @@ public class PaymentService
             Currency             = currency,
             CreatedAt            = DateTime.UtcNow,
             Status               = "Pending",
-            Method               = remainingForStripe == 0 ? "GiftCard" : "GiftCard+Stripe",
-            GiftCardId           = card?.GiftCardId,
+            Method               = method,
+            GiftCardId           = plannedFromGiftCard > 0 ? card?.GiftCardId : null,
             BusinessId           = businessId,
+            OrderId              = orderId,
             GiftCardPlannedCents = plannedFromGiftCard
         };
 
@@ -97,7 +122,7 @@ public class PaymentService
                 p.PaymentId
             );
 
-            stripeUrl = session.Url;
+            stripeUrl       = session.Url;
             stripeSessionId = session.Id;
 
             p.StripeSessionId = session.Id;
@@ -111,12 +136,12 @@ public class PaymentService
                 await _giftCards.RedeemAsync(card.GiftCardId, plannedFromGiftCard);
             }
 
-            p.Status = "Success";
+            p.Status      = "Success";
             p.CompletedAt = DateTime.UtcNow;
             await _db.SaveChangesAsync();
         }
 
-        return new PaymentResult(
+        return new PaymentResponse(
             p.PaymentId,
             plannedFromGiftCard,
             remainingForStripe,
@@ -125,7 +150,7 @@ public class PaymentService
         );
     }
 
-    // kviečiama iš /api/payment/success
+    // kviečiama iš /api/payments/success
     public async Task ConfirmStripeSuccessAsync(string sessionId)
     {
         var p = await _db.Payments
@@ -135,42 +160,30 @@ public class PaymentService
         if (p == null) return;
         if (p.Status == "Success") return; // idempotency
 
+        // jei yra giftcard dalis – nurašom dabar
         if (p.GiftCardId is not null &&
-            p.GiftCardPlannedCents > 0 &&
-            p.GiftCard is not null)
+            p.GiftCardPlannedCents > 0)
         {
-            // čia irgi pereinam prie Redeem pagal ID
-            await _giftCards.RedeemAsync(
-                p.GiftCard.GiftCardId,
-                p.GiftCardPlannedCents
-            );
+            try
+            {
+                var (charged, _) = await _giftCards.RedeemAsync(
+                    p.GiftCardId.Value,
+                    p.GiftCardPlannedCents
+                );
+
+                // jei dėl kokios nors priežasties buvo mažiau nei planuota – fiksuojam realiai nurašytą
+                p.GiftCardPlannedCents = charged;
+            }
+            catch
+            {
+                // čia galima loginti / markinti specialų statusą,
+                // bet Stripe dalis vis tiek pavyko, todėl payment laikom kaip Success
+                // ir neblokuojam srauto.
+            }
         }
 
-        p.Status = "Success";
+        p.Status      = "Success";
         p.CompletedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
-    }
-}
-
-public class PaymentResult
-{
-    public int PaymentId { get; set; }
-    public long PaidByGiftCard { get; set; }
-    public long RemainingForStripe { get; set; }
-    public string? StripeUrl { get; set; }
-    public string? StripeSessionId { get; set; }
-
-    public PaymentResult(
-        int paymentId,
-        long paidByGiftCard,
-        long remainingForStripe,
-        string? stripeUrl,
-        string? stripeSessionId)
-    {
-        PaymentId = paymentId;
-        PaidByGiftCard = paidByGiftCard;
-        RemainingForStripe = remainingForStripe;
-        StripeUrl = stripeUrl;
-        StripeSessionId = stripeSessionId;
     }
 }

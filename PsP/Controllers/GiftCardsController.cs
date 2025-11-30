@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
-using PsP.Models;                 
-using PsP.Services.Implementations;                
-using PsP.Contracts.GiftCards;    
+using Microsoft.Extensions.Logging;
+using PsP.Contracts.GiftCards;
 using PsP.Contracts.Common;
-using PsP.Services.Interfaces; 
+using PsP.Mappings;
+using PsP.Services.Interfaces;
 
 namespace PsP.Controllers
 {
@@ -39,7 +39,7 @@ namespace PsP.Controllers
                 return NotFound(new ApiErrorResponse("Gift card not found"));
             }
 
-            return Ok(GiftCardResponse.FromEntity(giftCard));
+            return Ok(giftCard.ToResponse());
         }
 
         [HttpGet("code/{code}")]
@@ -56,7 +56,7 @@ namespace PsP.Controllers
                 return NotFound(new ApiErrorResponse("Gift card not found"));
             }
 
-            return Ok(GiftCardResponse.FromEntity(giftCard));
+            return Ok(giftCard.ToResponse());
         }
 
         // ========== CREATE OPERATIONS ==========
@@ -73,24 +73,18 @@ namespace PsP.Controllers
 
             try
             {
-                var giftCard = new GiftCard
-                {
-                    Code       = request.Code,
-                    Balance    = request.Balance,
-                    ExpiresAt  = request.ExpiresAt,
-                    Status     = "Active",
-                    BusinessId = request.BusinessId   // 👈 ŠITA EILUTĖ BUVO TRŪKSTAMA
-                };
+                var giftCard = request.ToNewEntity(); // 👈 mapperis
 
                 var created = await _giftCardService.CreateAsync(giftCard);
 
-                _logger.LogInformation("Gift card created with ID: {GiftCardId} for business {BusinessId}",
+                _logger.LogInformation(
+                    "Gift card created with ID: {GiftCardId} for business {BusinessId}",
                     created.GiftCardId, created.BusinessId);
 
                 return CreatedAtAction(
                     nameof(GetById),
                     new { id = created.GiftCardId },
-                    GiftCardResponse.FromEntity(created));
+                    created.ToResponse()); // 👈 mapperis
             }
             catch (Exception ex)
             {
@@ -98,7 +92,6 @@ namespace PsP.Controllers
                 return BadRequest(new ApiErrorResponse("Failed to create gift card", ex.Message));
             }
         }
-
 
         // ========== UPDATE OPERATIONS ==========
 
