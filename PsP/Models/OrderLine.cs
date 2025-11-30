@@ -24,4 +24,9 @@ public class OrderLine
     public DateTime PerformedAt { get; set; }                // when line was added/updated
     public int? PerformedByEmployeeId { get; set; }          // who did it (optional)
 
+    public CatalogItem CatalogItem { get; set; } = null!;
+    public Order Order { get; set; } = null!;
+    public ICollection<StockMovement> StockMovement { get; set; } = new List<StockMovement>();
+
+    
 }

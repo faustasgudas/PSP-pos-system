@@ -22,6 +22,14 @@ public class Order
     
     public string? OrderDiscountSnapshot { get; set; }
     public int? DiscountId { get; set; }
+    public ICollection<OrderLine> Lines { get; set; } = new List<OrderLine>();
     
+    public ICollection<Payment> Payments { get; set; } = new List<Payment>(); // ← add this
+
+    public Business Business { get; set; } = null!;
+    
+    public Employee? Employee { get; set; }
+    
+    public Reservation? Reservation { get; set; }
 }
 
