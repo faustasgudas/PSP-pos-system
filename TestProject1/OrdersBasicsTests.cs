@@ -1,6 +1,10 @@
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using PsP.Models;
-using TestProject1;
+using TestProject1;   // TestHelpers
+using Xunit;
 
 namespace PsP.Tests;
 
@@ -9,7 +13,7 @@ public class OrdersBasicsTests
     [Fact]
     public async Task CreateOrder_WithTwoLines_PersistsSnapshots_AndNavs()
     {
-        await using var db = TestHelpers.NewContext();
+        await using var db = TestHelpers.NewInMemoryContext();  // <<< čia InMemory
         var (biz, emp) = TestHelpers.SeedBusinessAndEmployee(db);
         var item1 = TestHelpers.SeedCatalogItem(db, biz.BusinessId, "Espresso", "Food");
         var item2 = TestHelpers.SeedCatalogItem(db, biz.BusinessId, "Haircut", "Service");
@@ -64,14 +68,14 @@ public class OrdersBasicsTests
         {
             Assert.False(string.IsNullOrWhiteSpace(l.ItemNameSnapshot));
             Assert.True(l.UnitPriceSnapshot >= 0);
-            Assert.True(l.PerformedAt != default);
+            Assert.NotEqual(default, l.PerformedAt);
         });
     }
 
     [Fact]
     public async Task DeleteOrder_CascadesToLines()
     {
-        await using var db = TestHelpers.NewContext();
+        await using var db = TestHelpers.NewInMemoryContext();  // <<< čia InMemory
         var (biz, emp) = TestHelpers.SeedBusinessAndEmployee(db);
         var item = TestHelpers.SeedCatalogItem(db, biz.BusinessId);
 
@@ -102,7 +106,10 @@ public class OrdersBasicsTests
         db.Orders.Remove(order);
         await db.SaveChangesAsync();
 
-        var linesLeft = await db.OrderLines.Where(l => l.OrderId == order.OrderId).CountAsync();
+        var linesLeft = await db.OrderLines
+            .Where(l => l.OrderId == order.OrderId)
+            .CountAsync();
+
         Assert.Equal(0, linesLeft);
     }
 }
