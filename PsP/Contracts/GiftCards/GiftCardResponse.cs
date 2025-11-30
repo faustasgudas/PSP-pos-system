@@ -10,17 +10,4 @@ public class GiftCardResponse
     public string Status { get; set; } = string.Empty;
     public DateTime? ExpiresAt { get; set; }
     public DateTime IssuedAt { get; set; }
-
-    public static GiftCardResponse FromEntity(GiftCard entity)
-    {
-        return new GiftCardResponse
-        {
-            GiftCardId = entity.GiftCardId,
-            Code = entity.Code,
-            Balance = entity.Balance,
-            Status = entity.Status,
-            ExpiresAt = entity.ExpiresAt,
-            IssuedAt = entity.IssuedAt
-        };
-    }
 }

@@ -13,12 +13,12 @@ public class Business
 
     public ICollection<Payment> Payments { get; set; } =new List<Payment>();
 
-            public ICollection<Employee> Employees { get; set; } = new List<Employee>();
-            public ICollection<CatalogItem> CatalogItems { get; set; } = new List<CatalogItem>();
-            public ICollection<Order> Orders { get; set; } = new List<Order>();
-            public ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
-            public ICollection<GiftCard> GiftCards { get; set; } = new List<GiftCard>();
-            public ICollection<Discount> Discounts { get; set; } = new List<Discount>();
+    public ICollection<Employee> Employees { get; set; } = new List<Employee>();
+    public ICollection<CatalogItem> CatalogItems { get; set; } = new List<CatalogItem>();
+    public ICollection<Order> Orders { get; set; } = new List<Order>();
+    public ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
+    public ICollection<GiftCard> GiftCards { get; set; } = new List<GiftCard>();
+    public ICollection<Discount> Discounts { get; set; } = new List<Discount>();
     
             
 }

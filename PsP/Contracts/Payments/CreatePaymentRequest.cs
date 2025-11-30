@@ -14,6 +14,9 @@ public class CreatePaymentRequest
     [Range(1, int.MaxValue)]
     public int BusinessId { get; set; }
 
+    [Range(1, int.MaxValue)]
+    public int OrderId { get; set; }   // 👈 SUSIEJAM SU ORDER
+
     public string? GiftCardCode { get; set; }
 
     [Range(1, long.MaxValue)]

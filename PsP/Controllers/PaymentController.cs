@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using PsP.Contracts.Common;
 using PsP.Contracts.Payments;
+using PsP.Mappings;
 using PsP.Services.Implementations;
 
 namespace PsP.Controllers;
@@ -23,9 +25,9 @@ public class PaymentController : ControllerBase
     /// Sukuria naują apmokėjimą (Stripe + optional GiftCard).
     /// </summary>
     [HttpPost]
-    [ProducesResponseType(typeof(PaymentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PaymentResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<PaymentResult>> Create([FromBody] CreatePaymentRequest request)
+    public async Task<ActionResult<PaymentResponse>> Create([FromBody] CreatePaymentRequest request)
     {
         _logger.LogInformation(
             "Creating payment for business {BusinessId}, amount {AmountCents} {Currency}, giftCard: {GiftCardCode}",
@@ -38,15 +40,16 @@ public class PaymentController : ControllerBase
         try
         {
             var baseUrl = $"{Request.Scheme}://{Request.Host}";
-
             var result = await _payments.CreatePaymentAsync(
                 request.AmountCents,
                 request.Currency,
                 request.BusinessId,
+                request.OrderId,
                 request.GiftCardCode,
                 request.GiftCardAmountCents,
                 baseUrl);
 
+// result jau yra PaymentResponse
             return Ok(result);
         }
         catch (ArgumentOutOfRangeException ex)
