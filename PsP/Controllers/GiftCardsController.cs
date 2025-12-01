@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -10,6 +11,7 @@ namespace PsP.Controllers
 {
     [ApiController]
     [Route("api/giftcards")]
+    [Authorize] 
     public class GiftCardsController : ControllerBase
     {
         private readonly IGiftCardService _giftCardService;
@@ -23,6 +25,13 @@ namespace PsP.Controllers
             _logger = logger;
         }
 
+        private int GetBusinessIdFromToken()
+        {
+            var claim = User.FindFirst("businessId")
+                        ?? throw new InvalidOperationException("Missing businessId claim");
+            return int.Parse(claim.Value);
+        }
+
         // ========== GET OPERATIONS ==========
 
         [HttpGet("{id:int}")]
@@ -30,12 +39,14 @@ namespace PsP.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<GiftCardResponse>> GetById(int id)
         {
-            _logger.LogInformation("Getting gift card by ID: {GiftCardId}", id);
+            var bizId = GetBusinessIdFromToken();
+
+            _logger.LogInformation("Getting gift card by ID: {GiftCardId} for business {BusinessId}", id, bizId);
 
             var giftCard = await _giftCardService.GetByIdAsync(id);
-            if (giftCard is null)
+            if (giftCard is null || giftCard.BusinessId != bizId)
             {
-                _logger.LogWarning("Gift card {GiftCardId} not found", id);
+                _logger.LogWarning("Gift card {GiftCardId} not found or foreign for business {BusinessId}", id, bizId);
                 return NotFound(new ApiErrorResponse("Gift card not found"));
             }
 
@@ -47,12 +58,14 @@ namespace PsP.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<GiftCardResponse>> GetByCode(string code)
         {
-            _logger.LogInformation("Getting gift card by code: {Code}", code);
+            var bizId = GetBusinessIdFromToken();
+
+            _logger.LogInformation("Getting gift card by code: {Code} for business {BusinessId}", code, bizId);
 
             var giftCard = await _giftCardService.GetByCodeAsync(code);
-            if (giftCard is null)
+            if (giftCard is null || giftCard.BusinessId != bizId)
             {
-                _logger.LogWarning("Gift card with code {Code} not found", code);
+                _logger.LogWarning("Gift card with code {Code} not found or foreign for business {BusinessId}", code, bizId);
                 return NotFound(new ApiErrorResponse("Gift card not found"));
             }
 
@@ -66,14 +79,18 @@ namespace PsP.Controllers
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<GiftCardResponse>> Create([FromBody] CreateGiftCardRequest request)
         {
-            _logger.LogInformation("Creating new gift card for business {BusinessId}", request.BusinessId);
+            var bizId = GetBusinessIdFromToken();
+
+            _logger.LogInformation("Creating new gift card for business {BusinessId}", bizId);
 
             if (!ModelState.IsValid)
                 return ValidationProblem(ModelState);
 
             try
             {
-                var giftCard = request.ToNewEntity(); // 👈 mapperis
+                var giftCard = request.ToNewEntity(); // mapperis su BusinessId iš request
+                // PERRAŠOM BusinessId, kad būtų tik iš JWT
+                giftCard.BusinessId = bizId;
 
                 var created = await _giftCardService.CreateAsync(giftCard);
 
@@ -84,7 +101,7 @@ namespace PsP.Controllers
                 return CreatedAtAction(
                     nameof(GetById),
                     new { id = created.GiftCardId },
-                    created.ToResponse()); // 👈 mapperis
+                    created.ToResponse());
             }
             catch (Exception ex)
             {
@@ -101,10 +118,21 @@ namespace PsP.Controllers
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status422UnprocessableEntity)]
         public async Task<IActionResult> UpdateBalance(int id, [FromBody] UpdateBalanceRequest request)
         {
-            _logger.LogInformation("Updating balance for gift card {GiftCardId} by {Amount}", id, request.Amount);
+            var bizId = GetBusinessIdFromToken();
+
+            _logger.LogInformation("Updating balance for gift card {GiftCardId} by {Amount} (business {BusinessId})",
+                id, request.Amount, bizId);
 
             if (!ModelState.IsValid)
                 return ValidationProblem(ModelState);
+
+            // Pirma pasižiūrim ar kortelė priklauso šitam business
+            var card = await _giftCardService.GetByIdAsync(id);
+            if (card is null || card.BusinessId != bizId)
+            {
+                _logger.LogWarning("Gift card {GiftCardId} not found or foreign for business {BusinessId}", id, bizId);
+                return NotFound(new ApiErrorResponse("Gift card not found"));
+            }
 
             try
             {
@@ -133,10 +161,21 @@ namespace PsP.Controllers
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status422UnprocessableEntity)]
         public async Task<ActionResult<RedeemResponse>> Redeem(int id, [FromBody] RedeemRequest request)
         {
-            _logger.LogInformation("Redeeming {Amount} from gift card {GiftCardId}", request.Amount, id);
+            var bizId = GetBusinessIdFromToken();
+
+            _logger.LogInformation(
+                "Redeeming {Amount} from gift card {GiftCardId} for business {BusinessId}",
+                request.Amount, id, bizId);
 
             if (!ModelState.IsValid)
                 return ValidationProblem(ModelState);
+
+            var card = await _giftCardService.GetByIdAsync(id);
+            if (card is null || card.BusinessId != bizId)
+            {
+                _logger.LogWarning("Gift card {GiftCardId} not found or foreign for business {BusinessId}", id, bizId);
+                return NotFound(new ApiErrorResponse("Gift card not found"));
+            }
 
             try
             {
@@ -165,7 +204,16 @@ namespace PsP.Controllers
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Deactivate(int id)
         {
-            _logger.LogInformation("Deactivating gift card {GiftCardId}", id);
+            var bizId = GetBusinessIdFromToken();
+
+            _logger.LogInformation("Deactivating gift card {GiftCardId} for business {BusinessId}", id, bizId);
+
+            var card = await _giftCardService.GetByIdAsync(id);
+            if (card is null || card.BusinessId != bizId)
+            {
+                _logger.LogWarning("Gift card {GiftCardId} not found or foreign for business {BusinessId}", id, bizId);
+                return NotFound(new ApiErrorResponse("Gift card not found"));
+            }
 
             var success = await _giftCardService.DeactivateAsync(id);
             if (!success)

@@ -1,15 +1,16 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using PsP.Contracts.Common;
 using PsP.Contracts.Payments;
-using PsP.Mappings;
 using PsP.Services.Implementations;
 
 namespace PsP.Controllers;
 
 [ApiController]
 [Route("api/payments")]
+[Authorize]
 public class PaymentController : ControllerBase
 {
     private readonly PaymentService _payments;
@@ -29,9 +30,14 @@ public class PaymentController : ControllerBase
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<PaymentResponse>> Create([FromBody] CreatePaymentRequest request)
     {
+        // businessId imame iš JWT, nepasitikim tuo, kas ateina iš body
+        var businessIdClaim = User.FindFirst("businessId")
+                              ?? throw new InvalidOperationException("Missing businessId claim");
+        var businessId = int.Parse(businessIdClaim.Value);
+
         _logger.LogInformation(
             "Creating payment for business {BusinessId}, amount {AmountCents} {Currency}, giftCard: {GiftCardCode}",
-            request.BusinessId, request.AmountCents, request.Currency, request.GiftCardCode
+            businessId, request.AmountCents, request.Currency, request.GiftCardCode
         );
 
         if (!ModelState.IsValid)
@@ -43,13 +49,13 @@ public class PaymentController : ControllerBase
             var result = await _payments.CreatePaymentAsync(
                 request.AmountCents,
                 request.Currency,
-                request.BusinessId,
+                businessId,                   // 👈 iš tokeno
                 request.OrderId,
                 request.GiftCardCode,
                 request.GiftCardAmountCents,
                 baseUrl);
 
-// result jau yra PaymentResponse
+            // result jau yra PaymentResponse
             return Ok(result);
         }
         catch (ArgumentOutOfRangeException ex)
@@ -59,7 +65,7 @@ public class PaymentController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            // pvz. invalid_gift_card / wrong_business / blocked / expired
+            // pvz. invalid_gift_card / wrong_business / blocked / expired / order_not_found
             _logger.LogWarning(ex, "Business rule violation when creating payment");
             return BadRequest(new ApiErrorResponse("Payment failed", ex.Message));
         }
@@ -72,7 +78,9 @@ public class PaymentController : ControllerBase
 
     /// <summary>
     /// Stripe success callback (/api/payments/success?sessionId=...).
+    /// Čia NEGALI reikalauti JWT, nes kviečia Stripe.
     /// </summary>
+    [AllowAnonymous]
     [HttpGet("success")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> Success([FromQuery] string sessionId)
@@ -88,6 +96,7 @@ public class PaymentController : ControllerBase
     /// <summary>
     /// Stripe cancel callback (/api/payments/cancel?sessionId=...).
     /// </summary>
+    [AllowAnonymous]
     [HttpGet("cancel")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public IActionResult Cancel([FromQuery] string sessionId)
