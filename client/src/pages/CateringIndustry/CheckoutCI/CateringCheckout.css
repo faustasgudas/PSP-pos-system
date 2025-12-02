@@ -2,14 +2,9 @@
     width: 100%;
     min-height: 97.5vh;
 }
-.show-if-split {
-    opacity: 0;
-    max-height: 0;
-    overflow: hidden;
-}
 
-input[type="radio"]:checked ~ .show-if-split {
-    opacity: 1;
-    max-height: 100px;
-    overflow: visible;
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }

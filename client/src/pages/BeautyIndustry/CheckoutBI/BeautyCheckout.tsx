@@ -1,10 +1,10 @@
 ﻿import "../../../App.css"
+import "./BeautyCheckout.css"
 import { useState } from "react";
 
 function BeautyCheckout(){
     // @ts-ignore
     const [apiMessage, setApiMessage] = useState("Loading from API...");
-    const [selectedOption, setSelectedOption] = useState("");
     // @ts-ignore
     const [amount, setAmount] = useState(0.00);
     // @ts-ignore
@@ -24,18 +24,9 @@ function BeautyCheckout(){
                 <input type="number">€</input>
                 <p>Final calculated amount: {totalAmount}</p>
                 <p>Select payment method:</p>
-                <select
-                    id = "payment-method"
-                    value = {selectedOption}
-                    onChange = {(e) => setSelectedOption(e.currentTarget.value)}
-                    className="payment-method-dropdown"
-                >
-                    <option value="">Select payment method</option>
-                    <option value="cash">Cash</option>
-                    <option value="card">Card</option>
-                </select>
                 <button>Cancel</button>
-                <button>Continue</button>
+                <button>Pay by card</button>
+                <button>Pay by cash</button>
             </div>
         </div>
     )

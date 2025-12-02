@@ -1,16 +1,15 @@
 ﻿import "../../../App.css"
+import "./CateringCheckout.css"
 import { useState } from "react";
 
 function CateringCheckout() {
     // @ts-ignore
     const [apiMessage, setApiMessage] = useState("Loading from API...");
-    const [selectedOption, setSelectedOption] = useState("");
     // @ts-ignore
     const [amount, setAmount] = useState(0.00);
     // @ts-ignore
     const [totalAmount, setTotalAmount] = useState(0.00);
 
-    //todo - add input fields for splitting based on amount chosen
     return (
         <div className="content-box">
             <div className="top-bar">
@@ -23,25 +22,11 @@ function CateringCheckout() {
                 <input type="text"></input>
                 <p>Add tip (optional):</p>
                 <input type="number">€</input>
-                <p>Final calculated amount: {totalAmount}</p>
-                <input type="radio" value="split">Split payment</input>
-                <div className="show-if-split">
-                    <p>Split into:</p>
-                    <input type="range" value="payers" min="1" max="9"></input>
-                </div>
+                <p>Final calculated amount: {totalAmount}€</p>
                 <p>Select payment method:</p>
-                <select
-                    id="payment-method"
-                    value={selectedOption}
-                    onChange={(e) => setSelectedOption(e.currentTarget.value)}
-                    className="payment-method-dropdown"
-                >
-                    <option value="">Select payment method</option>
-                    <option value="cash">Cash</option>
-                    <option value="card">Card</option>
-                </select>
                 <button>Cancel</button>
-                <button>Continue</button>
+                <button>Pay by card</button>
+                <button>Pay by cash</button>
             </div>
         </div>    
     )
