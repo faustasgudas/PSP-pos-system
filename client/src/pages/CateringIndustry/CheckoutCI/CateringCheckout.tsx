@@ -1,6 +1,8 @@
 ﻿import "../../../App.css"
 import "./CateringCheckout.css"
 import { useState } from "react";
+import PayCardCI from "../PayCardCI/CateringPayCard";
+import PayCashCI from "../PayCashCI/CateringPayCash";
 
 function CateringCheckout() {
     // @ts-ignore
@@ -9,6 +11,14 @@ function CateringCheckout() {
     const [amount, setAmount] = useState(0.00);
     // @ts-ignore
     const [totalAmount, setTotalAmount] = useState(0.00);
+    
+    const goToCash = () => {
+        return <PayCashCI />
+    }
+    
+    const goToCard = () => {
+        return <PayCardCI />
+    }
 
     return (
         <div className="content-box">
@@ -25,8 +35,8 @@ function CateringCheckout() {
                 <p>Final calculated amount: {totalAmount}€</p>
                 <p>Select payment method:</p>
                 <button>Cancel</button>
-                <button>Pay by card</button>
-                <button>Pay by cash</button>
+                <button onClick={goToCard}>Pay by card</button>
+                <button onClick={goToCash}>Pay by cash</button>
             </div>
         </div>    
     )

@@ -1,6 +1,8 @@
 ﻿import "../../../App.css"
 import "./BeautyCheckout.css"
 import { useState } from "react";
+import PayCardBI from "../PayCardBI/BeautyPayCard";
+import PayCashBI from "../PayCashBI/BeautyPayCash";
 
 function BeautyCheckout(){
     // @ts-ignore
@@ -9,6 +11,14 @@ function BeautyCheckout(){
     const [amount, setAmount] = useState(0.00);
     // @ts-ignore
     const [totalAmount, setTotalAmount] = useState(0.00);
+
+    const goToCash = () => {
+        return <PayCashBI />
+    }
+
+    const goToCard = () => {
+        return <PayCardBI />
+    }
     
     return (
         <div className="content-box">
@@ -25,8 +35,8 @@ function BeautyCheckout(){
                 <p>Final calculated amount: {totalAmount}</p>
                 <p>Select payment method:</p>
                 <button>Cancel</button>
-                <button>Pay by card</button>
-                <button>Pay by cash</button>
+                <button onClick={goToCard}>Pay by card</button>
+                <button onClick={goToCash}>Pay by cash</button>
             </div>
         </div>
     )
