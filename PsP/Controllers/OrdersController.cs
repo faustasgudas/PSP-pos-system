@@ -74,9 +74,10 @@ public class OrdersController : ControllerBase
     public async Task<ActionResult<OrderDetailResponse>> CreateOrder(
         [FromRoute] int businessId,
         [FromBody] CreateOrderRequest body,
-        [FromServices] IOrdersService ordersService)
+        [FromServices] IOrdersService ordersService,
+        CancellationToken ct)
     {
-        var dto = await ordersService.CreateOrderAsync(businessId, body);
+        var dto = await ordersService.CreateOrderAsync(businessId, body,ct);
         
         return CreatedAtAction(nameof(GetOrder), new { businessId, orderId = dto.OrderId, callerEmployeeId = body.EmployeeId }, dto);
     }
