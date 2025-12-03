@@ -1,0 +1,81 @@
+.employees-container {
+    padding: 20px;
+}
+
+/* List wrapper */
+.employees-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 20px;
+}
+
+/* Employee card */
+.employee-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Avatar circle */
+.employee-avatar {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: #8ecae6;
+    color: #023047;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 22px;
+    font-weight: 600;
+}
+
+/* Employee name + role */
+.employee-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.employee-name {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.employee-role {
+    font-size: 14px;
+    color: #555;
+}
+
+/* Action buttons */
+.employee-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-small {
+    background: #8ecae6;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.btn-small:hover {
+    background: #58b4d1;
+}
+
+.btn-danger {
+    background: #e63946;
+    color: white;
+}
+
+.no-employees {
+    opacity: 0.7;
+    padding: 20px;
+}

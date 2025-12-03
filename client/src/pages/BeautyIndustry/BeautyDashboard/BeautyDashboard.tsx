@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import "../../../App.css"
-import "./BeautyMain.css"
+import "./BeautyDashboard.css.css"
+import BeautyReservations from "../BeautyReservations/BeautyReservations";
 
 // Type definitions
 interface Booking {
@@ -42,7 +43,8 @@ interface StockItem {
 }
 
 function BeautyMain() {
-    const [activeTab, setActiveTab] = useState<'upcoming' | 'payments'>('upcoming');
+    const [activeScreen, setActiveScreen] =
+        useState<'dashboard' | 'reservations' | 'employees'>('dashboard');
 
     // TODO: Replace with actual API calls
     const [reservations, setReservations] = useState<Booking[]>([]);
@@ -51,16 +53,6 @@ function BeautyMain() {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [stockItems, setStockItems] = useState<StockItem[]>([]);
 
-    // TODO: useEffect to fetch data from backend
-    // useEffect(() => {
-    //   fetchReservations();
-    //   fetchPayments();
-    //   fetchServices();
-    //   fetchEmployees();
-    //   fetchStockItems();
-    // }, []);
-
-    // Helper functions
     const getServiceNames = (serviceIds: number[]): string => {
         return serviceIds
             .map(id => services.find(s => s.id === id)?.name || 'Unknown')
@@ -75,13 +67,11 @@ function BeautyMain() {
         return new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
 
-    // Calculate stats
     const todayBookings = reservations.length;
     const todayRevenue = payments.reduce((sum, p) => sum + p.amount.amount, 0);
     const activeEmployees = employees.length;
     const lowStockItems = stockItems.filter(item => item.qtyOnHand < 5).length;
 
-    // Filter upcoming reservations
     const upcomingReservations = reservations
         .filter(r => new Date(r.appointmentStart) > new Date())
         .slice(0, 5);
@@ -97,81 +87,82 @@ function BeautyMain() {
                 </div>
             </div>
 
-            {/* Navigation Bar */}
+            {/* Navbar */}
             <div className="navbar">
-                <button className="nav-btn active">
+                <button
+                    className={`nav-btn ${activeScreen === "dashboard" ? "active" : ""}`}
+                    onClick={() => setActiveScreen("dashboard")}
+                >
                     <span>📊</span> Dashboard
                 </button>
-                <button className="nav-btn">
+
+                <button
+                    className={`nav-btn ${activeScreen === "reservations" ? "active" : ""}`}
+                    onClick={() => setActiveScreen("reservations")}
+                >
                     <span>📅</span> Reservations
                 </button>
-                <button className="nav-btn">
+
+                <button
+                    className={`nav-btn ${activeScreen === "employees" ? "active" : ""}`}
+                    onClick={() => setActiveScreen("employees")}
+                >
                     <span>👥</span> Employees
                 </button>
+
+
                 <button className="nav-btn">
                     <span>📋</span> Services
                 </button>
+
                 <button className="nav-btn">
                     <span>📦</span> Inventory
                 </button>
+
                 <button className="nav-btn">
                     <span>💳</span> Payments
                 </button>
+
                 <button className="nav-btn">
                     <span>🎁</span> Gift Cards
                 </button>
             </div>
 
-            {/* Dashboard Content */}
+            {/* Screen Switch */}
             <div className="dashboard-container">
-                <div className="action-bar">
-                    <h2 className="section-title">Today's Overview</h2>
-                    <div className="action-buttons">
-                        <button className="btn btn-primary">
-                            <span>➕</span> New Booking
-                        </button>
-                    </div>
-                </div>
+                {activeScreen === "dashboard" && (
+                    <>
+                        {/* Dashboard */}
+                        <div className="action-bar">
+                            <h2 className="section-title">Today's Overview</h2>
+                            <div className="action-buttons">
+                                <button className="btn btn-primary">
+                                    <span>➕</span> New Booking
+                                </button>
+                            </div>
+                        </div>
 
-                {/* Statistics Grid */}
-                <div className="stat-grid">
-                    <div className="stat-card">
-                        <div className="stat-number">{todayBookings}</div>
-                        <div className="stat-label">Today's Reservations</div>
-                    </div>
-                    <div className="stat-card">
-                        <div className="stat-number">€{todayRevenue}</div>
-                        <div className="stat-label">Today's Revenue</div>
-                    </div>
-                    <div className="stat-card">
-                        <div className="stat-number">{activeEmployees}</div>
-                        <div className="stat-label">Active Employees</div>
-                    </div>
-                    <div className="stat-card">
-                        <div className="stat-number">{lowStockItems}</div>
-                        <div className="stat-label">Low Stock Items</div>
-                    </div>
-                </div>
+                        <div className="stat-grid">
+                            <div className="stat-card">
+                                <div className="stat-number">{todayBookings}</div>
+                                <div className="stat-label">Today's Reservations</div>
+                            </div>
+                            <div className="stat-card">
+                                <div className="stat-number">€{todayRevenue}</div>
+                                <div className="stat-label">Today's Revenue</div>
+                            </div>
+                            <div className="stat-card">
+                                <div className="stat-number">{activeEmployees}</div>
+                                <div className="stat-label">Active Employees</div>
+                            </div>
+                            <div className="stat-card">
+                                <div className="stat-number">{lowStockItems}</div>
+                                <div className="stat-label">Low Stock Items</div>
+                            </div>
+                        </div>
 
-                {/* Tabs */}
-                <div className="tabs">
-                    <button
-                        className={`tab ${activeTab === 'upcoming' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('upcoming')}
-                    >
-                        Upcoming Reservations
-                    </button>
-                    <button
-                        className={`tab ${activeTab === 'payments' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('payments')}
-                    >
-                        Recent Payments
-                    </button>
-                </div>
-
-                {/* Tab Content */}
-                {activeTab === 'upcoming' && (
-                    <div className="tab-content">
+                        {/* Upcoming reservations */}
+                        <h2 className="section-title">Upcoming Reservations</h2>
                         <div className="booking-list">
                             {upcomingReservations.length > 0 ? (
                                 upcomingReservations.map(booking => (
@@ -204,40 +195,15 @@ function BeautyMain() {
                                 </div>
                             )}
                         </div>
-                    </div>
+                    </>
                 )}
 
-                {activeTab === 'payments' && (
-                    <div className="tab-content">
-                        <div className="booking-list">
-                            {payments.length > 0 ? (
-                                payments.map(payment => (
-                                    <div key={payment.id} className="booking-item">
-                                        <div className="booking-header">
-                                            <div className="booking-time">€{payment.amount.amount}</div>
-                                            <div className="booking-status status-completed">{payment.method}</div>
-                                        </div>
-                                        <div className="booking-details">
-                                            <div className="detail-item">
-                                                <div className="detail-label">Reservation</div>
-                                                <div className="detail-value">#{payment.reservationId}</div>
-                                            </div>
-                                            <div className="detail-item">
-                                                <div className="detail-label">Status</div>
-                                                <div className="detail-value">{payment.status}</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))
-                            ) : (
-                                <div className="booking-item">
-                                    <div className="booking-details">
-                                        <div className="detail-value">No recent payments</div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
+                {activeScreen === "reservations" && (
+                    <BeautyReservations
+                        reservations={reservations}
+                        services={services}
+                        employees={employees}
+                    />
                 )}
             </div>
         </div>

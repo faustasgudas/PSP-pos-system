@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import reactLogo from "./assets/react.svg";
 import viteLogo from "/vite.svg";
 import "./App.css";
-import MainBI from "./pages/BeautyIndustry/MainBI/BeautyMain";
-import MainCI from "./pages/CateringIndustry/MainCI/CateringMain";
+import BeautyDashboard from "./pages/BeautyIndustry/BeautyDashboard/BeautyDashboard";
+import CateringDashboard from "./pages/CateringIndustry/CateringDashboard/CateringDashboard";
 
 function App() {
     const [count, setCount] = useState(0);
@@ -23,9 +23,9 @@ function App() {
     if(isLoggedIn){
         switch(selectedOption){
             case "beautyIndustry":
-                return <MainBI />;
+                return <BeautyDashboard />;
             case "cateringIndustry":
-                return <MainCI />;
+                return <CateringDashboard />;
             default:
                 return <div>Invalid business type</div>
         }
