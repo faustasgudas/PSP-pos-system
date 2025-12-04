@@ -21,6 +21,7 @@ public class Order
 
     
     public string? OrderDiscountSnapshot { get; set; }
+    // public decimal? OrderDiscountValueSnapshot { get; set; }
     public int? DiscountId { get; set; }
     public ICollection<OrderLine> Lines { get; set; } = new List<OrderLine>();
     
