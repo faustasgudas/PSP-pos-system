@@ -1,4 +1,6 @@
 using System;
+using System.Data.Common;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using PsP.Data;
 using PsP.Models;
@@ -80,4 +82,34 @@ public static class TestHelpers
         db.SaveChanges();
         return item;
     }
+    
+    public static class TestDbSqlite
+    {
+        public static async Task<(AppDbContext db, DbConnection conn)> NewAsync()
+        {
+            // One context, one connection, pure in-memory
+            var conn = new SqliteConnection("Data Source=:memory:");
+            await conn.OpenAsync();
+
+            var opts = new DbContextOptionsBuilder<AppDbContext>()
+                .UseSqlite(conn)
+                .EnableSensitiveDataLogging()
+                .Options;
+
+            var db = new AppDbContext(opts);
+            await db.Database.EnsureCreatedAsync(); // build schema in this connection
+
+            return (db, conn);
+        }
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 }

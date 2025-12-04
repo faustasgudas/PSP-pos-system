@@ -113,6 +113,7 @@ public static class OrderMappings
                 decimal unitPriceSnapshot,
                 string taxClassSnapshot,
                 decimal taxRateSnapshotPct,
+                int? discountId,
                 string? unitDiscountSnapshot = null,
                 DateTime? nowUtc = null)
             {
@@ -121,7 +122,7 @@ public static class OrderMappings
                     BusinessId           = businessId,
                     OrderId              = orderId,
                     CatalogItemId        = req.CatalogItemId,
-                    DiscountId           = req.DiscountId,
+                    DiscountId           = discountId,
                     Qty                  = req.Qty,
         
                     // snapshots resolved by your domain/service layer

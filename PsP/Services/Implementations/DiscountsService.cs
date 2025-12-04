@@ -1,5 +1,7 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
+using PsP.Contracts.Snapshots;
 using PsP.Data;
 using PsP.Models;
 using PsP.Services.Interfaces;
@@ -37,7 +39,7 @@ public class DiscountsService : IDiscountsService
     public async Task<Discount?> GetOrderDiscountAsync(
         int discountId,
         CancellationToken ct = default)
-    {;
+    {
         
         return await _db.Discounts
             .AsNoTracking()
@@ -94,7 +96,8 @@ public class DiscountsService : IDiscountsService
                 d.Status     == "Active" &&
                 d.Scope      == "Line" &&
                 d.StartsAt   <= now &&
-                d.EndsAt     >= now &&
+                (d.EndsAt == null || d.EndsAt >= now)
+                 &&
                 d.Eligibilities.Any(e => e.CatalogItemId == catalogItemId))
             .OrderByDescending(d => d.StartsAt)
             .ThenByDescending(d => d.DiscountId)
@@ -123,7 +126,7 @@ public class DiscountsService : IDiscountsService
                 d.Status     == "Active" &&
                 d.Scope      == "Order" &&
                 d.StartsAt   <= now &&
-                d.EndsAt     >= now)
+                (d.EndsAt == null || d.EndsAt >= now))
             .OrderByDescending(d => d.StartsAt)
             .ThenByDescending(d => d.DiscountId)
             .FirstOrDefaultAsync(ct);
@@ -135,45 +138,61 @@ public class DiscountsService : IDiscountsService
     }
     
     
-    public string MakeOrderDiscountSnapshot(Discount d, DateTime? capturedAtUtc = null)
+
+
+static readonly JsonSerializerOptions JsonOptions = new()
+{
+    WriteIndented = false,
+    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+};
+
+// --- Writers ---
+public string MakeOrderDiscountSnapshot(Discount d, DateTime? capturedAtUtc = null)
+{
+   
+
+    var snap = new DiscountSnapshot
     {
-        var payload = new
-        {
-            discountId = d.DiscountId,
-            code = d.Code,
-            type = d.Type,        // "Percent" | "Amount"
-            value = d.Value,      // decimal (money or percent depending on Type)
-            scope = d.Scope,      // "Order"
-            validFrom = d.StartsAt,
-            validTo   = d.EndsAt,
-            capturedAtUtc = capturedAtUtc ?? DateTime.UtcNow
-        };
-
-        return JsonSerializer.Serialize(payload, JsonOptions);
-    }
-
-    public string MakeLineDiscountSnapshot(Discount d, int catalogItemId, DateTime? capturedAtUtc = null)
-    {
-        var payload = new
-        {
-            discountId = d.DiscountId,
-            code = d.Code,
-            type = d.Type,
-            value = d.Value,
-            scope = d.Scope,      // "Line"
-            catalogItemId,
-            validFrom = d.StartsAt,
-            validTo   = d.EndsAt,
-            capturedAtUtc = capturedAtUtc ?? DateTime.UtcNow
-        };
-
-        return JsonSerializer.Serialize(payload, JsonOptions);
-    }
-
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        WriteIndented = false
+        Version = 1,
+        DiscountId = d.DiscountId,
+        Code = d.Code,
+        Type = d.Type,
+        Scope = d.Scope,           // "Order"
+        Value = d.Value,
+        ValidFrom = d.StartsAt,
+        ValidTo   = d.EndsAt,
+        CapturedAtUtc = capturedAtUtc ?? DateTime.UtcNow
     };
+    return JsonSerializer.Serialize(snap, JsonOptions);
+}
+
+public string MakeLineDiscountSnapshot(Discount d, int catalogItemId, DateTime? capturedAtUtc = null)
+{
+    var snap = new DiscountSnapshot
+    {
+        Version = 1,
+        DiscountId = d.DiscountId,
+        Code = d.Code,
+        Type = d.Type,
+        Scope = d.Scope,          
+        Value = d.Value,
+        CatalogItemId = catalogItemId,
+        ValidFrom = d.StartsAt,
+        ValidTo   = d.EndsAt,
+        CapturedAtUtc = capturedAtUtc ?? DateTime.UtcNow
+    };
+    return JsonSerializer.Serialize(snap, JsonOptions);
+}
+
+
+public DiscountSnapshot? TryParseDiscountSnapshot(string? json)
+{
+    if (string.IsNullOrWhiteSpace(json)) return null;
+    try { return JsonSerializer.Deserialize<DiscountSnapshot>(json, JsonOptions); }
+    catch { return null; } 
+}
+
     
     
 

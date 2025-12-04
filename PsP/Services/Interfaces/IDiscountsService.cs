@@ -1,3 +1,4 @@
+using PsP.Contracts.Snapshots;
 using PsP.Models;
 
 namespace PsP.Services.Interfaces;
@@ -31,8 +32,8 @@ public interface IDiscountsService
    
     
     string MakeOrderDiscountSnapshot(Discount d, DateTime? capturedAtUtc = null);
-    
     string MakeLineDiscountSnapshot(Discount d, int catalogItemId, DateTime? capturedAtUtc = null);
+    DiscountSnapshot? TryParseDiscountSnapshot(string? json);
 
 
 }

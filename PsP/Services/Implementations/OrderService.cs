@@ -78,7 +78,8 @@ public class OrdersService : IOrdersService
             .Where(tr => tr.CountryCode == business.CountryCode
                          && tr.TaxClass == taxClass
                          && tr.ValidFrom <= now && tr.ValidTo >= now)
-            .OrderByDescending(tr => tr.ValidFrom)
+            .OrderByDescending(r => r.ValidFrom)  
+            .ThenByDescending(r => r.TaxRuleId)
             .FirstOrDefaultAsync(ct);
 
         return rule?.RatePercent ?? 0m;
@@ -350,9 +351,10 @@ public class OrdersService : IOrdersService
         var discount = await _discounts.GetNewestLineDiscountForItemAsync(businessId, request.CatalogItemId, null, ct);
 
         string? snapshot = null;
-
+        int? discountId = null;
         if (discount != null)
         {
+            discountId = discount.DiscountId;
             snapshot = _discounts.MakeLineDiscountSnapshot(discount, request.CatalogItemId, null);
         }
 
@@ -364,6 +366,7 @@ public class OrdersService : IOrdersService
             unitPriceSnapshot: item.BasePrice,
             taxClassSnapshot: item.TaxClass,
             taxRateSnapshotPct: taxRate,
+            discountId:discountId,
             unitDiscountSnapshot: snapshot,
             nowUtc: DateTime.UtcNow
         );
