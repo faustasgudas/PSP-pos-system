@@ -42,7 +42,7 @@ public class OrdersServiceTests
                 TableOrArea = "A1"
             };
 
-            var dto = await svc.CreateOrderAsync(biz.BusinessId, req, CancellationToken.None);
+            var dto = await svc.CreateOrderAsync(biz.BusinessId, emp.EmployeeId,req, CancellationToken.None);
 
             // assert: the *newest* order discount was captured
             var order = await db.Orders.AsNoTracking().FirstAsync(o => o.OrderId == dto.OrderId);
@@ -64,7 +64,7 @@ public class OrdersServiceTests
             await db.SaveChangesAsync();
 
             var req = new CreateOrderRequest { EmployeeId = emp.EmployeeId, TableOrArea = "B2" };
-            var dto = await svc.CreateOrderAsync(biz.BusinessId, req, CancellationToken.None);
+            var dto = await svc.CreateOrderAsync(biz.BusinessId, emp.EmployeeId,req, CancellationToken.None);
 
             var order = await db.Orders.AsNoTracking().FirstAsync(o => o.OrderId == dto.OrderId);
             Assert.Null(order.DiscountId);
@@ -93,7 +93,7 @@ public class OrdersServiceTests
             await db.SaveChangesAsync();
 
             // Create order
-            var dto = await svc.CreateOrderAsync(biz.BusinessId, new CreateOrderRequest
+            var dto = await svc.CreateOrderAsync(biz.BusinessId, emp.EmployeeId,new CreateOrderRequest
             {
                 EmployeeId = emp.EmployeeId,
                 TableOrArea = "C3"
@@ -130,7 +130,7 @@ public class OrdersServiceTests
             await db.SaveChangesAsync();
 
             // Order + initial line (auto applies newest = overrideDisc)
-            var order = await svc.CreateOrderAsync(biz.BusinessId, new CreateOrderRequest
+            var order = await svc.CreateOrderAsync(biz.BusinessId, emp.EmployeeId,new CreateOrderRequest
             {
                 EmployeeId = emp.EmployeeId
             }, CancellationToken.None);
@@ -166,7 +166,7 @@ public class OrdersServiceTests
             await db.SaveChangesAsync();
 
             // Order + line (auto applies)
-            var order = await svc.CreateOrderAsync(biz.BusinessId, new CreateOrderRequest { EmployeeId = emp.EmployeeId }, CancellationToken.None);
+            var order = await svc.CreateOrderAsync(biz.BusinessId, emp.EmployeeId,new CreateOrderRequest { EmployeeId = emp.EmployeeId }, CancellationToken.None);
             var line = await svc.AddLineAsync(biz.BusinessId, order.OrderId, emp.EmployeeId,
                 new AddLineRequest { CatalogItemId = item.CatalogItemId, Qty = 1m }, CancellationToken.None);
 
@@ -198,7 +198,7 @@ public class OrdersServiceTests
             db.Discounts.AddRange(d1, d2);
             await db.SaveChangesAsync();
 
-            var order = await svc.CreateOrderAsync(biz.BusinessId, new CreateOrderRequest { EmployeeId = emp.EmployeeId }, CancellationToken.None);
+            var order = await svc.CreateOrderAsync(biz.BusinessId, emp.EmployeeId,new CreateOrderRequest { EmployeeId = emp.EmployeeId }, CancellationToken.None);
 
            
             await svc.UpdateOrderAsync(biz.BusinessId, order.OrderId, emp.EmployeeId,new UpdateOrderRequest

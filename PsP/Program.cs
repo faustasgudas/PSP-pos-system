@@ -3,6 +3,10 @@ using PsP.Data;
 using PsP.Services.Interfaces;
 using PsP.Services.Implementations;
 using PsP.Settings;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,7 +38,6 @@ builder.Services.AddSwaggerGen();
 
 
 
-
 // CORS
 builder.Services.AddCors(options =>
 {
@@ -57,5 +60,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseCors("AllowClient");
 app.MapControllers();
+
+
 
 app.Run();

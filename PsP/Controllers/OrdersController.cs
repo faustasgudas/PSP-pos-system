@@ -93,11 +93,12 @@ public class OrdersController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<OrderDetailResponse>> CreateOrder(
         [FromRoute] int businessId,
+        [FromQuery] int callerEmployeeId,
         [FromBody] CreateOrderRequest body)
     {
         try
         {
-            var dto = await _orders.CreateOrderAsync(businessId, body, HttpContext.RequestAborted);
+            var dto = await _orders.CreateOrderAsync(businessId,callerEmployeeId, body, HttpContext.RequestAborted);
             return CreatedAtAction(nameof(GetOrder),
                 new { businessId, orderId = dto.OrderId, callerEmployeeId = body.EmployeeId }, dto);
         }
@@ -203,4 +204,3 @@ public class OrdersController : ControllerBase
     private ActionResult ForbidOrBadRequest(InvalidOperationException ex)
         => ex.Message.Contains("Forbidden", StringComparison.OrdinalIgnoreCase) ? Forbid() : BadRequest(ex.Message);
 }
-

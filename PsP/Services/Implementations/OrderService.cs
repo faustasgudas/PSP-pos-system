@@ -19,8 +19,8 @@ public class OrdersService : IOrdersService
     }
 
     private static bool IsManagerOrOwner(Employee e)
-        => string.Equals(e.Role, "Owner", StringComparison.OrdinalIgnoreCase)
-           || string.Equals(e.Role, "Manager", StringComparison.OrdinalIgnoreCase);
+        => string.Equals(e.Role, "owner", StringComparison.OrdinalIgnoreCase)
+           || string.Equals(e.Role, "manager", StringComparison.OrdinalIgnoreCase);
 
     private async Task<Employee> GetCallerAsync(int businessId, int callerEmployeeId, CancellationToken ct)
     {
@@ -196,6 +196,7 @@ public class OrdersService : IOrdersService
 
     public async Task<OrderDetailResponse> CreateOrderAsync(
         int businessId,
+        int callerEmployeeId,
         CreateOrderRequest request,
 
         CancellationToken ct = default)
@@ -203,6 +204,14 @@ public class OrdersService : IOrdersService
         // validate caller exists & belongs to business
         _ = await GetCallerAsync(businessId, request.EmployeeId, ct);
 
+        if (callerEmployeeId != request.EmployeeId)
+        {
+            var manager = await GetCallerAsync(businessId, callerEmployeeId, ct);
+            if (!IsManagerOrOwner(manager))
+            {
+                throw new InvalidOperationException("Forbidden: only managers/owners can create order for others.");
+            }
+        }
 
 
         if (request.ReservationId.HasValue)
@@ -250,8 +259,18 @@ public class OrdersService : IOrdersService
         var caller = await GetCallerAsync(businessId, callerEmployeeId, ct);
         var order = await GetOrderEntityAsync(businessId, orderId, ct);
         EnsureCallerCanSeeOrder(caller, order);
+        
+        if (callerEmployeeId != request.EmployeeId)
+        {
+            _ = await GetCallerAsync(businessId, request.EmployeeId, ct);
+            if (!IsManagerOrOwner(caller))
+            {
+                throw new InvalidOperationException("Forbidden: only managers/owners can update order for others.");
+            }
+            
+        }
+        
         EnsureOpen(order);
-
         string? snapshot = null;
         if (request.DiscountId.HasValue)
         {
