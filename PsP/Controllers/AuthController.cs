@@ -30,8 +30,11 @@ public class AuthController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("register-business")]
-    public async Task<ActionResult<RegisterBusinessResponse>> RegisterBusiness(RegisterBusinessRequest req)
+    public async Task<ActionResult<RegisterBusinessResponse>> RegisterBusiness([FromBody] RegisterBusinessRequest req)
     {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
         // 1) patikrinam ar owner email jau nenaudojamas
         var email = req.OwnerEmail.Trim().ToLowerInvariant();
         var exists = await _db.Employees.AnyAsync(e => e.Email.ToLower() == email);
@@ -84,8 +87,11 @@ public class AuthController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("login")]
-    public async Task<ActionResult<LoginResponse>> Login(LoginRequest req)
+    public async Task<ActionResult<LoginResponse>> Login([FromBody] LoginRequest req)
     {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
         var normalizedEmail = req.Email.Trim().ToLowerInvariant();
 
         var emp = await _db.Employees
@@ -106,21 +112,41 @@ public class AuthController : ControllerBase
 
     private string GenerateToken(Employee emp)
     {
-        var key   = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwt.Key));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        // 🔐 Saugumo / konfigo validacija
+        if (string.IsNullOrWhiteSpace(_jwt.Key))
+            throw new InvalidOperationException("JWT Key is missing. Please configure Jwt:Key in appsettings.");
 
-        var claims = new[]
+        if (string.IsNullOrWhiteSpace(_jwt.Issuer))
+            throw new InvalidOperationException("JWT Issuer is missing. Please configure Jwt:Issuer in appsettings.");
+
+        if (string.IsNullOrWhiteSpace(_jwt.Audience))
+            throw new InvalidOperationException("JWT Audience is missing. Please configure Jwt:Audience in appsettings.");
+
+        if (_jwt.ExpiresMinutes <= 0)
+            throw new InvalidOperationException("Jwt:ExpiresMinutes must be a positive number.");
+
+        var keyBytes = Encoding.UTF8.GetBytes(_jwt.Key);
+        var key      = new SymmetricSecurityKey(keyBytes);
+        var creds    = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+        var claims = new List<Claim>
         {
+            // Custom claims
             new Claim("employeeId", emp.EmployeeId.ToString()),
             new Claim("businessId", emp.BusinessId.ToString()),
             new Claim(ClaimTypes.Role, emp.Role),
-            new Claim(ClaimTypes.Name, emp.Name)
+            new Claim(ClaimTypes.Name, emp.Name ?? string.Empty),
+
+            // JWT "standartiniai" claim'ai
+            new Claim(JwtRegisteredClaimNames.Sub, emp.EmployeeId.ToString()),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 
         var token = new JwtSecurityToken(
             issuer:            _jwt.Issuer,
             audience:          _jwt.Audience,
             claims:            claims,
+            notBefore:         DateTime.UtcNow,
             expires:           DateTime.UtcNow.AddMinutes(_jwt.ExpiresMinutes),
             signingCredentials: creds
         );

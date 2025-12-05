@@ -284,6 +284,10 @@ namespace PsP.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<int?>("DiscountId")
                         .HasColumnType("integer");
 

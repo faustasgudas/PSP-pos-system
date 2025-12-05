@@ -1,58 +1,146 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PsP.Contracts.Catalog;
+using PsP.Services.Interfaces;
 
-namespace PsP.Controllers;
+namespace PsP.Api.Controllers;
 
 [ApiController]
 [Route("api/businesses/{businessId:int}/catalog-items")]
+[Authorize]
 public class CatalogItemsController : ControllerBase
 {
-    [HttpGet]
-    public ActionResult<IEnumerable<CatalogItemSummaryResponse>> ListAll(
-        [FromRoute] int businessId,
-        [FromQuery] int callerEmployeeId,
-        [FromQuery] string? type = null,     // "Product" | "Service"
-        [FromQuery] string? status = null,   // "Draft" | "Active" | "Archived"
-        [FromQuery] string? code = null)
+    private readonly ICatalogItemsService _catalogItems;
+
+    public CatalogItemsController(ICatalogItemsService catalogItems)
     {
-        return Ok();
+        _catalogItems = catalogItems;
     }
 
-    [HttpGet("{catalogItemId:int}")]
-    public ActionResult<CatalogItemDetailResponse> GetOne(
-        [FromRoute] int businessId,
-        [FromRoute] int catalogItemId,
-        [FromQuery] int callerEmployeeId)
+    private int GetBusinessIdFromToken()
     {
-        return Ok();
+        var claim = User.FindFirst("businessId")
+                    ?? throw new InvalidOperationException("Missing businessId claim");
+        return int.Parse(claim.Value);
+    }
+
+    private int GetEmployeeIdFromToken()
+    {
+        var claim = User.FindFirst("employeeId")
+                    ?? throw new InvalidOperationException("Missing employeeId claim");
+        return int.Parse(claim.Value);
+    }
+
+    /// <summary>
+    /// Patikrinam ar route businessId sutampa su tuo, kas JWT.
+    /// Jei ne – Forbid.
+    /// </summary>
+    private ActionResult? EnsureBusinessMatchesRoute(int routeBusinessId)
+    {
+        var jwtBizId = GetBusinessIdFromToken();
+        if (jwtBizId != routeBusinessId)
+            return Forbid();
+
+        return null;
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<CatalogItemSummaryResponse>>> GetAll(
+        int businessId,
+        [FromQuery] string? type = null,
+        [FromQuery] string? status = null,
+        [FromQuery] string? code = null)
+    {
+        var mismatch = EnsureBusinessMatchesRoute(businessId);
+        if (mismatch is not null) return mismatch;
+
+        var employeeId = GetEmployeeIdFromToken();
+
+        var result = await _catalogItems.ListAllAsync(
+            businessId,
+            callerEmployeeId: employeeId,
+            type,
+            status,
+            code);
+
+        return Ok(result);
+    }
+
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult<CatalogItemDetailResponse>> GetById(
+        int businessId,
+        int id)
+    {
+        var mismatch = EnsureBusinessMatchesRoute(businessId);
+        if (mismatch is not null) return mismatch;
+
+        var employeeId = GetEmployeeIdFromToken();
+
+        var result = await _catalogItems.GetByIdAsync(
+            businessId,
+            id,
+            callerEmployeeId: employeeId);
+
+        if (result is null) return NotFound();
+        return Ok(result);
     }
 
     [HttpPost]
-    public IActionResult Create(
-        [FromRoute] int businessId,
-        [FromQuery] int callerEmployeeId,
+    public async Task<ActionResult<CatalogItemDetailResponse>> Create(
+        int businessId,
         [FromBody] CreateCatalogItemRequest body)
     {
-        return StatusCode(StatusCodes.Status201Created);
+        var mismatch = EnsureBusinessMatchesRoute(businessId);
+        if (mismatch is not null) return mismatch;
+
+        var employeeId = GetEmployeeIdFromToken();
+
+        var created = await _catalogItems.CreateAsync(
+            businessId,
+            callerEmployeeId: employeeId,
+            body);
+
+        return CreatedAtAction(
+            nameof(GetById),
+            new { businessId, id = created.CatalogItemId },
+            created);
     }
 
-    [HttpPut("{catalogItemId:int}")]
-    public IActionResult Update(
-        [FromRoute] int businessId,
-        [FromRoute] int catalogItemId,
-        [FromQuery] int callerEmployeeId,
+    [HttpPut("{id:int}")]
+    public async Task<ActionResult<CatalogItemDetailResponse>> Update(
+        int businessId,
+        int id,
         [FromBody] UpdateCatalogItemRequest body)
     {
-        return Ok();
+        var mismatch = EnsureBusinessMatchesRoute(businessId);
+        if (mismatch is not null) return mismatch;
+
+        var employeeId = GetEmployeeIdFromToken();
+
+        var updated = await _catalogItems.UpdateAsync(
+            businessId,
+            id,
+            callerEmployeeId: employeeId,
+            body);
+
+        if (updated is null) return NotFound();
+        return Ok(updated);
     }
 
-    // Archive (action) without PATCH
-    [HttpPost("{catalogItemId:int}/archive")]
-    public IActionResult Archive(
-        [FromRoute] int businessId,
-        [FromRoute] int catalogItemId,
-        [FromQuery] int callerEmployeeId)
+    [HttpPost("{id:int}/archive")]
+    public async Task<IActionResult> Archive(int businessId, int id)
     {
-        return Ok();
+        var mismatch = EnsureBusinessMatchesRoute(businessId);
+        if (mismatch is not null) return mismatch;
+
+        var employeeId = GetEmployeeIdFromToken();
+
+        var ok = await _catalogItems.ArchiveAsync(
+            businessId,
+            id,
+            callerEmployeeId: employeeId);
+
+        if (!ok) return NotFound();
+        return NoContent();
     }
 }

@@ -8,17 +8,52 @@ namespace PsP.Services.Implementations
     public class GiftCardService : IGiftCardService
     {
         private readonly AppDbContext _db;
+        private const int MaxConcurrencyRetries = 5;
 
         public GiftCardService(AppDbContext db)
         {
             _db = db;
         }
 
-        public Task<GiftCard?> GetByIdAsync(int id)
-            => _db.GiftCards.FirstOrDefaultAsync(x => x.GiftCardId == id);
+        // ========== READ ==========
 
-        public Task<GiftCard?> GetByCodeAsync(string code)
-            => _db.GiftCards.FirstOrDefaultAsync(x => x.Code == code);
+        public Task<GiftCard?> GetByIdAsync(int id) =>
+            _db.GiftCards
+               .AsNoTracking()
+               .FirstOrDefaultAsync(x => x.GiftCardId == id);
+
+        public Task<GiftCard?> GetByCodeAsync(string code) =>
+            _db.GiftCards
+               .AsNoTracking()
+               .FirstOrDefaultAsync(x => x.Code == code);
+
+        public async Task<List<GiftCard>> GetByBusinessAsync(
+            int businessId,
+            string? status = null,
+            string? code = null)
+        {
+            var query = _db.GiftCards
+                .AsNoTracking()
+                .Where(g => g.BusinessId == businessId);
+
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                var s = status.Trim();
+                query = query.Where(g => g.Status == s);
+            }
+
+            if (!string.IsNullOrWhiteSpace(code))
+            {
+                var c = code.Trim();
+                query = query.Where(g => g.Code.Contains(c));
+            }
+
+            return await query
+                .OrderByDescending(g => g.IssuedAt)
+                .ToListAsync();
+        }
+
+        // ========== CREATE ==========
 
         public async Task<GiftCard> CreateAsync(GiftCard card)
         {
@@ -31,51 +66,99 @@ namespace PsP.Services.Implementations
             return card;
         }
 
+        // ========== TOP UP ==========
+
         public async Task<bool> TopUpAsync(int id, long amount)
         {
             if (amount <= 0)
                 throw new ArgumentOutOfRangeException(nameof(amount));
 
-            var c = await _db.GiftCards.FindAsync(id);
-            if (c is null)
-                return false;
+            for (var attempt = 0; attempt < MaxConcurrencyRetries; attempt++)
+            {
+                var c = await _db.GiftCards
+                    .FirstOrDefaultAsync(x => x.GiftCardId == id);
 
-            EnsureActiveAndNotExpired(c);
+                if (c is null)
+                    return false;
 
-            c.Balance += amount;
-            await _db.SaveChangesAsync();
+                EnsureActiveAndNotExpired(c);
 
-            return true;
+                c.Balance += amount;
+
+                try
+                {
+                    await _db.SaveChangesAsync();
+                    return true;
+                }
+                catch (DbUpdateConcurrencyException ex)
+                {
+                    if (attempt == MaxConcurrencyRetries - 1)
+                        throw new InvalidOperationException("concurrency_conflict", ex);
+
+                    foreach (var entry in ex.Entries)
+                        await entry.ReloadAsync();
+                }
+            }
+
+            return false;
         }
 
-        public async Task<(long charged, long remaining)> RedeemAsync(int id, long amount)
+        // ========== REDEEM ==========
+
+        public async Task<(long charged, long remaining)> RedeemAsync(
+            int id,
+            long amount,
+            int businessId)
         {
             if (amount <= 0)
                 throw new ArgumentOutOfRangeException(nameof(amount));
 
-            var c = await _db.GiftCards.FindAsync(id)
-                    ?? throw new KeyNotFoundException("not_found");
+            for (var attempt = 0; attempt < MaxConcurrencyRetries; attempt++)
+            {
+                var c = await _db.GiftCards
+                    .FirstOrDefaultAsync(x => x.GiftCardId == id)
+                        ?? throw new KeyNotFoundException("not_found");
 
-            EnsureActiveAndNotExpired(c);
+                EnsureActiveAndNotExpired(c);
 
-            var charge = Math.Min(c.Balance, amount);
-            if (charge == 0)
-                return (0, c.Balance);
+                if (c.BusinessId != businessId)
+                    throw new InvalidOperationException("wrong_business");
 
-            c.Balance -= charge;
-            await _db.SaveChangesAsync();
+                var charge = Math.Min(c.Balance, amount);
+                if (charge == 0)
+                    return (0, c.Balance);
 
-            return (charge, c.Balance);
+                c.Balance -= charge;
+
+                try
+                {
+                    await _db.SaveChangesAsync();
+                    return (charge, c.Balance);
+                }
+                catch (DbUpdateConcurrencyException ex)
+                {
+                    if (attempt == MaxConcurrencyRetries - 1)
+                        throw new InvalidOperationException("concurrency_conflict", ex);
+
+                    foreach (var entry in ex.Entries)
+                        await entry.ReloadAsync();
+                }
+            }
+
+            // neturėtume čia nueit
+            return (0, 0);
         }
+
+        // ========== DEACTIVATE ==========
 
         public async Task<bool> DeactivateAsync(int id)
         {
-            var c = await _db.GiftCards.FindAsync(id);
+            var c = await _db.GiftCards.FirstOrDefaultAsync(x => x.GiftCardId == id);
             if (c is null)
                 return false;
 
             if (c.Status == "Inactive")
-                return true; // jau išjungta, laikom kaip success
+                return true;
 
             c.Status = "Inactive";
             await _db.SaveChangesAsync();
@@ -83,10 +166,11 @@ namespace PsP.Services.Implementations
             return true;
         }
 
-        // --- helperis bendrai validacijai ---
+        // ========== VALIDACIJA ==========
+
         private static void EnsureActiveAndNotExpired(GiftCard c)
         {
-            if (c.Status != "Active")
+            if (!string.Equals(c.Status, "Active", StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException("blocked");
 
             if (c.ExpiresAt is not null && c.ExpiresAt <= DateTime.UtcNow)
