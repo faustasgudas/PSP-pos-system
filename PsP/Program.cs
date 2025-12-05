@@ -3,6 +3,10 @@ using PsP.Data;
 using PsP.Services.Interfaces;
 using PsP.Services.Implementations;
 using PsP.Settings;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,7 +23,8 @@ builder.Services.AddScoped<IGiftCardService, GiftCardService>();
 builder.Services.AddScoped<PaymentService>();
 builder.Services.AddScoped<StripePaymentService>();
 builder.Services.AddScoped<IBusinessService, BusinessService>();
-
+builder.Services.AddScoped<IOrdersService, OrdersService>();
+builder.Services.AddScoped<IDiscountsService, DiscountsService>();
 
 // Stripe service – TIK VIENAS registravimas
 builder.Services.AddScoped<StripePaymentService>();
@@ -30,7 +35,9 @@ builder.Services.AddControllers();
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddScoped<IOrdersService, OrdersService>();
+
+
+
 // CORS
 builder.Services.AddCors(options =>
 {
@@ -53,5 +60,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseCors("AllowClient");
 app.MapControllers();
+
+
 
 app.Run();

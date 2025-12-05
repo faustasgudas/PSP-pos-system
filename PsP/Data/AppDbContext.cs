@@ -6,7 +6,7 @@ namespace PsP.Data;
 public class AppDbContext : DbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
-
+    
     // ===== DbSets =====
     public DbSet<Business> Businesses => Set<Business>();
     public DbSet<Employee> Employees => Set<Employee>();
@@ -120,7 +120,9 @@ public class AppDbContext : DbContext
             e.Property(x => x.TableOrArea).HasMaxLength(64);
             e.Property(x => x.TipAmount).HasColumnType("numeric(18,2)");
             e.Property(x => x.OrderDiscountSnapshot).HasColumnType("text");
+            // e.Property(x => x.OrderDiscountValueSnapshot).HasColumnType("numeric(5,2)");
 
+            
             e.HasOne<Business>(x => x.Business)
              .WithMany(x => x.Orders)
              .HasForeignKey(x => x.BusinessId)

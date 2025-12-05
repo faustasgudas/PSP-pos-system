@@ -56,7 +56,7 @@ public static class OrderMappings
             };
 
         // Input mapping (Request -> Entity)
-        public static Order ToNewEntity(this CreateOrderRequest req, int businessId) =>
+        public static Order ToNewEntity(this CreateOrderRequest req, int businessId, int? discountId, string? discountSnapshot) =>
             new Order
             {
                 BusinessId = businessId,
@@ -65,7 +65,9 @@ public static class OrderMappings
                 TableOrArea = req.TableOrArea,
                 Status = "Open",
                 CreatedAt = DateTime.UtcNow,
-                TipAmount = 0m
+                TipAmount = 0m,
+                DiscountId = discountId,
+                OrderDiscountSnapshot = discountSnapshot
             };
         
         public static void ApplyUpdate(this UpdateOrderRequest req, Order o)
@@ -76,7 +78,7 @@ public static class OrderMappings
                 if (req.TipAmount is not null && decimal.TryParse(req.TipAmount, out var tip))
                     o.TipAmount = tip;
         
-                if (req.DiscountId.HasValue) o.DiscountId = req.DiscountId;
+                o.DiscountId = req.DiscountId;
                 // If you also create/refresh OrderDiscountSnapshot, do it in the service before saving.
                 o.EmployeeId = req.EmployeeId;
             }
@@ -111,6 +113,7 @@ public static class OrderMappings
                 decimal unitPriceSnapshot,
                 string taxClassSnapshot,
                 decimal taxRateSnapshotPct,
+                int? discountId,
                 string? unitDiscountSnapshot = null,
                 DateTime? nowUtc = null)
             {
@@ -119,7 +122,7 @@ public static class OrderMappings
                     BusinessId           = businessId,
                     OrderId              = orderId,
                     CatalogItemId        = req.CatalogItemId,
-                    DiscountId           = req.DiscountId,
+                    DiscountId           = discountId,
                     Qty                  = req.Qty,
         
                     // snapshots resolved by your domain/service layer
@@ -145,9 +148,7 @@ public static class OrderMappings
             {
                 if (req.Qty.HasValue)      line.Qty = req.Qty.Value;
                 line.DiscountId = req.DiscountId; // set or clear
-        
-                if (unitDiscountSnapshot is not null)
-                    line.UnitDiscountSnapshot = unitDiscountSnapshot;
+                line.UnitDiscountSnapshot = unitDiscountSnapshot;
         
                 // audit
                 line.PerformedByEmployeeId = performedByEmployeeId;
