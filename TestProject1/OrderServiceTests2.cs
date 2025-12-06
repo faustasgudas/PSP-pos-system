@@ -502,4 +502,104 @@ public class OrderServiceTests2
             .Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*not found*");
     }
+    
+    
+    [Fact]
+    public async Task EnsureOrderDiscountEligible_Fails_WhenInactiveOrOutOfWindow()
+    {
+        await using var db = TestDb.NewInMemory();
+        var svc = new DiscountsService(db);
+        var (biz, _) = Seed.BizAndStaff(db);
+
+        // inactive
+        db.Discounts.Add(new PsP.Models.Discount
+        {
+            BusinessId = biz.BusinessId, Code = "ORD", Type = "Percent", Scope = "Order", Value = 5m,
+            StartsAt = DateTime.UtcNow.AddDays(-10), EndsAt = DateTime.UtcNow.AddDays(10), Status = "Inactive"
+        });
+        await db.SaveChangesAsync();
+
+        await FluentActions.Invoking(() =>
+            svc.EnsureOrderDiscountEligibleAsync(biz.BusinessId, discountId: 1))
+            .Should().ThrowAsync<InvalidOperationException>();
+
+        // out of window
+        db.Discounts.Add(new PsP.Models.Discount
+        {
+            BusinessId = biz.BusinessId, Code = "ORD2", Type = "Percent", Scope = "Order", Value = 5m,
+            StartsAt = DateTime.UtcNow.AddDays(2), EndsAt = DateTime.UtcNow.AddDays(3), Status = "Active"
+        });
+        await db.SaveChangesAsync();
+
+        await FluentActions.Invoking(() =>
+            svc.EnsureOrderDiscountEligibleAsync(biz.BusinessId, discountId: 2))
+            .Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task EnsureLineDiscountEligible_Fails_WhenItemMissing_OrNotInEligibility()
+    {
+        await using var db = TestDb.NewInMemory();
+        var svc = new DiscountsService(db);
+        var (biz, _) = Seed.BizAndStaff(db);
+        var item = Seed.Item(db, biz.BusinessId);
+
+        var disc = new PsP.Models.Discount
+        {
+            BusinessId = biz.BusinessId, Code = "LINE", Type = "Percent", Scope = "Line", Value = 10m,
+            StartsAt = DateTime.UtcNow.AddDays(-1), EndsAt = DateTime.UtcNow.AddDays(10), Status = "Active"
+        };
+        db.Discounts.Add(disc);
+        await db.SaveChangesAsync();
+
+        // item not found in business
+        await FluentActions.Invoking(() =>
+            svc.EnsureLineDiscountEligibleAsync(biz.BusinessId, disc.DiscountId, catalogItemId: 999))
+            .Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*Catalog item not found*");
+
+        // still not eligible (no eligibility row)
+        await FluentActions.Invoking(() =>
+            svc.EnsureLineDiscountEligibleAsync(biz.BusinessId, disc.DiscountId, item.CatalogItemId))
+            .Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*not eligible*");
+    }
+
+    [Fact]
+    public void Snapshot_Writers_And_Parser_RoundTrip()
+    {
+        using var db = TestDb.NewInMemory();
+        var svc = new DiscountsService(db);
+
+        var now = DateTime.UtcNow;
+        var d = new PsP.Models.Discount
+        {
+            DiscountId = 123, Code = "X", Type = "Percent", Scope = "Order",
+            Value = 7.5m, StartsAt = now.AddDays(-1), EndsAt = now.AddDays(1), Status = "Active", BusinessId = 1
+        };
+
+        var json = svc.MakeOrderDiscountSnapshot(d, now);
+        var parsed = svc.TryParseDiscountSnapshot(json);
+
+        parsed.Should().NotBeNull();
+        parsed!.Version.Should().Be(1);
+        parsed.DiscountId.Should().Be(123);
+        parsed.Scope.Should().Be("Order");
+        parsed.Type.Should().Be("Percent");
+        parsed.Value.Should().Be(7.5m);
+        parsed.CapturedAtUtc.Should().BeCloseTo(now, TimeSpan.FromSeconds(1));
+
+        var jsonLine = svc.MakeLineDiscountSnapshot(d, catalogItemId: 55, now);
+        var parsedLine = svc.TryParseDiscountSnapshot(jsonLine)!;
+        parsedLine.CatalogItemId.Should().Be(55);
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
 }
