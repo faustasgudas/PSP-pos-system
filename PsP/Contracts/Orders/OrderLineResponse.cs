@@ -11,6 +11,8 @@ public class OrderLineResponse
 
     public string ItemNameSnapshot { get; set; } = "";
     public decimal UnitPriceSnapshot { get; set; }
+    
+    public string CatalogTypeSnapshot { get; set; } = string.Empty;
     public string? UnitDiscountSnapshot { get; set; }
     public string TaxClassSnapshot { get; set; } = "";
     public decimal TaxRateSnapshotPct { get; set; }

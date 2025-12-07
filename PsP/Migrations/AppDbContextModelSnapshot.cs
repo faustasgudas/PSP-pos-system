@@ -326,6 +326,11 @@ namespace PsP.Migrations
                     b.Property<int>("CatalogItemId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("CatalogTypeSnapshot")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
                     b.Property<int?>("DiscountId")
                         .HasColumnType("integer");
 

@@ -16,7 +16,9 @@ public class OrderLine
     // Snapshots (immutable after capture)
     public string ItemNameSnapshot { get; set; } = string.Empty;
     public decimal UnitPriceSnapshot { get; set; }           // price at time of sale
-    public string? UnitDiscountSnapshot { get; set; }        // text/json of discount details (if any)
+    public string? UnitDiscountSnapshot { get; set; } // text/json of discount details (if any)
+    
+    public string CatalogTypeSnapshot { get; set; } = string.Empty;
     public string TaxClassSnapshot { get; set; } = string.Empty; // e.g. "Food" / "Service"
     public decimal TaxRateSnapshotPct { get; set; }          // e.g. 21.00m
 

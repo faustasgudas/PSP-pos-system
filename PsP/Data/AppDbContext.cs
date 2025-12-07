@@ -150,7 +150,7 @@ public class AppDbContext : DbContext
             e.Property(x => x.UnitDiscountSnapshot).HasColumnType("text");
             e.Property(x => x.TaxClassSnapshot).HasMaxLength(32).IsRequired();
             e.Property(x => x.TaxRateSnapshotPct).HasColumnType("numeric(6,3)");
-
+            e.Property(x => x.CatalogTypeSnapshot).HasMaxLength(16).IsRequired();
             e.HasOne<Order>(x => x.Order)
              .WithMany(x => x.Lines)
              .HasForeignKey(x => x.OrderId)

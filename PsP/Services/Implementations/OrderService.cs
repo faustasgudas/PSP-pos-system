@@ -383,6 +383,7 @@ public class OrdersService : IOrdersService
             performedByEmployeeId: callerEmployeeId,
             itemNameSnapshot: item.Name,
             unitPriceSnapshot: item.BasePrice,
+            catalogTypeSnapshot: item.Type,
             taxClassSnapshot: item.TaxClass,
             taxRateSnapshotPct: taxRate,
             discountId:discountId,
