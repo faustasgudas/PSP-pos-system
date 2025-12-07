@@ -25,6 +25,5 @@ public static class GiftCardMappings
             Balance    = req.Balance,
             ExpiresAt  = req.ExpiresAt,
             Status     = "Active",
-            BusinessId = req.BusinessId
         };
 }

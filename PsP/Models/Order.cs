@@ -10,6 +10,8 @@ public class Order
     public int? ReservationId { get; set; }      
     
     public string Status { get; set; } = "Open";
+    
+    public string Currency { get; set; } = "EUR"; // default jei nori
 
     public string? TableOrArea { get; set; }
 
