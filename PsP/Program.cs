@@ -27,7 +27,7 @@ builder.Services.AddScoped<IOrdersService, OrdersService>();
 builder.Services.AddScoped<IDiscountsService, DiscountsService>();
 
 // Stripe service – TIK VIENAS registravimas
-builder.Services.AddScoped<StripePaymentService>();
+builder.Services.AddScoped<IStripePaymentService, StripePaymentService>();
 
 // MVC / API
 builder.Services.AddControllers();

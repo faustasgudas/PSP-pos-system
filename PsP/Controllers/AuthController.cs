@@ -6,6 +6,7 @@ using PsP.Data;
 using PsP.Models;
 using PsP.Services.Implementations.Auth;
 using PsP.Services.Interfaces.Auth;
+using BCrypt.Net;
 
 namespace PsP.Controllers;
 
