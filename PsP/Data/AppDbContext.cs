@@ -233,6 +233,10 @@ public class AppDbContext : DbContext
             e.Property(x => x.Unit).HasMaxLength(16).IsRequired(); // pcs/ml/g
             e.Property(x => x.QtyOnHand).HasColumnType("numeric(18,3)");
             e.Property(x => x.AverageUnitCost).HasColumnType("numeric(18,4)");
+            e.Property<uint>("xmin")
+                .HasColumnType("xid")
+                .ValueGeneratedOnAddOrUpdate()
+                .IsConcurrencyToken();
 
             e.HasOne(x => x.CatalogItem!)
              .WithOne(x => x.StockItem)
@@ -255,6 +259,7 @@ public class AppDbContext : DbContext
             e.Property(x => x.Type).HasMaxLength(16).IsRequired(); // Receive / Sale / RefundReturn / Waste / Adjust
             e.Property(x => x.Delta).HasColumnType("numeric(18,3)");
             e.Property(x => x.UnitCostSnapshot).HasColumnType("numeric(18,4)");
+            e.Property(x => x.Note).HasMaxLength(500);
 
             e.HasOne(x => x.StockItem!)
              .WithMany(x => x.StockMovement)

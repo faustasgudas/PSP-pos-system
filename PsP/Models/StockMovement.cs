@@ -12,6 +12,7 @@ public class StockMovement
     public decimal Delta { get; set; }                // +in / -out
     public decimal? UnitCostSnapshot { get; set; }    // set on Receive; optional otherwise
     public DateTime At { get; set; }
+    public string? Note { get; set; }                 // optional note for the movement
 
     // Nav
     public StockItem? StockItem { get; set; }
