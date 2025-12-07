@@ -111,6 +111,7 @@ public static class OrderMappings
                 int performedByEmployeeId,
                 string itemNameSnapshot,
                 decimal unitPriceSnapshot,
+                string catalogTypeSnapshot,
                 string taxClassSnapshot,
                 decimal taxRateSnapshotPct,
                 int? discountId,
@@ -131,7 +132,7 @@ public static class OrderMappings
                     TaxClassSnapshot     = taxClassSnapshot,
                     TaxRateSnapshotPct   = taxRateSnapshotPct,
                     UnitDiscountSnapshot = unitDiscountSnapshot,
-        
+                    CatalogTypeSnapshot = catalogTypeSnapshot,
                     // audit
                     PerformedAt          = nowUtc ?? DateTime.UtcNow,
                     PerformedByEmployeeId = performedByEmployeeId
@@ -149,7 +150,7 @@ public static class OrderMappings
                 if (req.Qty.HasValue)      line.Qty = req.Qty.Value;
                 line.DiscountId = req.DiscountId; // set or clear
                 line.UnitDiscountSnapshot = unitDiscountSnapshot;
-        
+                
                 // audit
                 line.PerformedByEmployeeId = performedByEmployeeId;
                 line.PerformedAt = nowUtc ?? DateTime.UtcNow;
