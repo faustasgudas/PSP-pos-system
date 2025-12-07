@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PsP.Auth;
 using PsP.Contracts.Catalog;
 using PsP.Services.Interfaces;
 
@@ -17,27 +18,9 @@ public class CatalogItemsController : ControllerBase
         _catalogItems = catalogItems;
     }
 
-    private int GetBusinessIdFromToken()
-    {
-        var claim = User.FindFirst("businessId")
-                    ?? throw new InvalidOperationException("Missing businessId claim");
-        return int.Parse(claim.Value);
-    }
-
-    private int GetEmployeeIdFromToken()
-    {
-        var claim = User.FindFirst("employeeId")
-                    ?? throw new InvalidOperationException("Missing employeeId claim");
-        return int.Parse(claim.Value);
-    }
-
-    /// <summary>
-    /// Patikrinam ar route businessId sutampa su tuo, kas JWT.
-    /// Jei ne – Forbid.
-    /// </summary>
     private ActionResult? EnsureBusinessMatchesRoute(int routeBusinessId)
     {
-        var jwtBizId = GetBusinessIdFromToken();
+        var jwtBizId = User.GetBusinessId();
         if (jwtBizId != routeBusinessId)
             return Forbid();
 
@@ -54,7 +37,7 @@ public class CatalogItemsController : ControllerBase
         var mismatch = EnsureBusinessMatchesRoute(businessId);
         if (mismatch is not null) return mismatch;
 
-        var employeeId = GetEmployeeIdFromToken();
+        var employeeId = User.GetEmployeeId();
 
         var result = await _catalogItems.ListAllAsync(
             businessId,
@@ -74,7 +57,7 @@ public class CatalogItemsController : ControllerBase
         var mismatch = EnsureBusinessMatchesRoute(businessId);
         if (mismatch is not null) return mismatch;
 
-        var employeeId = GetEmployeeIdFromToken();
+        var employeeId = User.GetEmployeeId();
 
         var result = await _catalogItems.GetByIdAsync(
             businessId,
@@ -84,7 +67,6 @@ public class CatalogItemsController : ControllerBase
         if (result is null) return NotFound();
         return Ok(result);
     }
-
     [HttpPost]
     public async Task<ActionResult<CatalogItemDetailResponse>> Create(
         int businessId,
@@ -93,18 +75,26 @@ public class CatalogItemsController : ControllerBase
         var mismatch = EnsureBusinessMatchesRoute(businessId);
         if (mismatch is not null) return mismatch;
 
-        var employeeId = GetEmployeeIdFromToken();
+        var employeeId = User.GetEmployeeId();
 
-        var created = await _catalogItems.CreateAsync(
-            businessId,
-            callerEmployeeId: employeeId,
-            body);
+        try
+        {
+            var created = await _catalogItems.CreateAsync(
+                businessId,
+                callerEmployeeId: employeeId,
+                body);
 
-        return CreatedAtAction(
-            nameof(GetById),
-            new { businessId, id = created.CatalogItemId },
-            created);
+            return CreatedAtAction(
+                nameof(GetById),
+                new { businessId, id = created.CatalogItemId },
+                created);
+        }
+        catch (InvalidOperationException ex) when (ex.Message == "catalog_item_code_already_exists")
+        {
+            return Conflict(new { error = "catalog_item_code_already_exists" });
+        }
     }
+
 
     [HttpPut("{id:int}")]
     public async Task<ActionResult<CatalogItemDetailResponse>> Update(
@@ -115,7 +105,7 @@ public class CatalogItemsController : ControllerBase
         var mismatch = EnsureBusinessMatchesRoute(businessId);
         if (mismatch is not null) return mismatch;
 
-        var employeeId = GetEmployeeIdFromToken();
+        var employeeId = User.GetEmployeeId();
 
         var updated = await _catalogItems.UpdateAsync(
             businessId,
@@ -133,7 +123,7 @@ public class CatalogItemsController : ControllerBase
         var mismatch = EnsureBusinessMatchesRoute(businessId);
         if (mismatch is not null) return mismatch;
 
-        var employeeId = GetEmployeeIdFromToken();
+        var employeeId = User.GetEmployeeId();
 
         var ok = await _catalogItems.ArchiveAsync(
             businessId,

@@ -72,7 +72,20 @@ public class CatalogItemsService : ICatalogItemsService
         int callerEmployeeId,   // JWT, ignore
         CreateCatalogItemRequest body)
     {
-        // Validacija jau yra ToNewEntity viduje, bet gali likti ir čia jei nori
+        // 1) patikrinam ar Code jau nenaudojamas tame pačiame business
+        if (!string.IsNullOrWhiteSpace(body.Code))
+        {
+            var exists = await _db.CatalogItems
+                .AsNoTracking()
+                .AnyAsync(c =>
+                    c.BusinessId == businessId &&
+                    c.Code == body.Code);
+
+            if (exists)
+                throw new InvalidOperationException("catalog_item_code_already_exists");
+        }
+
+        // 2) sukuriam entity
         var entity = body.ToNewEntity(businessId);
 
         _db.CatalogItems.Add(entity);
@@ -91,6 +104,21 @@ public class CatalogItemsService : ICatalogItemsService
         var entity = await GetItemAsync(businessId, catalogItemId, tracking: true);
         if (entity is null)
             return null;
+
+        // Jei request'e keičiam Code – reikia vėl patikrint unikalumą
+        if (!string.IsNullOrWhiteSpace(body.Code) &&
+            !string.Equals(body.Code, entity.Code, StringComparison.OrdinalIgnoreCase))
+        {
+            var exists = await _db.CatalogItems
+                .AsNoTracking()
+                .AnyAsync(c =>
+                    c.BusinessId == businessId &&
+                    c.Code == body.Code &&
+                    c.CatalogItemId != catalogItemId);
+
+            if (exists)
+                throw new InvalidOperationException("catalog_item_code_already_exists");
+        }
 
         body.ApplyUpdate(entity);
         await _db.SaveChangesAsync();
@@ -111,7 +139,7 @@ public class CatalogItemsService : ICatalogItemsService
         if (string.Equals(entity.Status, "Archived", StringComparison.OrdinalIgnoreCase))
             return true; // idempotent
 
-        entity.Status = "Archived"; // NormalizeCatalogStatus suveiks vėliau, jei dar kur nors kviestum
+        entity.Status = "Archived";
         await _db.SaveChangesAsync();
 
         return true;

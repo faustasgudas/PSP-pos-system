@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PsP.Auth;
 using PsP.Contracts.Orders;
 using PsP.Services.Interfaces;
 
@@ -14,23 +15,9 @@ public class OrdersController : ControllerBase
 
     public OrdersController(IOrdersService orders) => _orders = orders;
 
-    private int GetBusinessIdFromToken()
-    {
-        var claim = User.FindFirst("businessId")
-                    ?? throw new InvalidOperationException("Missing businessId claim");
-        return int.Parse(claim.Value);
-    }
-
-    private int GetEmployeeIdFromToken()
-    {
-        var claim = User.FindFirst("employeeId")
-                    ?? throw new InvalidOperationException("Missing employeeId claim");
-        return int.Parse(claim.Value);
-    }
-
     private ActionResult? EnsureBusinessMatchesRoute(int routeBusinessId)
     {
-        var jwtBizId = GetBusinessIdFromToken();
+        var jwtBizId = User.GetBusinessId();
         if (jwtBizId != routeBusinessId)
             return Forbid();
 
@@ -48,13 +35,15 @@ public class OrdersController : ControllerBase
         var mismatch = EnsureBusinessMatchesRoute(businessId);
         if (mismatch is not null) return mismatch;
 
-        var callerEmployeeId = GetEmployeeIdFromToken();
+        var callerEmployeeId = User.GetEmployeeId();
+        var callerRole       = User.GetRole();
 
         try
         {
             var result = await _orders.ListAllAsync(
                 businessId,
                 callerEmployeeId,
+                callerRole,
                 status,
                 from,
                 to,
@@ -62,7 +51,10 @@ public class OrdersController : ControllerBase
 
             return Ok(result);
         }
-        catch (InvalidOperationException ex) { return ForbidOrBadRequest(ex); }
+        catch (InvalidOperationException ex)
+        {
+            return ForbidOrBadRequest(ex);
+        }
     }
 
     // Caller’s own orders (staff: only Open)
@@ -73,18 +65,23 @@ public class OrdersController : ControllerBase
         var mismatch = EnsureBusinessMatchesRoute(businessId);
         if (mismatch is not null) return mismatch;
 
-        var callerEmployeeId = GetEmployeeIdFromToken();
+        var callerEmployeeId = User.GetEmployeeId();
+        var callerRole       = User.GetRole();
 
         try
         {
             var result = await _orders.ListMineAsync(
                 businessId,
                 callerEmployeeId,
+                callerRole,
                 HttpContext.RequestAborted);
 
             return Ok(result);
         }
-        catch (InvalidOperationException ex) { return ForbidOrBadRequest(ex); }
+        catch (InvalidOperationException ex)
+        {
+            return ForbidOrBadRequest(ex);
+        }
     }
 
     // Get one order (Staff only if theirs; Managers/Owners allowed)
@@ -96,7 +93,8 @@ public class OrdersController : ControllerBase
         var mismatch = EnsureBusinessMatchesRoute(businessId);
         if (mismatch is not null) return mismatch;
 
-        var callerEmployeeId = GetEmployeeIdFromToken();
+        var callerEmployeeId = User.GetEmployeeId();
+        var callerRole       = User.GetRole();
 
         try
         {
@@ -104,11 +102,15 @@ public class OrdersController : ControllerBase
                 businessId,
                 orderId,
                 callerEmployeeId,
+                callerRole,
                 HttpContext.RequestAborted);
 
             return Ok(dto);
         }
-        catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
+        catch (InvalidOperationException ex)
+        {
+            return NotFoundOrBadRequest(ex);
+        }
     }
 
     // LIST lines for an order
@@ -120,7 +122,8 @@ public class OrdersController : ControllerBase
         var mismatch = EnsureBusinessMatchesRoute(businessId);
         if (mismatch is not null) return mismatch;
 
-        var callerEmployeeId = GetEmployeeIdFromToken();
+        var callerEmployeeId = User.GetEmployeeId();
+        var callerRole       = User.GetRole();
 
         try
         {
@@ -128,11 +131,15 @@ public class OrdersController : ControllerBase
                 businessId,
                 orderId,
                 callerEmployeeId,
+                callerRole,
                 HttpContext.RequestAborted);
 
             return Ok(result);
         }
-        catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
+        catch (InvalidOperationException ex)
+        {
+            return NotFoundOrBadRequest(ex);
+        }
     }
 
     // GET a single line
@@ -145,7 +152,8 @@ public class OrdersController : ControllerBase
         var mismatch = EnsureBusinessMatchesRoute(businessId);
         if (mismatch is not null) return mismatch;
 
-        var callerEmployeeId = GetEmployeeIdFromToken();
+        var callerEmployeeId = User.GetEmployeeId();
+        var callerRole       = User.GetRole();
 
         try
         {
@@ -154,11 +162,15 @@ public class OrdersController : ControllerBase
                 orderId,
                 orderLineId,
                 callerEmployeeId,
+                callerRole,
                 HttpContext.RequestAborted);
 
             return Ok(dto);
         }
-        catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
+        catch (InvalidOperationException ex)
+        {
+            return NotFoundOrBadRequest(ex);
+        }
     }
 
     [HttpPost]
@@ -169,11 +181,15 @@ public class OrdersController : ControllerBase
         var mismatch = EnsureBusinessMatchesRoute(businessId);
         if (mismatch is not null) return mismatch;
 
-        
+        var callerEmployeeId = User.GetEmployeeId();
+        var callerRole       = User.GetRole();
+
         try
         {
             var dto = await _orders.CreateOrderAsync(
                 businessId,
+                callerEmployeeId,
+                callerRole,
                 body,
                 HttpContext.RequestAborted);
 
@@ -182,7 +198,10 @@ public class OrdersController : ControllerBase
                 new { businessId, orderId = dto.OrderId },
                 dto);
         }
-        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     // Update an OPEN order
@@ -195,7 +214,8 @@ public class OrdersController : ControllerBase
         var mismatch = EnsureBusinessMatchesRoute(businessId);
         if (mismatch is not null) return mismatch;
 
-        var callerEmployeeId = GetEmployeeIdFromToken();
+        var callerEmployeeId = User.GetEmployeeId();
+        var callerRole       = User.GetRole();
 
         try
         {
@@ -203,12 +223,16 @@ public class OrdersController : ControllerBase
                 businessId,
                 orderId,
                 callerEmployeeId,
+                callerRole,
                 body,
                 HttpContext.RequestAborted);
 
             return Ok(dto);
         }
-        catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
+        catch (InvalidOperationException ex)
+        {
+            return NotFoundOrBadRequest(ex);
+        }
     }
 
     [HttpPost("{orderId:int}/close")]
@@ -219,7 +243,8 @@ public class OrdersController : ControllerBase
         var mismatch = EnsureBusinessMatchesRoute(businessId);
         if (mismatch is not null) return mismatch;
 
-        var callerEmployeeId = GetEmployeeIdFromToken();
+        var callerEmployeeId = User.GetEmployeeId();
+        var callerRole       = User.GetRole();
 
         try
         {
@@ -227,11 +252,15 @@ public class OrdersController : ControllerBase
                 businessId,
                 orderId,
                 callerEmployeeId,
+                callerRole,
                 HttpContext.RequestAborted);
 
             return Ok(dto);
         }
-        catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
+        catch (InvalidOperationException ex)
+        {
+            return NotFoundOrBadRequest(ex);
+        }
     }
 
     [HttpPost("{orderId:int}/cancel")]
@@ -243,7 +272,8 @@ public class OrdersController : ControllerBase
         var mismatch = EnsureBusinessMatchesRoute(businessId);
         if (mismatch is not null) return mismatch;
 
-        var callerEmployeeId = GetEmployeeIdFromToken();
+        var callerEmployeeId = User.GetEmployeeId();
+        var callerRole       = User.GetRole();
 
         try
         {
@@ -251,12 +281,16 @@ public class OrdersController : ControllerBase
                 businessId,
                 orderId,
                 callerEmployeeId,
+                callerRole,
                 body,
                 HttpContext.RequestAborted);
 
             return Ok(dto);
         }
-        catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
+        catch (InvalidOperationException ex)
+        {
+            return NotFoundOrBadRequest(ex);
+        }
     }
 
     [HttpPost("{orderId:int}/lines")]
@@ -268,7 +302,8 @@ public class OrdersController : ControllerBase
         var mismatch = EnsureBusinessMatchesRoute(businessId);
         if (mismatch is not null) return mismatch;
 
-        var callerEmployeeId = GetEmployeeIdFromToken();
+        var callerEmployeeId = User.GetEmployeeId();
+        var callerRole       = User.GetRole();
 
         try
         {
@@ -276,6 +311,7 @@ public class OrdersController : ControllerBase
                 businessId,
                 orderId,
                 callerEmployeeId,
+                callerRole,
                 body,
                 HttpContext.RequestAborted);
 
@@ -284,7 +320,10 @@ public class OrdersController : ControllerBase
                 new { businessId, orderId, orderLineId = dto.OrderLineId },
                 dto);
         }
-        catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
+        catch (InvalidOperationException ex)
+        {
+            return NotFoundOrBadRequest(ex);
+        }
     }
 
     [HttpPut("{orderId:int}/lines/{orderLineId:int}")]
@@ -297,7 +336,8 @@ public class OrdersController : ControllerBase
         var mismatch = EnsureBusinessMatchesRoute(businessId);
         if (mismatch is not null) return mismatch;
 
-        var callerEmployeeId = GetEmployeeIdFromToken();
+        var callerEmployeeId = User.GetEmployeeId();
+        var callerRole       = User.GetRole();
 
         try
         {
@@ -306,12 +346,16 @@ public class OrdersController : ControllerBase
                 orderId,
                 orderLineId,
                 callerEmployeeId,
+                callerRole,
                 body,
                 HttpContext.RequestAborted);
 
             return Ok(dto);
         }
-        catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
+        catch (InvalidOperationException ex)
+        {
+            return NotFoundOrBadRequest(ex);
+        }
     }
 
     [HttpDelete("{orderId:int}/lines/{orderLineId:int}")]
@@ -323,7 +367,8 @@ public class OrdersController : ControllerBase
         var mismatch = EnsureBusinessMatchesRoute(businessId);
         if (mismatch is not null) return mismatch;
 
-        var callerEmployeeId = GetEmployeeIdFromToken();
+        var callerEmployeeId = User.GetEmployeeId();
+        var callerRole       = User.GetRole();
 
         try
         {
@@ -332,11 +377,15 @@ public class OrdersController : ControllerBase
                 orderId,
                 orderLineId,
                 callerEmployeeId,
+                callerRole,
                 HttpContext.RequestAborted);
 
             return NoContent();
         }
-        catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
+        catch (InvalidOperationException ex)
+        {
+            return NotFoundOrBadRequest(ex);
+        }
     }
 
     // --- small helpers to map common service exceptions ---

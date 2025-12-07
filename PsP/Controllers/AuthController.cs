@@ -1,15 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 using PsP.Contracts.Auth;
 using PsP.Data;
 using PsP.Models;
-using PsP.Settings;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
+using PsP.Services.Implementations.Auth;
+using PsP.Services.Interfaces.Auth;
 
 namespace PsP.Controllers;
 
@@ -18,19 +14,20 @@ namespace PsP.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly AppDbContext _db;
-    private readonly JwtSettings _jwt;
+    private readonly IJwtTokenService _jwtTokenService;
 
-    public AuthController(AppDbContext db, IOptions<JwtSettings> jwt)
+    public AuthController(AppDbContext db, IJwtTokenService jwtTokenService)
     {
         _db = db;
-        _jwt = jwt.Value;
+        _jwtTokenService = jwtTokenService;
     }
 
     // ========= REGISTER BUSINESS + OWNER =========
 
     [AllowAnonymous]
     [HttpPost("register-business")]
-    public async Task<ActionResult<RegisterBusinessResponse>> RegisterBusiness([FromBody] RegisterBusinessRequest req)
+    public async Task<ActionResult<RegisterBusinessResponse>> RegisterBusiness(
+        [FromBody] RegisterBusinessRequest req)
     {
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
@@ -70,8 +67,8 @@ public class AuthController : ControllerBase
         _db.Employees.Add(owner);
         await _db.SaveChangesAsync();
 
-        // 4) sugeneruojam JWT
-        var token = GenerateToken(owner);
+        // 4) sugeneruojam JWT per servisą (Business + Employee)
+        var token = _jwtTokenService.GenerateToken(biz, owner);
 
         var resp = new RegisterBusinessResponse
         {
@@ -94,7 +91,10 @@ public class AuthController : ControllerBase
 
         var normalizedEmail = req.Email.Trim().ToLowerInvariant();
 
+        // čia pasiimam employee kartu su Business,
+        // kad turėtume Business tokenui
         var emp = await _db.Employees
+            .Include(e => e.Business)               // <- svarbu
             .FirstOrDefaultAsync(e => e.Email.ToLower() == normalizedEmail);
 
         if (emp is null)
@@ -103,54 +103,14 @@ public class AuthController : ControllerBase
         if (!BCrypt.Net.BCrypt.Verify(req.Password, emp.PasswordHash))
             return Unauthorized(new { error = "invalid_credentials" });
 
-        var token = GenerateToken(emp);
+        if (emp.Status != "Active")
+            return Unauthorized(new { error = "inactive_employee" });
+
+        if (emp.Business is null)
+            return Unauthorized(new { error = "no_business_linked" });
+
+        var token = _jwtTokenService.GenerateToken(emp.Business, emp);
 
         return Ok(new LoginResponse { Token = token });
-    }
-
-    // ========= JWT GENERATION =========
-
-    private string GenerateToken(Employee emp)
-    {
-        // 🔐 Saugumo / konfigo validacija
-        if (string.IsNullOrWhiteSpace(_jwt.Key))
-            throw new InvalidOperationException("JWT Key is missing. Please configure Jwt:Key in appsettings.");
-
-        if (string.IsNullOrWhiteSpace(_jwt.Issuer))
-            throw new InvalidOperationException("JWT Issuer is missing. Please configure Jwt:Issuer in appsettings.");
-
-        if (string.IsNullOrWhiteSpace(_jwt.Audience))
-            throw new InvalidOperationException("JWT Audience is missing. Please configure Jwt:Audience in appsettings.");
-
-        if (_jwt.ExpiresMinutes <= 0)
-            throw new InvalidOperationException("Jwt:ExpiresMinutes must be a positive number.");
-
-        var keyBytes = Encoding.UTF8.GetBytes(_jwt.Key);
-        var key      = new SymmetricSecurityKey(keyBytes);
-        var creds    = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-        var claims = new List<Claim>
-        {
-            // Custom claims
-            new Claim("employeeId", emp.EmployeeId.ToString()),
-            new Claim("businessId", emp.BusinessId.ToString()),
-            new Claim(ClaimTypes.Role, emp.Role),
-            new Claim(ClaimTypes.Name, emp.Name ?? string.Empty),
-
-            // JWT "standartiniai" claim'ai
-            new Claim(JwtRegisteredClaimNames.Sub, emp.EmployeeId.ToString()),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-        };
-
-        var token = new JwtSecurityToken(
-            issuer:            _jwt.Issuer,
-            audience:          _jwt.Audience,
-            claims:            claims,
-            notBefore:         DateTime.UtcNow,
-            expires:           DateTime.UtcNow.AddMinutes(_jwt.ExpiresMinutes),
-            signingCredentials: creds
-        );
-
-        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }
