@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import "../../../App.css"
-import "./BeautyDashboard.css.css"
+import "./BeautyDashboard.css"
 import BeautyReservations from "../BeautyReservations/BeautyReservations";
 
 // Type definitions
