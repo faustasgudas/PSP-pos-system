@@ -12,19 +12,4 @@ public class BusinessResponse
     public string CountryCode { get; set; } = string.Empty;
     public bool PriceIncludesTax { get; set; }
     public string BusinessStatus { get; set; } = string.Empty;
-
-    public static BusinessResponse FromEntity(Business entity)
-    {
-        return new BusinessResponse
-        {
-            BusinessId = entity.BusinessId,
-            Name = entity.Name,
-            Address = entity.Address,
-            Phone = entity.Phone,
-            Email = entity.Email,
-            CountryCode = entity.CountryCode,
-            PriceIncludesTax = entity.PriceIncludesTax,
-            BusinessStatus = entity.BusinessStatus
-        };
-    }
 }

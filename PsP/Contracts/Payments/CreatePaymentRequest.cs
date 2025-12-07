@@ -4,16 +4,15 @@ namespace PsP.Contracts.Payments;
 
 public class CreatePaymentRequest
 {
-    [Range(1, long.MaxValue)]
-    public long AmountCents { get; set; }
-
     [Required]
     [StringLength(10)]
-    public string Currency { get; set; } = "eur";
+    public string Currency { get; set; } = "EUR";
 
+    // Order, kuriam darom payment
     [Range(1, int.MaxValue)]
-    public int BusinessId { get; set; }
+    public int OrderId { get; set; }
 
+    // Optional: gift card
     public string? GiftCardCode { get; set; }
 
     [Range(1, long.MaxValue)]

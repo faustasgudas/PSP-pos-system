@@ -9,10 +9,15 @@ public class GiftCard
     public DateTime IssuedAt { get; set; }
     public DateTime? ExpiresAt { get; set; }
 
+    public long InitialValue { get; set; }
     public long Balance { get; set; }
     public string Status { get; set; } = "Active";
 
     public int BusinessId { get; set; }
+    
+    public Business? Business { get; set; }
+    
+    
     
     public List<Payment> Payments { get; set; } = new();
 }

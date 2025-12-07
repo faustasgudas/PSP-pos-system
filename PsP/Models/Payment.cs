@@ -5,6 +5,7 @@ public class Payment
     public int PaymentId { get; set; }
 
     public long AmountCents { get; set; }
+    public long TipCents { get; set; } = 0;
     public string Currency { get; set; } = "eur";
     public string Method { get; set; } = "Stripe";
 
@@ -23,5 +24,9 @@ public class Payment
     public int BusinessId { get; set; }
     public Business Business { get; set; } = null!;
 
+
+    public Order Order { get; set; } = null!;
+    public int OrderId { get; set; }
+    
     public long GiftCardPlannedCents { get; set; }
 }

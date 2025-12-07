@@ -16,7 +16,9 @@ public class OrderLine
     // Snapshots (immutable after capture)
     public string ItemNameSnapshot { get; set; } = string.Empty;
     public decimal UnitPriceSnapshot { get; set; }           // price at time of sale
-    public string? UnitDiscountSnapshot { get; set; }        // text/json of discount details (if any)
+    public string? UnitDiscountSnapshot { get; set; } // text/json of discount details (if any)
+    
+    public string CatalogTypeSnapshot { get; set; } = string.Empty;
     public string TaxClassSnapshot { get; set; } = string.Empty; // e.g. "Food" / "Service"
     public decimal TaxRateSnapshotPct { get; set; }          // e.g. 21.00m
 
@@ -24,4 +26,9 @@ public class OrderLine
     public DateTime PerformedAt { get; set; }                // when line was added/updated
     public int? PerformedByEmployeeId { get; set; }          // who did it (optional)
 
+    public CatalogItem CatalogItem { get; set; } = null!;
+    public Order Order { get; set; } = null!;
+    public ICollection<StockMovement> StockMovement { get; set; } = new List<StockMovement>();
+
+    
 }
