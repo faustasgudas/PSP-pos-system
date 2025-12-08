@@ -1,3 +1,4 @@
+using PsP.Contracts.StockMovements;
 using PsP.Services.Interfaces;
 
 namespace PsP.Services.Implementations;
@@ -11,7 +12,7 @@ public class OrdersService : IOrdersService
 {
     private readonly AppDbContext _db;
     private readonly IDiscountsService _discounts;
-
+    private readonly IStockMovementService _stockMovement;
     public OrdersService(AppDbContext db, IDiscountsService discounts)
     {
         _db = db;
@@ -329,16 +330,52 @@ public class OrdersService : IOrdersService
         EnsureCallerCanSeeOrder(caller, order);
         EnsureOpen(order);
 
+        
+        
+        var lines = await _db.OrderLines
+            .Where(l => l.OrderId == orderId && l.BusinessId == businessId)
+            .ToListAsync(ct);
+
+        foreach (var line in lines)
+        {
+            var stockItem = await _db.StockItems
+                                .FirstOrDefaultAsync(s => s.CatalogItemId == line.CatalogItemId, ct)
+                            ?? throw new InvalidOperationException("stock_item_not_found");
+
+            var item = await _db.CatalogItems
+                           .AsNoTracking()
+                           .FirstOrDefaultAsync(
+                               ci => ci.BusinessId == businessId && ci.CatalogItemId == line.CatalogItemId, ct)
+                       ?? throw new InvalidOperationException("Catalog item not found in this business.");
+            
+            if (string.Equals(item.Type, "product", StringComparison.OrdinalIgnoreCase))
+            {
+                await _stockMovement.CreateAsync(
+                    businessId,
+                    stockItem.StockItemId,
+                    callerEmployeeId,
+                    new CreateStockMovementRequest
+                    {
+                        Type = "RefundReturn",
+                        Delta = line.Qty,
+                        OrderLineId = line.OrderLineId
+                    },
+                    ct
+                );
+            }
+        }
+        
+        
         order.ApplyCancel();
-        // If you need to persist reason: put into a separate audit table or log.
+        
         await _db.SaveChangesAsync(ct);
 
-        var lines = await _db.OrderLines
+        var lines_t = await _db.OrderLines
             .AsNoTracking()
             .Where(l => l.BusinessId == businessId && l.OrderId == orderId)
             .ToListAsync(ct);
 
-        return order.ToDetailResponse(lines);
+        return order.ToDetailResponse(lines_t);
     }
 
     public async Task<OrderLineResponse> AddLineAsync(
@@ -377,6 +414,19 @@ public class OrdersService : IOrdersService
             snapshot = _discounts.MakeLineDiscountSnapshot(discount, request.CatalogItemId, null);
         }
 
+        var stockItem = await _db.StockItems
+                            .FirstOrDefaultAsync(s => s.CatalogItemId == item.CatalogItemId, ct)
+                        ?? throw new InvalidOperationException("stock_item_not_found");
+
+        if (stockItem.QtyOnHand < request.Qty)
+            throw new InvalidOperationException("not_enough_stock");
+
+        
+        
+        
+        
+        
+        
         var line = request.ToNewLineEntity(
             businessId: businessId,
             orderId: orderId,
@@ -395,6 +445,23 @@ public class OrdersService : IOrdersService
        
         _db.OrderLines.Add(line);
         await _db.SaveChangesAsync(ct);
+        if (string.Equals(item.Type, "product", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("ble");
+            await _stockMovement.CreateAsync(
+                businessId: businessId,
+                stockItemId: stockItem.StockItemId,
+                callerEmployeeId: callerEmployeeId,
+                new CreateStockMovementRequest
+                {
+                    Type = "sale",
+                    Delta = -request.Qty,
+                    OrderLineId = line.OrderLineId
+                },
+                ct
+            );
+           
+        }
 
         return line.ToLineResponse();
     }
@@ -411,7 +478,12 @@ public class OrdersService : IOrdersService
         var caller = await GetCallerAsync(businessId, callerEmployeeId, ct);
         var order = await GetOrderEntityAsync(businessId, orderId, ct);
         EnsureCallerCanSeeOrder(caller, order);
+        //---------------------------------------------------------------------------------------------------------------------
+        //ensure open tik staffui, manager ir owner galetu pakeisti update line ir t.t mental not reikia padaryti !!!!!!!!!
+        //---------------------------------------------------------------------------------------------------------------------
         EnsureOpen(order);
+        
+        
 
 
 
@@ -419,7 +491,68 @@ public class OrdersService : IOrdersService
                        .FirstOrDefaultAsync(
                            l => l.BusinessId == businessId && l.OrderId == orderId && l.OrderLineId == orderLineId, ct)
                    ?? throw new InvalidOperationException("Order line not found.");
+        decimal oldQty = line.Qty;
+        decimal newQty = request.Qty;
+        decimal diff = newQty - oldQty;
 
+        if (diff != 0)
+        {
+            
+            var stockItem = await _db.StockItems
+                                .FirstOrDefaultAsync(s => s.CatalogItemId == line.CatalogItemId, ct)
+                            ?? throw new InvalidOperationException("stock_item_not_found");
+            
+            
+            
+            var item = await _db.CatalogItems
+                           .AsNoTracking()
+                           .FirstOrDefaultAsync(
+                               ci => ci.BusinessId == businessId && ci.CatalogItemId == line.CatalogItemId, ct)
+                       ?? throw new InvalidOperationException("Catalog item not found in this business.");
+
+            
+            
+            if (string.Equals(item.Type, "product", StringComparison.OrdinalIgnoreCase))
+            {
+                if (diff > 0)
+                {
+                    if (stockItem.QtyOnHand < diff)
+                        throw new InvalidOperationException("not_enough_stock");
+
+                    await _stockMovement.CreateAsync(
+                        businessId,
+                        stockItem.StockItemId,
+                        callerEmployeeId,
+                        new CreateStockMovementRequest
+                        {
+                            Type = "Sale",
+                            Delta = -diff,
+                            OrderLineId = line.OrderLineId
+                        },
+                        ct
+                    );
+                }
+                else
+                {
+                    // Return stock
+                    await _stockMovement.CreateAsync(
+                        businessId,
+                        stockItem.StockItemId,
+                        callerEmployeeId,
+                        new CreateStockMovementRequest
+                        {
+                            Type = "RefundReturn",
+                            Delta = Math.Abs(diff),
+                            OrderLineId = line.OrderLineId
+                        },
+                        ct
+                    );
+                }
+                
+            }
+            
+        }
+        
         string? refreshedDiscountSnapshot = null;
         if (request.DiscountId.HasValue)
         {
@@ -453,6 +586,36 @@ public class OrdersService : IOrdersService
                            l => l.BusinessId == businessId && l.OrderId == orderId && l.OrderLineId == orderLineId, ct)
                    ?? throw new InvalidOperationException("Order line not found.");
 
+
+
+        var stockItem = await _db.StockItems
+            .FirstOrDefaultAsync(s => s.CatalogItemId == line.CatalogItemId, ct);
+
+        var item = await _db.CatalogItems
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                ci => ci.BusinessId == businessId && ci.CatalogItemId == line.CatalogItemId, ct)
+                   ?? throw new InvalidOperationException("Catalog item not found in this business.");
+            
+            
+        if (stockItem != null && string.Equals(item.Type, "product", StringComparison.OrdinalIgnoreCase))
+        {
+            
+                await _stockMovement.CreateAsync(
+                    businessId,
+                    stockItem.StockItemId,
+                    callerEmployeeId,
+                    new CreateStockMovementRequest
+                    {
+                        Type = "RefundReturn",
+                        Delta = line.Qty,
+                        OrderLineId = line.OrderLineId
+                    },
+                    ct
+                );
+            
+                
+        }
         _db.OrderLines.Remove(line);
         await _db.SaveChangesAsync(ct);
     }

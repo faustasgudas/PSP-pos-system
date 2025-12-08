@@ -148,7 +148,7 @@ public static class OrderMappings
                 DateTime? nowUtc = null,
                 string? unitDiscountSnapshot = null)
             {
-                if (req.Qty.HasValue)      line.Qty = req.Qty.Value;
+                      line.Qty = req.Qty;
                 line.DiscountId = req.DiscountId; // set or clear
                 line.UnitDiscountSnapshot = unitDiscountSnapshot;
                 
