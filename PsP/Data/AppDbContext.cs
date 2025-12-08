@@ -37,10 +37,42 @@ public class AppDbContext : DbContext
             e.HasKey(x => x.BusinessId);
             e.Property(x => x.Name).HasMaxLength(200).IsRequired();
             e.Property(x => x.CountryCode).HasMaxLength(2).IsRequired();
+            e.Property(x => x.Email).HasMaxLength(200).IsRequired();
+
             e.HasMany(x => x.Employees)
-             .WithOne(x => x.Business)
-             .HasForeignKey(x => x.BusinessId)
-             .OnDelete(DeleteBehavior.Restrict);
+                .WithOne(x => x.Business)
+                .HasForeignKey(x => x.BusinessId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasMany(x => x.CatalogItems)
+                .WithOne(x => x.Business)
+                .HasForeignKey(x => x.BusinessId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasMany(x => x.Orders)
+                .WithOne(x => x.Business)
+                .HasForeignKey(x => x.BusinessId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasMany(x => x.Reservations)
+                .WithOne(x => x.Business)
+                .HasForeignKey(x => x.BusinessId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasMany(x => x.GiftCards)
+                .WithOne(x => x.Business)
+                .HasForeignKey(x => x.BusinessId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasMany(x => x.Payments)
+                .WithOne(x => x.Business)
+                .HasForeignKey(x => x.BusinessId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasMany(x => x.Discounts)
+                .WithOne(x => x.Business)
+                .HasForeignKey(x => x.BusinessId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         // ==== Employee ====
@@ -100,15 +132,22 @@ public class AppDbContext : DbContext
             e.HasKey(x => x.CatalogItemId);
             e.Property(x => x.Name).HasMaxLength(200).IsRequired();
             e.Property(x => x.Code).HasMaxLength(64).IsRequired();
-            e.Property(x => x.Type).HasMaxLength(16).IsRequired();      // "Product" | "Service"
-            e.Property(x => x.Status).HasMaxLength(16).IsRequired();    // "Draft" | "Active" | "Archived"
-            e.Property(x => x.TaxClass).HasMaxLength(32).IsRequired();  // "Food" | "Service" | ...
+            e.Property(x => x.Type).HasMaxLength(16).IsRequired();
+            e.Property(x => x.Status).HasMaxLength(16).IsRequired();
+            e.Property(x => x.TaxClass).HasMaxLength(32).IsRequired();
             e.Property(x => x.BasePrice).HasColumnType("numeric(18,2)");
+
             e.HasIndex(x => new { x.BusinessId, x.Code }).IsUnique();
-            e.HasOne(x => x.Business!)
-             .WithMany(x => x.CatalogItems)
-             .HasForeignKey(x => x.BusinessId)
-             .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasOne(x => x.Business)
+                .WithMany(b => b.CatalogItems)
+                .HasForeignKey(x => x.BusinessId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasMany(x => x.DiscountEligibilities)
+                .WithOne(de => de.CatalogItem)
+                .HasForeignKey(de => de.CatalogItemId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // ==== TaxRule (read-only/reference; kept simple) ====
@@ -118,7 +157,9 @@ public class AppDbContext : DbContext
             e.Property(x => x.CountryCode).HasMaxLength(2).IsRequired();
             e.Property(x => x.TaxClass).HasMaxLength(32).IsRequired();
             e.Property(x => x.RatePercent).HasColumnType("numeric(5,2)");
+
             e.HasIndex(x => new { x.CountryCode, x.TaxClass, x.ValidFrom, x.ValidTo });
+
         });
         
         mb.Entity<Discount>(e =>
@@ -225,7 +266,7 @@ public class AppDbContext : DbContext
 
             
             e.HasOne(x => x.Reservation)
-                .WithOne(r => r.Order)
+                .WithOne()
                 .HasForeignKey<Order>(x => x.ReservationId)
                 .OnDelete(DeleteBehavior.SetNull);
             
@@ -267,7 +308,7 @@ public class AppDbContext : DbContext
                 .IsRequired();
 
             e.Property(x => x.CatalogTypeSnapshot)
-                .HasMaxLength(16)
+                .HasMaxLength(32)
                 .IsRequired();
 
             e.Property(x => x.TaxRateSnapshotPct)
@@ -287,7 +328,7 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.CatalogItemId)
                 .OnDelete(DeleteBehavior.Restrict);
             
-            e.HasMany(x => x.StockMovement)
+            e.HasMany(x => x.StockMovements)
                 .WithOne(sm => sm.OrderLine)
                 .HasForeignKey(sm => sm.OrderLineId)
                 .OnDelete(DeleteBehavior.Restrict);
@@ -320,17 +361,22 @@ public class AppDbContext : DbContext
 
         // ==== GiftCard ====
         mb.Entity<GiftCard>(e =>
-        {
-            e.HasKey(x => x.GiftCardId);
-            e.Property(x => x.Code).HasMaxLength(64).IsRequired();
-            e.Property(x => x.Status).HasMaxLength(16).IsRequired(); // "Active" | "Blocked" | "Expired"
-            e.Property(x => x.InitialValue).HasColumnType("numeric(18,2)");
-            e.Property(x => x.Balance).HasColumnType("numeric(18,2)");
+        {e.HasKey(x => x.GiftCardId);
 
-            e.HasOne(x => x.Business!)
-             .WithMany(x => x.GiftCards)
-             .HasForeignKey(x => x.BusinessId)
-             .OnDelete(DeleteBehavior.Restrict);
+            e.Property(x => x.Code).HasMaxLength(64).IsRequired();
+            e.Property(x => x.Status).HasMaxLength(16).IsRequired(); 
+            e.Property(x => x.InitialValue).HasColumnType("bigint");
+            e.Property(x => x.Balance).HasColumnType("bigint");
+
+            e.HasOne(x => x.Business)
+                .WithMany(b => b.GiftCards)
+                .HasForeignKey(x => x.BusinessId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasMany(x => x.Payments)
+                .WithOne(p => p.GiftCard)
+                .HasForeignKey(p => p.GiftCardId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             e.HasIndex(x => new { x.BusinessId, x.Code }).IsUnique();
         });
@@ -396,22 +442,22 @@ public class AppDbContext : DbContext
         mb.Entity<StockItem>(e =>
         {
             e.HasKey(x => x.StockItemId);
-            e.Property(x => x.Unit).HasMaxLength(16).IsRequired(); // pcs/ml/g
-            e.Property(x => x.QtyOnHand).HasColumnType("numeric(18,3)");
-            e.Property(x => x.AverageUnitCost).HasColumnType("numeric(18,4)");
 
-            e.HasOne(x => x.CatalogItem!)
-             .WithOne(x => x.StockItem)
-             .HasForeignKey<StockItem>(x => x.CatalogItemId)
-             .OnDelete(DeleteBehavior.Cascade);
+            e.Property(x => x.Unit)
+                .HasMaxLength(16)
+                .IsRequired();
 
-            // optional scoping by Business if present on your class:
-            if (typeof(StockItem).GetProperty("BusinessId") != null)
-            {
-                e.HasIndex("BusinessId");
-            }
+            e.Property(x => x.QtyOnHand)
+                .HasColumnType("numeric(18,3)");
 
-            e.HasIndex(x => x.CatalogItemId).IsUnique();
+            e.Property(x => x.AverageUnitCost)
+                .HasColumnType("numeric(18,4)");
+
+            
+            e.HasOne(x => x.CatalogItem)
+                .WithOne()
+                .HasForeignKey<StockItem>(x => x.CatalogItemId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // ==== StockMovement (audit; link to OrderLine when sale/refund) ====
@@ -423,12 +469,12 @@ public class AppDbContext : DbContext
             e.Property(x => x.UnitCostSnapshot).HasColumnType("numeric(18,4)");
 
             e.HasOne(x => x.StockItem!)
-             .WithMany(x => x.StockMovement)
+             .WithMany(x => x.StockMovements)
              .HasForeignKey(x => x.StockItemId)
              .OnDelete(DeleteBehavior.Cascade);
 
             e.HasOne(x => x.OrderLine)
-             .WithMany(x => x.StockMovement)
+             .WithMany(x => x.StockMovements)
              .HasForeignKey(x => x.OrderLineId)
              .OnDelete(DeleteBehavior.SetNull);
 

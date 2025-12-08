@@ -22,6 +22,5 @@ public class Reservation
     public Employee? Employee { get; set; }
     public CatalogItem? CatalogItem { get; set; }
 
-    // Linked when the customer checks in
-    public Order? Order { get; set; }
+
 }

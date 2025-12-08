@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace PsP.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class initialCommitV2 : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -21,7 +21,7 @@ namespace PsP.Migrations
                     Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     Address = table.Column<string>(type: "text", nullable: false),
                     Phone = table.Column<string>(type: "text", nullable: false),
-                    Email = table.Column<string>(type: "text", nullable: false),
+                    Email = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     CountryCode = table.Column<string>(type: "character varying(2)", maxLength: 2, nullable: false),
                     PriceIncludesTax = table.Column<bool>(type: "boolean", nullable: false),
                     BusinessStatus = table.Column<string>(type: "text", nullable: false)
@@ -107,6 +107,8 @@ namespace PsP.Migrations
                     EmployeeId = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Email = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    PasswordHash = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     Role = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
                     Status = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
                     BusinessId = table.Column<int>(type: "integer", nullable: false)
@@ -131,8 +133,8 @@ namespace PsP.Migrations
                     Code = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     IssuedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     ExpiresAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    InitialValue = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
-                    Balance = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    InitialValue = table.Column<long>(type: "bigint", nullable: false),
+                    Balance = table.Column<long>(type: "bigint", nullable: false),
                     Status = table.Column<string>(type: "character varying(16)", maxLength: 16, nullable: false),
                     BusinessId = table.Column<int>(type: "integer", nullable: false)
                 },
@@ -175,7 +177,6 @@ namespace PsP.Migrations
                 {
                     DiscountId = table.Column<int>(type: "integer", nullable: false),
                     CatalogItemId = table.Column<int>(type: "integer", nullable: false),
-                    DiscountEligibilityId = table.Column<int>(type: "integer", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
                 },
                 constraints: table =>
@@ -286,14 +287,14 @@ namespace PsP.Migrations
                     CatalogItemId = table.Column<int>(type: "integer", nullable: false),
                     DiscountId = table.Column<int>(type: "integer", nullable: true),
                     Qty = table.Column<decimal>(type: "numeric(12,3)", nullable: false),
-                    ItemNameSnapshot = table.Column<string>(type: "text", nullable: false),
+                    ItemNameSnapshot = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
                     UnitPriceSnapshot = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
                     UnitDiscountSnapshot = table.Column<string>(type: "text", nullable: true),
+                    CatalogTypeSnapshot = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
                     TaxClassSnapshot = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
                     TaxRateSnapshotPct = table.Column<decimal>(type: "numeric(6,3)", nullable: false),
                     PerformedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    PerformedByEmployeeId = table.Column<int>(type: "integer", nullable: true),
-                    CatalogItemId1 = table.Column<int>(type: "integer", nullable: false)
+                    PerformedByEmployeeId = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -305,17 +306,11 @@ namespace PsP.Migrations
                         principalColumn: "CatalogItemId",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_OrderLines_CatalogItems_CatalogItemId1",
-                        column: x => x.CatalogItemId1,
-                        principalTable: "CatalogItems",
-                        principalColumn: "CatalogItemId",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
                         name: "FK_OrderLines_Orders_OrderId",
                         column: x => x.OrderId,
                         principalTable: "Orders",
                         principalColumn: "OrderId",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -330,13 +325,11 @@ namespace PsP.Migrations
                     Method = table.Column<string>(type: "character varying(16)", maxLength: 16, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CompletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    Status = table.Column<string>(type: "text", nullable: false),
-                    StripeSessionId = table.Column<string>(type: "text", nullable: true),
+                    Status = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
+                    StripeSessionId = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: true),
                     GiftCardId = table.Column<int>(type: "integer", nullable: true),
                     EmployeeId = table.Column<int>(type: "integer", nullable: true),
                     BusinessId = table.Column<int>(type: "integer", nullable: false),
-                    BusinessId1 = table.Column<int>(type: "integer", nullable: false),
-                    OrderId1 = table.Column<int>(type: "integer", nullable: false),
                     OrderId = table.Column<int>(type: "integer", nullable: false),
                     GiftCardPlannedCents = table.Column<long>(type: "bigint", nullable: false)
                 },
@@ -350,33 +343,23 @@ namespace PsP.Migrations
                         principalColumn: "BusinessId",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_Payments_Businesses_BusinessId1",
-                        column: x => x.BusinessId1,
-                        principalTable: "Businesses",
-                        principalColumn: "BusinessId",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
                         name: "FK_Payments_Employees_EmployeeId",
                         column: x => x.EmployeeId,
                         principalTable: "Employees",
-                        principalColumn: "EmployeeId");
+                        principalColumn: "EmployeeId",
+                        onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
                         name: "FK_Payments_GiftCards_GiftCardId",
                         column: x => x.GiftCardId,
                         principalTable: "GiftCards",
-                        principalColumn: "GiftCardId");
+                        principalColumn: "GiftCardId",
+                        onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
                         name: "FK_Payments_Orders_OrderId",
                         column: x => x.OrderId,
                         principalTable: "Orders",
                         principalColumn: "OrderId",
                         onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Payments_Orders_OrderId1",
-                        column: x => x.OrderId1,
-                        principalTable: "Orders",
-                        principalColumn: "OrderId",
-                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -390,8 +373,7 @@ namespace PsP.Migrations
                     Type = table.Column<string>(type: "character varying(16)", maxLength: 16, nullable: false),
                     Delta = table.Column<decimal>(type: "numeric(18,3)", nullable: false),
                     UnitCostSnapshot = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
-                    At = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    OrderLineId1 = table.Column<int>(type: "integer", nullable: true)
+                    At = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -402,11 +384,6 @@ namespace PsP.Migrations
                         principalTable: "OrderLines",
                         principalColumn: "OrderLineId",
                         onDelete: ReferentialAction.SetNull);
-                    table.ForeignKey(
-                        name: "FK_StockMovements_OrderLines_OrderLineId1",
-                        column: x => x.OrderLineId1,
-                        principalTable: "OrderLines",
-                        principalColumn: "OrderLineId");
                     table.ForeignKey(
                         name: "FK_StockMovements_StockItems_StockItemId",
                         column: x => x.StockItemId,
@@ -433,6 +410,12 @@ namespace PsP.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_Employees_BusinessId_Email",
+                table: "Employees",
+                columns: new[] { "BusinessId", "Email" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Employees_BusinessId_Role",
                 table: "Employees",
                 columns: new[] { "BusinessId", "Role" });
@@ -452,11 +435,6 @@ namespace PsP.Migrations
                 name: "IX_OrderLines_CatalogItemId",
                 table: "OrderLines",
                 column: "CatalogItemId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_OrderLines_CatalogItemId1",
-                table: "OrderLines",
-                column: "CatalogItemId1");
 
             migrationBuilder.CreateIndex(
                 name: "IX_OrderLines_OrderId",
@@ -485,11 +463,6 @@ namespace PsP.Migrations
                 columns: new[] { "BusinessId", "OrderId", "CreatedAt" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_Payments_BusinessId1",
-                table: "Payments",
-                column: "BusinessId1");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Payments_EmployeeId",
                 table: "Payments",
                 column: "EmployeeId");
@@ -503,11 +476,6 @@ namespace PsP.Migrations
                 name: "IX_Payments_OrderId",
                 table: "Payments",
                 column: "OrderId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Payments_OrderId1",
-                table: "Payments",
-                column: "OrderId1");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Reservations_BusinessId",
@@ -534,11 +502,6 @@ namespace PsP.Migrations
                 name: "IX_StockMovements_OrderLineId",
                 table: "StockMovements",
                 column: "OrderLineId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_StockMovements_OrderLineId1",
-                table: "StockMovements",
-                column: "OrderLineId1");
 
             migrationBuilder.CreateIndex(
                 name: "IX_StockMovements_StockItemId_At",

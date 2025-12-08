@@ -17,7 +17,7 @@ public class CatalogItem
 
     // Nav
     public Business? Business { get; set; }
-    public StockItem? StockItem { get; set; }          // 1:0..1
+
     public ICollection<DiscountEligibility> DiscountEligibilities { get; set; } = new List<DiscountEligibility>();
 
 

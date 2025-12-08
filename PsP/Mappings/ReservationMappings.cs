@@ -29,7 +29,7 @@ public static class ReservationMappings
         PlannedDurationMin = r.PlannedDurationMin,
         Notes              = r.Notes,
         TableOrArea        = r.TableOrArea,
-        OrderId            = r.Order?.OrderId
+        
     };
 
     // Request -> Entity
