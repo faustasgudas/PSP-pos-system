@@ -47,6 +47,7 @@ public static class OrderMappings
                 DiscountId = l.DiscountId,
                 Qty = l.Qty,
                 ItemNameSnapshot = l.ItemNameSnapshot,
+                CatalogTypeSnapshot = l.CatalogTypeSnapshot,
                 UnitPriceSnapshot = l.UnitPriceSnapshot,
                 UnitDiscountSnapshot = l.UnitDiscountSnapshot,
                 TaxClassSnapshot = l.TaxClassSnapshot,
