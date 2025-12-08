@@ -62,6 +62,8 @@ builder.Services.AddScoped<IBusinessService, BusinessService>();
 builder.Services.AddScoped<IOrdersService, OrdersService>();
 builder.Services.AddScoped<IDiscountsService, DiscountsService>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<IStockItemService, StockItemService>();
+builder.Services.AddScoped<IStockMovementService, StockMovementService>();
 
 // TIK vienas Stripe service
 builder.Services.AddScoped<StripePaymentService>();
