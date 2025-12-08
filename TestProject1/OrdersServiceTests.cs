@@ -13,7 +13,8 @@ public class OrdersServiceTests
         {
             var db = TestHelpers.NewContext();
             var discSvc = new DiscountsService(db);
-            var orderSvc = new OrdersService(db, discSvc); // assuming your ctor is (AppDbContext, IDiscountsService)
+            var stocks = new StockMovementService(db);
+            var orderSvc = new OrdersService(db, discSvc,stocks); // assuming your ctor is (AppDbContext, IDiscountsService)
             return (db, discSvc, orderSvc);
         }
 

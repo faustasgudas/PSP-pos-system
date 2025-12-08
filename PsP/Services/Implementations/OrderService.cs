@@ -13,10 +13,11 @@ public class OrdersService : IOrdersService
     private readonly AppDbContext _db;
     private readonly IDiscountsService _discounts;
     private readonly IStockMovementService _stockMovement;
-    public OrdersService(AppDbContext db, IDiscountsService discounts)
+    public OrdersService(AppDbContext db, IDiscountsService discounts,IStockMovementService stockMovement)
     {
         _db = db;
         _discounts = discounts;
+        _stockMovement = stockMovement;
     }
 
     private static bool IsManagerOrOwner(Employee e)
@@ -447,7 +448,7 @@ public class OrdersService : IOrdersService
         await _db.SaveChangesAsync(ct);
         if (string.Equals(item.Type, "product", StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException("ble");
+            
             await _stockMovement.CreateAsync(
                 businessId: businessId,
                 stockItemId: stockItem.StockItemId,
@@ -495,6 +496,16 @@ public class OrdersService : IOrdersService
         decimal newQty = request.Qty;
         decimal diff = newQty - oldQty;
 
+        
+         string? refreshedDiscountSnapshot = null;
+                if (request.DiscountId.HasValue)
+                {
+                    var discount = await _discounts.EnsureLineDiscountEligibleAsync(businessId, (int)request.DiscountId,
+                        line.CatalogItemId, null, ct);
+                    refreshedDiscountSnapshot = _discounts.MakeLineDiscountSnapshot(discount, line.CatalogItemId);
+                }
+        
+        
         if (diff != 0)
         {
             
@@ -510,6 +521,8 @@ public class OrdersService : IOrdersService
                                ci => ci.BusinessId == businessId && ci.CatalogItemId == line.CatalogItemId, ct)
                        ?? throw new InvalidOperationException("Catalog item not found in this business.");
 
+            
+            
             
             
             if (string.Equals(item.Type, "product", StringComparison.OrdinalIgnoreCase))
@@ -553,13 +566,7 @@ public class OrdersService : IOrdersService
             
         }
         
-        string? refreshedDiscountSnapshot = null;
-        if (request.DiscountId.HasValue)
-        {
-            var discount = await _discounts.EnsureLineDiscountEligibleAsync(businessId, (int)request.DiscountId,
-                line.CatalogItemId, null, ct);
-            refreshedDiscountSnapshot = _discounts.MakeLineDiscountSnapshot(discount, line.CatalogItemId);
-        }
+       
 
         request.ApplyUpdate(line, performedByEmployeeId: callerEmployeeId, nowUtc: DateTime.UtcNow,
             unitDiscountSnapshot: refreshedDiscountSnapshot);

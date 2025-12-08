@@ -13,8 +13,9 @@ public class OrderServiceTests2
     private static (AppDbContext db, IOrdersService orders, IDiscountsService discounts) Boot()
     {
         var db = TestDb.NewInMemory();
-        var discounts = new DiscountsService(db); // real discounts service
-        var orders = new OrdersService(db, discounts); // real orders service (matches prod logic)
+        var discounts = new DiscountsService(db);
+        var stocks = new StockMovementService(db);// real discounts service
+        var orders = new OrdersService(db, discounts,stocks); // real orders service (matches prod logic)
         return (db, orders,discounts);
     }
 
