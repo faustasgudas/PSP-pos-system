@@ -4,7 +4,7 @@ public class StockItem
 {
     public int StockItemId { get; set; }
 
-    // FK (1:0..1 from CatalogItem)
+    
     public int CatalogItemId { get; set; }
 
     public string Unit { get; set; } = "pcs";  // "pcs" / "ml" / "g"
@@ -13,6 +13,6 @@ public class StockItem
 
     // Nav
     public CatalogItem? CatalogItem { get; set; }
-    public ICollection<StockMovement> StockMovement { get; set; } = new List<StockMovement>();
+    public ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();
 
 }

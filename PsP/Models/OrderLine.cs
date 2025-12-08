@@ -28,7 +28,7 @@ public class OrderLine
 
     public CatalogItem CatalogItem { get; set; } = null!;
     public Order Order { get; set; } = null!;
-    public ICollection<StockMovement> StockMovement { get; set; } = new List<StockMovement>();
+    public ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();
 
     
 }

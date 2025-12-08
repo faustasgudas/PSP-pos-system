@@ -9,12 +9,12 @@ public class OrderLineResponse
     public int? DiscountId { get; set; }
     public decimal Qty { get; set; }
 
-    public string ItemNameSnapshot { get; set; } = "";
+    public string ItemNameSnapshot { get; set; }
     public decimal UnitPriceSnapshot { get; set; }
     
-    public string CatalogTypeSnapshot { get; set; } = string.Empty;
+    public string CatalogTypeSnapshot { get; set; }
     public string? UnitDiscountSnapshot { get; set; }
-    public string TaxClassSnapshot { get; set; } = "";
+    public string TaxClassSnapshot { get; set; }
     public decimal TaxRateSnapshotPct { get; set; }
 
     public DateTime PerformedAt { get; set; }

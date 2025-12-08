@@ -73,9 +73,11 @@ public class OrdersBasicsTests
     }
 
     [Fact]
-    public async Task DeleteOrder_CascadesToLines()
+    public async Task DeleteOrder_ShouldFail_WhenOrderLinesExist()
     {
-        await using var db = TestHelpers.NewInMemoryContext();  // <<< čia InMemory
+        await using var db = TestHelpers.NewInMemoryContext();
+
+        // Arrange
         var (biz, emp) = TestHelpers.SeedBusinessAndEmployee(db);
         var item = TestHelpers.SeedCatalogItem(db, biz.BusinessId);
 
@@ -103,13 +105,19 @@ public class OrdersBasicsTests
         });
         await db.SaveChangesAsync();
 
-        db.Orders.Remove(order);
-        await db.SaveChangesAsync();
+        // Act + Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        {
+            db.Orders.Remove(order);
+            await db.SaveChangesAsync();
+        });
 
-        var linesLeft = await db.OrderLines
+        // Ensure the order lines still exist
+        var count = await db.OrderLines
             .Where(l => l.OrderId == order.OrderId)
             .CountAsync();
 
-        Assert.Equal(0, linesLeft);
+        Assert.Equal(1, count);
     }
+
 }

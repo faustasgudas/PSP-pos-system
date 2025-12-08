@@ -33,7 +33,7 @@ public static class Seed
         db.Businesses.Add(biz);
         db.SaveChanges();
 
-        var emp = new Employee { BusinessId = biz.BusinessId, Name = "E1", Role = "Staff", Status = "Active" };
+        var emp = new Employee { BusinessId = biz.BusinessId, Name = "E1", Role = "Staff", Status = "Active",Email = "a@b.c",PasswordHash = "whatever" };
         db.Employees.Add(emp);
         db.SaveChanges();
 
@@ -42,7 +42,7 @@ public static class Seed
 
     public static Employee AddEmployee(AppDbContext db, int businessId, string role = "Staff", string name = "E2")
     {
-        var e = new Employee { BusinessId = businessId, Name = name, Role = role, Status = "Active" };
+        var e = new Employee { BusinessId = businessId, Name = name, Role = role, Status = "Active", Email = "a@b.c",PasswordHash = "whatever"};
         db.Employees.Add(e);
         db.SaveChanges();
         return e;

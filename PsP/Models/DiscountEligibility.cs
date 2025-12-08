@@ -2,8 +2,6 @@ namespace PsP.Models;
 
 public class DiscountEligibility
 {
-    public int DiscountEligibilityId { get; set; }
-
     public int DiscountId { get; set; }
     public Discount Discount { get; set; } = null!;
 
