@@ -25,9 +25,9 @@ public class DiscountsServiceCRUDTests
         db.Businesses.Add(biz);
         db.SaveChanges();
 
-        var owner = new Employee { BusinessId = biz.BusinessId, Name = "Ow", Role = "Owner", Status = "Active" };
-        var manager = new Employee { BusinessId = biz.BusinessId, Name = "Mgr", Role = "Manager", Status = "Active" };
-        var staff = new Employee { BusinessId = biz.BusinessId, Name = "Stf", Role = "Staff", Status = "Active" };
+        var owner = new Employee { BusinessId = biz.BusinessId, Name = "Ow", Role = "Owner", Status = "Active",Email = "a@b.c",PasswordHash = "whatever1" };
+        var manager = new Employee { BusinessId = biz.BusinessId, Name = "Mgr", Role = "Manager", Status = "Active",Email = "b@b.c",PasswordHash = "whatever2" };
+        var staff = new Employee { BusinessId = biz.BusinessId, Name = "Stf", Role = "Staff", Status = "Active",Email = "c@b.c",PasswordHash = "whatever3" };
         db.Employees.AddRange(owner, manager, staff);
         db.SaveChanges();
 
@@ -708,7 +708,8 @@ public async Task AddEligibility_ManagerOnly_PreventsDuplicates_And_BusinessMism
                 BusinessId = otherBiz.BusinessId,
                 Name = "Bob",
                 Role = "Staff",
-                Status = "Active"
+                Status = "Active",
+                Email = "d@b.c",PasswordHash = "1whatever"
             };
             db.Employees.Add(otherEmp);
             await db.SaveChangesAsync();

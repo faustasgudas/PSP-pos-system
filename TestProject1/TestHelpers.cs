@@ -57,7 +57,8 @@ public static class TestHelpers
             BusinessId = biz.BusinessId,
             Name = "Alice",
             Role = "Staff",
-            Status = "Active"
+            Status = "Active",
+            Email = "a@b.c",PasswordHash = "whatever"
         };
         db.Employees.Add(emp);
         db.SaveChanges();

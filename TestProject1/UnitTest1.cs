@@ -22,7 +22,7 @@ public class CreateOrderFlowTests
             Email = "biz@test.local",
             CountryCode = "LT",
             PriceIncludesTax = false        // if present/required
-        };        var emp = new Employee { Name = "Alice", Role = "Staff", Status = "Active", Business = biz };
+        };        var emp = new Employee { Name = "Alice", Role = "Staff", Status = "Active", Business = biz,Email = "a@b.c",PasswordHash = "whatever" };
         var item = new CatalogItem
         {
             Business = biz,
