@@ -242,3 +242,133 @@
     color: #023047;
     font-weight: 600;
 }
+
+/* ===============================
+   ✅ TABLETS & SMALL LAPTOPS
+   =============================== */
+@media (max-width: 1024px) {
+    .navbar {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .nav-btn {
+        width: auto;
+        flex: 1 1 30%;
+        font-size: 14px;
+    }
+
+    .action-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .action-bar .btn {
+        width: 100%;
+    }
+
+    .stat-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .stat-card {
+        padding: 14px;
+    }
+
+    .booking-item,
+    .employee-card,
+    .inventory-card,
+    .service-card,
+    .giftcard-card {
+        padding: 12px;
+    }
+}
+
+/* ===============================
+   ✅ MOBILE & TABLETS
+   =============================== */
+@media (max-width: 768px) {
+    .navbar {
+        justify-content: center;
+    }
+
+    .nav-btn {
+        flex: 1 1 45%;
+        font-size: 13px;
+        padding: 8px;
+    }
+
+    .dashboard-container {
+        padding: 10px;
+    }
+
+    .action-bar h2 {
+        font-size: 18px;
+    }
+
+    .btn {
+        font-size: 13px;
+        padding: 8px 10px;
+    }
+
+    .stat-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .tabs {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .booking-details {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+}
+
+/* ===============================
+   ✅ PHONES
+   =============================== */
+@media (max-width: 480px) {
+    .navbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .nav-btn {
+        width: 100%;
+        font-size: 14px;
+    }
+
+    .stat-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stat-card {
+        padding: 12px;
+    }
+
+    .booking-item,
+    .employee-card,
+    .inventory-card,
+    .service-card,
+    .giftcard-card {
+        padding: 10px;
+        border-radius: 8px;
+    }
+
+    .detail-label {
+        font-size: 12px;
+    }
+
+    .detail-value {
+        font-size: 13px;
+    }
+
+    .btn {
+        width: 100%;
+    }
+}

@@ -30,138 +30,127 @@ interface ReservationsProps {
     reservations: Booking[];
     services: Service[];
     employees: Employee[];
+    goToNewBooking: () => void;
 }
 
 export default function BeautyReservations({
                                                reservations,
                                                services,
                                                employees,
+                                               goToNewBooking,
                                            }: ReservationsProps) {
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [currentMonth, setCurrentMonth] = useState(new Date());
 
-    // Helpers
-    const getServiceNames = (ids: number[]) =>
-        ids.map(id => services.find(s => s.id === id)?.name || "Unknown").join(", ");
-
-    const getEmployeeName = (id: number) =>
-        employees.find(e => e.id === id)?.name || "Unknown";
-
-    const formatTime = (dateString: string) =>
-        new Date(dateString).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-        });
-
-    const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-    const endOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
-    const monthDays = endOfMonth.getDate();
-
-    const prevMonth = () =>
-        setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
-
-    const nextMonth = () =>
-        setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
 
     const isSameDay = (a: Date, b: Date) =>
         a.getFullYear() === b.getFullYear() &&
         a.getMonth() === b.getMonth() &&
         a.getDate() === b.getDate();
 
-    const bookedDates = useMemo(() => {
-        return reservations.map(r => new Date(r.appointmentStart).getDate());
-    }, [reservations]);
+    const monthLabel = currentMonth.toLocaleString("default", {
+        month: "long",
+        year: "numeric",
+    });
 
-    // Filter reservations for selected date
-    const reservationsForDay = reservations.filter(r =>
-        isSameDay(new Date(r.appointmentStart), selectedDate)
-    );
+    const bookedDates = useMemo(() => {
+        const days = new Set<number>();
+        reservations.forEach(r => {
+            const d = new Date(r.appointmentStart);
+            if (d.getFullYear() === year && d.getMonth() === month) {
+                days.add(d.getDate());
+            }
+        });
+        return Array.from(days);
+    }, [reservations, year, month]);
+
+    const bookingsForSelectedDate = useMemo(() => {
+        return reservations.filter(r =>
+            isSameDay(new Date(r.appointmentStart), selectedDate)
+        );
+    }, [reservations, selectedDate]);
 
     return (
         <div className="reservations-container">
+
             <div className="action-bar">
-                <h2 className="section-title">Reservations</h2>
-                <button className="btn btn-primary">
+                <h2 className="section-title">Reservation Management</h2>
+
+                <button
+                    className="btn btn-primary"
+                    onClick={() => {
+                        console.log("✅ NEW BOOKING BUTTON CLICKED");
+                        goToNewBooking(); // 🔥 THIS MUST FIRE
+                    }}
+                >
                     <span>➕</span> New Booking
                 </button>
             </div>
 
-            {/* Calendar */}
             <div className="calendar-wrapper">
                 <div className="calendar-header">
-                    <button onClick={prevMonth} className="cal-nav-btn">◀</button>
-                    <h3>
-                        {currentMonth.toLocaleString("default", { month: "long" })}{" "}
-                        {currentMonth.getFullYear()}
-                    </h3>
-                    <button onClick={nextMonth} className="cal-nav-btn">▶</button>
+                    <button
+                        className="cal-nav-btn"
+                        onClick={() =>
+                            setCurrentMonth(new Date(year, month - 1, 1))
+                        }
+                    >
+                        ◀ Prev
+                    </button>
+
+                    <div className="calendar-title">{monthLabel}</div>
+
+                    <button
+                        className="cal-nav-btn"
+                        onClick={() =>
+                            setCurrentMonth(new Date(year, month + 1, 1))
+                        }
+                    >
+                        Next ▶
+                    </button>
                 </div>
 
                 <div className="calendar-grid">
-                    {Array.from({ length: monthDays }, (_, i) => {
+                    {Array.from({ length: daysInMonth }, (_, i) => {
                         const day = i + 1;
-                        const thisDate = new Date(
-                            currentMonth.getFullYear(),
-                            currentMonth.getMonth(),
-                            day
-                        );
+                        const thisDate = new Date(year, month, day);
 
-                        const isToday = isSameDay(thisDate, new Date());
                         const isSelected = isSameDay(thisDate, selectedDate);
                         const isBooked = bookedDates.includes(day);
 
                         return (
                             <div
                                 key={day}
-                                className={`calendar-day 
-                                    ${isToday ? "today" : ""} 
-                                    ${isSelected ? "selected" : ""}`}
+                                className={`calendar-day ${isSelected ? "selected" : ""}`}
                                 onClick={() => setSelectedDate(thisDate)}
                             >
                                 {day}
-                                {isBooked && <div className="dot"></div>}
+                                {isBooked && <span className="dot" />}
                             </div>
                         );
                     })}
                 </div>
             </div>
 
-            {/* Bookings for selected date */}
             <h3 className="sub-title">
-                Bookings for {selectedDate.toLocaleDateString()}
+                Bookings for{" "}
+                {selectedDate.toLocaleDateString([], {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                })}
             </h3>
 
             <div className="booking-list">
-                {reservationsForDay.length > 0 ? (
-                    reservationsForDay.map(booking => (
-                        <div key={booking.id} className="booking-item">
-                            <div className="booking-header">
-                                <div className="booking-time">
-                                    {formatTime(booking.appointmentStart)}
-                                </div>
-                                <div className="booking-status status-confirmed">
-                                    {booking.status}
-                                </div>
-                            </div>
-
+                {bookingsForSelectedDate.length > 0 ? (
+                    bookingsForSelectedDate.map(b => (
+                        <div key={b.id} className="booking-item">
                             <div className="booking-details">
-                                <div className="detail-item">
-                                    <div className="detail-label">Client</div>
-                                    <div className="detail-value">{booking.customerName}</div>
-                                </div>
-
-                                <div className="detail-item">
-                                    <div className="detail-label">Service</div>
-                                    <div className="detail-value">
-                                        {getServiceNames(booking.services)}
-                                    </div>
-                                </div>
-
-                                <div className="detail-item">
-                                    <div className="detail-label">Employee</div>
-                                    <div className="detail-value">
-                                        {getEmployeeName(booking.employeeId)}
-                                    </div>
+                                <div className="detail-value">
+                                    {b.customerName}
                                 </div>
                             </div>
                         </div>
@@ -169,7 +158,9 @@ export default function BeautyReservations({
                 ) : (
                     <div className="booking-item">
                         <div className="booking-details">
-                            <div className="detail-value">No bookings for this day</div>
+                            <div className="detail-value">
+                                No bookings for this day
+                            </div>
                         </div>
                     </div>
                 )}

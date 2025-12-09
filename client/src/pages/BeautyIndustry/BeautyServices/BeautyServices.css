@@ -1,0 +1,118 @@
+.services-container {
+    padding: 20px;
+}
+
+.services-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 20px;
+}
+
+.service-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.service-name {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.service-price {
+    font-size: 14px;
+    color: #555;
+}
+
+.service-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-small {
+    background: #8ecae6;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.btn-small:hover {
+    background: #58b4d1;
+}
+
+.btn-danger {
+    background: #e63946;
+    color: white;
+}
+
+.no-services {
+    opacity: 0.7;
+    padding: 20px;
+}
+
+/* ========================= */
+/* ✅ MODAL STYLES */
+/* ========================= */
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+}
+
+.modal-card {
+    background: white;
+    border-radius: 14px;
+    padding: 30px 36px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+.modal-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 24px;
+    text-align: center;
+}
+
+.modal-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.modal-field {
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-field label {
+    font-size: 14px;
+    margin-bottom: 6px;
+}
+
+.modal-field input,
+.modal-field select {
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 26px;
+}

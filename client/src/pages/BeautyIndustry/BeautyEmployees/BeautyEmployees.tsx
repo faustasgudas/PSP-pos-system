@@ -1,3 +1,4 @@
+import { useState } from "react";
 import "./BeautyEmployees.css";
 
 interface Employee {
@@ -11,33 +12,24 @@ interface BeautyEmployeesProps {
 }
 
 export default function BeautyEmployees({ employees }: BeautyEmployeesProps) {
+    const [showModal, setShowModal] = useState(false);
+
     return (
         <div className="employees-container">
             <div className="action-bar">
                 <h2 className="section-title">Employees</h2>
-                <button className="btn btn-primary">
-                    <span>➕</span> Add Employee
+                <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+                    ➕ Add Employee
                 </button>
             </div>
 
             <div className="employees-list">
                 {employees.length > 0 ? (
-                    employees.map(e => (
-                        <div key={e.id} className="employee-card">
-                            <div className="employee-header">
-                                <div className="employee-avatar">
-                                    {e.name[0].toUpperCase()}
-                                </div>
-
-                                <div>
-                                    <div className="employee-name">{e.name}</div>
-                                    <div className="employee-role">{e.role}</div>
-                                </div>
-                            </div>
-
-                            <div className="employee-actions">
-                                <button className="btn-small">Edit</button>
-                                <button className="btn-small btn-danger">Remove</button>
+                    employees.map(emp => (
+                        <div key={emp.id} className="employee-card">
+                            <div>
+                                <div className="employee-name">{emp.name}</div>
+                                <div className="employee-role">{emp.role}</div>
                             </div>
                         </div>
                     ))
@@ -45,6 +37,39 @@ export default function BeautyEmployees({ employees }: BeautyEmployeesProps) {
                     <div className="no-employees">No employees found</div>
                 )}
             </div>
+
+            {/* ✅ ADD EMPLOYEE MODAL */}
+            {showModal && (
+                <div className="modal-overlay">
+                    <div className="modal-card">
+                        <h3 className="modal-title">Add Employee</h3>
+
+                        <div className="modal-form">
+                            <div className="modal-field">
+                                <label>Name</label>
+                                <input type="text" />
+                            </div>
+
+                            <div className="modal-field">
+                                <label>Role</label>
+                                <input type="text" />
+                            </div>
+                        </div>
+
+                        <div className="modal-actions">
+                            <button
+                                className="btn btn-secondary"
+                                onClick={() => setShowModal(false)}
+                            >
+                                Cancel
+                            </button>
+                            <button className="btn btn-success">
+                                Save Employee
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

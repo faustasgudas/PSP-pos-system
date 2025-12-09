@@ -32,6 +32,11 @@
     background: #58b4d1;
 }
 
+.calendar-title {
+    font-weight: 600;
+    font-size: 18px;
+}
+
 .calendar-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
