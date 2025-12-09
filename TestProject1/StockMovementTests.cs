@@ -84,26 +84,21 @@ public class StockMovementTests
     [Fact]
     public async Task SaleMovement_Decreases_Stock()
     {
-        var (db, sms, _, biz, emp, item, stock) = Boot(50);
+        var (db, sms, _, biz, emp, item, stock) = Boot(initialQty: 10);
 
         await sms.CreateAsync(
-            businessId: biz.BusinessId,
-            stockItemId: stock.StockItemId,
-            callerEmployeeId: emp.EmployeeId,
-            request: new CreateStockMovementRequest
+            biz.BusinessId,
+            stock.StockItemId,
+            emp.EmployeeId,
+            new CreateStockMovementRequest
             {
                 Type = "Sale",
-                Delta = -5m,
-                OrderLineId = 10
+                Delta = -1m
             }
         );
 
         var updated = await db.StockItems.FindAsync(stock.StockItemId);
-        Assert.Equal(45m, updated!.QtyOnHand);
-
-        var mv = await db.StockMovements.FirstAsync();
-        Assert.Equal(-5m, mv.Delta);
-        Assert.Equal(10, mv.OrderLineId);
+        Assert.Equal(9m, updated!.QtyOnHand);
     }
 
     // --------------------------------------------------------

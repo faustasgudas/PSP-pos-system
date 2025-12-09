@@ -36,7 +36,21 @@ public class OrdersService : IOrdersService
 
         return caller;
     }
+    
+    private async Task<Employee> EnsureActiveEmployeeBelongsToBusinessAsync(int businessId, int callerEmployeeId, CancellationToken ct)
+    {
+        var caller = await _db.Employees
+                         .AsNoTracking()
+                         .FirstOrDefaultAsync(x => x.BusinessId == businessId && x.EmployeeId == callerEmployeeId, ct)
+                     ?? throw new InvalidOperationException("Employee not found in this business.");
 
+        if (!string.Equals(caller.Status, "Active", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Employee is not active.");
+
+        return caller;
+    }
+    
+    
     private async Task<Order> GetOrderEntityAsync(int businessId, int orderId, CancellationToken ct)
     {
         return await _db.Orders
@@ -204,12 +218,12 @@ public class OrdersService : IOrdersService
         CancellationToken ct = default)
     {
         // validate caller exists & belongs to business
-        _ = await GetCallerAsync(businessId, request.EmployeeId, ct);
+        var caller = await GetCallerAsync(businessId, callerEmployeeId, ct);
 
         if (callerEmployeeId != request.EmployeeId)
         {
-            var manager = await GetCallerAsync(businessId, callerEmployeeId, ct);
-            if (!IsManagerOrOwner(manager))
+            var employee = await EnsureActiveEmployeeBelongsToBusinessAsync(businessId, request.EmployeeId, ct);
+            if (!IsManagerOrOwner(caller))
             {
                 throw new InvalidOperationException("Forbidden: only managers/owners can create order for others.");
             }
@@ -264,7 +278,7 @@ public class OrdersService : IOrdersService
         
         if (callerEmployeeId != request.EmployeeId)
         {
-            _ = await GetCallerAsync(businessId, request.EmployeeId, ct);
+            _ = await EnsureActiveEmployeeBelongsToBusinessAsync(businessId, request.EmployeeId, ct);
             if (!IsManagerOrOwner(caller))
             {
                 throw new InvalidOperationException("Forbidden: only managers/owners can update order for others.");
@@ -329,6 +343,9 @@ public class OrdersService : IOrdersService
         var caller = await GetCallerAsync(businessId, callerEmployeeId, ct);
         var order = await GetOrderEntityAsync(businessId, orderId, ct);
         EnsureCallerCanSeeOrder(caller, order);
+        
+        
+        
         EnsureOpen(order);
 
         
@@ -390,6 +407,7 @@ public class OrdersService : IOrdersService
         var caller = await GetCallerAsync(businessId, callerEmployeeId, ct);
         var order = await GetOrderEntityAsync(businessId, orderId, ct);
         EnsureCallerCanSeeOrder(caller, order);
+        
         EnsureOpen(order);
 
         // Resolve snapshots from CatalogItem (+ tax)
@@ -628,6 +646,34 @@ public class OrdersService : IOrdersService
     }
 
 
+    public async Task<OrderDetailResponse> ReopenOrderAsync(
+        int businessId,
+        int orderId,
+        int callerEmployeeId,
+        CancellationToken ct = default)
+    {
+        var caller = await GetCallerAsync(businessId, callerEmployeeId, ct);
+
+        if (!IsManagerOrOwner(caller))
+            throw new InvalidOperationException("Forbidden: only managers/owners can reopen orders.");
+
+        var order = await GetOrderEntityAsync(businessId, orderId, ct);
+
+        if (order.Status == "Open")
+            throw new InvalidOperationException("Order is already open.");
+        
+        order.Status = "Open";
+        order.ClosedAt = null;
+
+        await _db.SaveChangesAsync(ct);
+
+        var lines = await _db.OrderLines
+            .AsNoTracking()
+            .Where(l => l.BusinessId == businessId && l.OrderId == orderId)
+            .ToListAsync(ct);
+
+        return order.ToDetailResponse(lines);
+    }
 
 
 
