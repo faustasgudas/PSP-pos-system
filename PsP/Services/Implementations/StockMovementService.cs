@@ -136,6 +136,7 @@ public class StockMovementService : IStockMovementService
         CreateStockMovementRequest request,
         CancellationToken ct = default)
     {
+        
         ValidateType(request.Type);
 
         if (request.Delta == 0)
@@ -159,6 +160,9 @@ public class StockMovementService : IStockMovementService
             throw new InvalidOperationException("unit_cost_required_for_receive");
         }
 
+
+        
+        
         for (var attempt = 0; attempt < MaxConcurrencyRetries; attempt++)
         {
             if (attempt > 0)

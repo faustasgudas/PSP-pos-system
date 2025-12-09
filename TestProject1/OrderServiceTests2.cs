@@ -13,8 +13,9 @@ public class OrderServiceTests2
     private static (AppDbContext db, IOrdersService orders, IDiscountsService discounts) Boot()
     {
         var db = TestDb.NewInMemory();
-        var discounts = new DiscountsService(db); // real discounts service
-        var orders = new OrdersService(db, discounts); // real orders service (matches prod logic)
+        var discounts = new DiscountsService(db);
+        var stocks = new StockMovementService(db);// real discounts service
+        var orders = new OrdersService(db, discounts,stocks); // real orders service (matches prod logic)
         return (db, orders,discounts);
     }
 
@@ -595,7 +596,24 @@ public class OrderServiceTests2
     }
     
     
-    
+    [Fact]
+    public async Task Manager_Can_Reopen_Closed_Order()
+    {
+        var (db, svc,_) = Boot();
+        var (biz, staff) = Seed.BizAndStaff(db);
+        var mgr = Seed.AddEmployee(db, biz.BusinessId, "Manager");
+
+        var order = await svc.CreateOrderAsync(biz.BusinessId, staff.EmployeeId,
+            new CreateOrderRequest { EmployeeId = staff.EmployeeId });
+
+        await svc.CloseOrderAsync(biz.BusinessId, order.OrderId, staff.EmployeeId);
+
+        var reopened = await svc.ReopenOrderAsync(biz.BusinessId, order.OrderId, mgr.EmployeeId);
+
+        reopened.Status.Should().Be("Open");
+        reopened.ClosedAt.Should().BeNull();
+    }
+
     
     
     
