@@ -10,9 +10,6 @@ public class Order
     public int? ReservationId { get; set; }      
     
     public string Status { get; set; } = "Open";
-    
-    public string Currency { get; set; } = "EUR"; // default jei nori
-
     public string? TableOrArea { get; set; }
 
     
@@ -23,7 +20,6 @@ public class Order
 
     
     public string? OrderDiscountSnapshot { get; set; }
-    // public decimal? OrderDiscountValueSnapshot { get; set; }
     public int? DiscountId { get; set; }
     public ICollection<OrderLine> Lines { get; set; } = new List<OrderLine>();
     

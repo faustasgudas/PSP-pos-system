@@ -45,7 +45,8 @@ namespace PsP.Migrations
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -175,9 +176,6 @@ namespace PsP.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                    b.Property<int>("DiscountEligibilityId")
-                        .HasColumnType("integer");
-
                     b.HasKey("DiscountId", "CatalogItemId");
 
                     b.HasIndex("CatalogItemId");
@@ -198,7 +196,8 @@ namespace PsP.Migrations
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -207,7 +206,8 @@ namespace PsP.Migrations
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("Role")
                         .IsRequired()
@@ -220,6 +220,9 @@ namespace PsP.Migrations
                         .HasColumnType("character varying(32)");
 
                     b.HasKey("EmployeeId");
+
+                    b.HasIndex("BusinessId", "Email")
+                        .IsUnique();
 
                     b.HasIndex("BusinessId", "Role");
 
@@ -234,8 +237,8 @@ namespace PsP.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("GiftCardId"));
 
-                    b.Property<decimal>("Balance")
-                        .HasColumnType("numeric(18,2)");
+                    b.Property<long>("Balance")
+                        .HasColumnType("bigint");
 
                     b.Property<int>("BusinessId")
                         .HasColumnType("integer");
@@ -248,8 +251,8 @@ namespace PsP.Migrations
                     b.Property<DateTime?>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<decimal>("InitialValue")
-                        .HasColumnType("numeric(18,2)");
+                    b.Property<long>("InitialValue")
+                        .HasColumnType("bigint");
 
                     b.Property<DateTime>("IssuedAt")
                         .HasColumnType("timestamp with time zone");
@@ -283,10 +286,6 @@ namespace PsP.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Currency")
-                        .IsRequired()
-                        .HasColumnType("text");
 
                     b.Property<int?>("DiscountId")
                         .HasColumnType("integer");
@@ -340,15 +339,16 @@ namespace PsP.Migrations
 
                     b.Property<string>("CatalogTypeSnapshot")
                         .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("character varying(16)");
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
 
                     b.Property<int?>("DiscountId")
                         .HasColumnType("integer");
 
                     b.Property<string>("ItemNameSnapshot")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
 
                     b.Property<int>("OrderId")
                         .HasColumnType("integer");
@@ -431,10 +431,12 @@ namespace PsP.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
 
                     b.Property<string>("StripeSessionId")
-                        .HasColumnType("text");
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
 
                     b.Property<long>("TipCents")
                         .ValueGeneratedOnAdd()
@@ -685,7 +687,7 @@ namespace PsP.Migrations
                         .IsRequired();
 
                     b.HasOne("PsP.Models.Reservation", "Reservation")
-                        .WithOne("Order")
+                        .WithOne()
                         .HasForeignKey("PsP.Models.Order", "ReservationId")
                         .OnDelete(DeleteBehavior.SetNull);
 
@@ -707,7 +709,7 @@ namespace PsP.Migrations
                     b.HasOne("PsP.Models.Order", "Order")
                         .WithMany("Lines")
                         .HasForeignKey("OrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("CatalogItem");
@@ -725,11 +727,13 @@ namespace PsP.Migrations
 
                     b.HasOne("PsP.Models.Employee", "Employee")
                         .WithMany()
-                        .HasForeignKey("EmployeeId");
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("PsP.Models.GiftCard", "GiftCard")
                         .WithMany("Payments")
-                        .HasForeignKey("GiftCardId");
+                        .HasForeignKey("GiftCardId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("PsP.Models.Order", "Order")
                         .WithMany("Payments")
@@ -776,7 +780,7 @@ namespace PsP.Migrations
             modelBuilder.Entity("PsP.Models.StockItem", b =>
                 {
                     b.HasOne("PsP.Models.CatalogItem", "CatalogItem")
-                        .WithOne("StockItem")
+                        .WithOne()
                         .HasForeignKey("PsP.Models.StockItem", "CatalogItemId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -787,12 +791,12 @@ namespace PsP.Migrations
             modelBuilder.Entity("PsP.Models.StockMovement", b =>
                 {
                     b.HasOne("PsP.Models.OrderLine", "OrderLine")
-                        .WithMany("StockMovement")
+                        .WithMany("StockMovements")
                         .HasForeignKey("OrderLineId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("PsP.Models.StockItem", "StockItem")
-                        .WithMany("StockMovement")
+                        .WithMany("StockMovements")
                         .HasForeignKey("StockItemId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -822,8 +826,6 @@ namespace PsP.Migrations
             modelBuilder.Entity("PsP.Models.CatalogItem", b =>
                 {
                     b.Navigation("DiscountEligibilities");
-
-                    b.Navigation("StockItem");
                 });
 
             modelBuilder.Entity("PsP.Models.Discount", b =>
@@ -852,17 +854,12 @@ namespace PsP.Migrations
 
             modelBuilder.Entity("PsP.Models.OrderLine", b =>
                 {
-                    b.Navigation("StockMovement");
-                });
-
-            modelBuilder.Entity("PsP.Models.Reservation", b =>
-                {
-                    b.Navigation("Order");
+                    b.Navigation("StockMovements");
                 });
 
             modelBuilder.Entity("PsP.Models.StockItem", b =>
                 {
-                    b.Navigation("StockMovement");
+                    b.Navigation("StockMovements");
                 });
 #pragma warning restore 612, 618
         }
