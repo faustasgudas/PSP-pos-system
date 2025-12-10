@@ -1,0 +1,82 @@
+@import "../CateringDashboard/CateringDashboard.css";
+
+.table-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.table-item {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border-left: 4px solid #8B4513;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.table-item:hover {
+    transform: translateX(4px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+
+.table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.table-time {
+    font-size: 18px;
+    font-weight: 700;
+    color: #8B4513;
+}
+
+.table-status {
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.status-confirmed {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-completed {
+    background: #cce5ff;
+    color: #004085;
+}
+
+.table-details {
+    display: grid;
+    grid-template-columns: 2fr 2fr 1fr;
+    gap: 16px;
+    color: #6c757d;
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.detail-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.detail-value {
+    font-size: 14px;
+    color: #212529;
+    font-weight: 600;
+}

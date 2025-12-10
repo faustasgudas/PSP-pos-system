@@ -11,7 +11,7 @@ function CateringPayments() {
                     <span>📅</span> View Reservations
                 </button>
             </div>
-            <div className="unpaid-orders" id="unpaid-orders">
+            <div className="table-list" id="unpaid-orders">
                 {/* todo - add list of unpaid orders */}
             </div>
         </div>

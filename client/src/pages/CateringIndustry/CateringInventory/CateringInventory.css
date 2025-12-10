@@ -1,0 +1,43 @@
+@import "../CateringDashboard/CateringDashboard.css";
+
+.inventory-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin-top: 20px;
+}
+
+.inventory-item {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border-left: 4px solid #38ef7d;
+}
+
+.inventory-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 12px;
+}
+
+.inventory-name {
+    font-weight: 700;
+    font-size: 16px;
+    color: #212529;
+}
+
+.inventory-stock {
+    font-size: 20px;
+    font-weight: 800;
+    color: #8B4513;
+}
+
+.inventory-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    color: #6c757d;
+    font-size: 12px;
+}

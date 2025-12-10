@@ -34,7 +34,7 @@ interface StockItem {
 
 function CateringMain(){
     const [activeScreen, setActiveScreen] = 
-        useState<'dashboard' | 'reservations' | 'tables' | 'products' | 'inventory' | 'payments' | 'gift-cards' | 'new-reservation'>('dashboard');
+        useState<'dashboard' | 'reservations' | 'tables' | 'products' | 'inventory' | 'payments' | 'gift-cards' | 'new-reservation' | 'taxes' | 'quick-order' | 'settings' >('dashboard');
     
     const formatTime = (dateString: string): string => {
         return new Date(dateString).toLocaleDateString([], { hour: '2-digit', minute: '2-digit' });
@@ -114,7 +114,7 @@ function CateringMain(){
                                 <button className="btn btn-primary">
                                     <span>➕</span> New Reservation
                                 </button>
-                                <button className="btn btn-success">
+                                <button className="btn btn-primary">
                                     <span>⚡</span> Quick Order
                                 </button>
                             </div>
