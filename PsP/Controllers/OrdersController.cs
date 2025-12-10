@@ -1,231 +1,288 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PsP.Auth;
 using PsP.Contracts.Orders;
 using PsP.Services.Interfaces;
-
 
 namespace PsP.Controllers;
 
 [ApiController]
-[Route("api/businesses/{businessId:int}/orders")]
+[Route("api/orders")]
+[Authorize] // All endpoints require authentication
 public class OrdersController : ControllerBase
 {
     private readonly IOrdersService _orders;
 
     public OrdersController(IOrdersService orders) => _orders = orders;
 
-    // Managers/Owners: list ALL. Staff rejected in service.
-    [HttpGet("ListAllOrders")]
+    // -------------------------------
+    // GET /api/orders  (Managers+Owners)
+    // -------------------------------
+    [HttpGet]
+    [Authorize(Roles = "Manager,Owner")]
     public async Task<ActionResult<IEnumerable<OrderSummaryResponse>>> ListAll(
-        [FromRoute] int businessId,
-        [FromQuery] int callerEmployeeId,
         [FromQuery] string? status = null,
         [FromQuery] DateTime? from = null,
         [FromQuery] DateTime? to = null)
     {
+        var businessId = User.GetBusinessId();
+        var employeeId = User.GetEmployeeId();
+
         try
         {
-            var result = await _orders.ListAllAsync(businessId, callerEmployeeId, status, from, to, HttpContext.RequestAborted);
+            var result = await _orders.ListAllAsync(
+                businessId, employeeId, status, from, to, HttpContext.RequestAborted);
             return Ok(result);
         }
         catch (InvalidOperationException ex) { return ForbidOrBadRequest(ex); }
     }
 
-    // Caller’s own orders (staff: only Open)
-    [HttpGet("ListMyOrders")]
-    public async Task<ActionResult<IEnumerable<OrderSummaryResponse>>> ListMine(
-        [FromRoute] int businessId,
-        [FromQuery] int callerEmployeeId)
+    // -------------------------------
+    // GET /api/orders/mine
+    // -------------------------------
+    [HttpGet("mine")]
+    [Authorize(Roles = "Owner,Manager,Staff")]
+    public async Task<ActionResult<IEnumerable<OrderSummaryResponse>>> ListMine()
     {
+        var businessId = User.GetBusinessId();
+        var employeeId = User.GetEmployeeId();
+
         try
         {
-            var result = await _orders.ListMineAsync(businessId, callerEmployeeId, HttpContext.RequestAborted);
+            var result = await _orders.ListMineAsync(
+                businessId, employeeId, HttpContext.RequestAborted);
             return Ok(result);
         }
         catch (InvalidOperationException ex) { return ForbidOrBadRequest(ex); }
     }
 
-    // Get one order (Staff only if theirs; Managers/Owners allowed)
-    [HttpGet("GetOrder/{orderId:int}")]
-    public async Task<ActionResult<OrderDetailResponse>> GetOrder(
-        [FromRoute] int businessId,
-        [FromRoute] int orderId,
-        [FromQuery] int callerEmployeeId)
+    // -------------------------------
+    // GET /api/orders/{orderId}
+    // -------------------------------
+    [HttpGet("{orderId:int}")]
+    [Authorize(Roles = "Owner,Manager,Staff")]
+    public async Task<ActionResult<OrderDetailResponse>> GetOrder(int orderId)
     {
+        var businessId = User.GetBusinessId();
+        var employeeId = User.GetEmployeeId();
+
         try
         {
-            var dto = await _orders.GetOrderAsync(businessId, orderId, callerEmployeeId, HttpContext.RequestAborted);
+            var dto = await _orders.GetOrderAsync(
+                businessId, orderId, employeeId, HttpContext.RequestAborted);
             return Ok(dto);
         }
         catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
     }
 
-    // LIST lines for an order
-    [HttpGet("GetOrder/{orderId:int}/ListOrderLines")]
-    public async Task<ActionResult<IEnumerable<OrderLineResponse>>> ListLines(
-        [FromRoute] int businessId,
-        [FromRoute] int orderId,
-        [FromQuery] int callerEmployeeId)
+    // -------------------------------
+    // GET /api/orders/{orderId}/lines
+    // -------------------------------
+    [HttpGet("{orderId:int}/lines")]
+    [Authorize(Roles = "Owner,Manager,Staff")]
+    public async Task<ActionResult<IEnumerable<OrderLineResponse>>> ListLines(int orderId)
     {
+        var businessId = User.GetBusinessId();
+        var employeeId = User.GetEmployeeId();
+
         try
         {
-            var result = await _orders.ListLinesAsync(businessId, orderId, callerEmployeeId, HttpContext.RequestAborted);
-            return Ok(result);
+            var lines = await _orders.ListLinesAsync(
+                businessId, orderId, employeeId, HttpContext.RequestAborted);
+            return Ok(lines);
         }
         catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
     }
 
-    // GET a single line
-    [HttpGet("GetOrder/{orderId:int}/OrderLine/{orderLineId:int}")]
-    public async Task<ActionResult<OrderLineResponse>> GetLine(
-        [FromRoute] int businessId,
-        [FromRoute] int orderId,
-        [FromRoute] int orderLineId,
-        [FromQuery] int callerEmployeeId)
+    // -------------------------------
+    // GET /api/orders/{orderId}/lines/{lineId}
+    // -------------------------------
+    [HttpGet("{orderId:int}/lines/{lineId:int}")]
+    [Authorize(Roles = "Owner,Manager,Staff")]
+    public async Task<ActionResult<OrderLineResponse>> GetLine(int orderId, int lineId)
     {
+        var businessId = User.GetBusinessId();
+        var employeeId = User.GetEmployeeId();
+
         try
         {
-            var dto = await _orders.GetLineAsync(businessId, orderId, orderLineId, callerEmployeeId, HttpContext.RequestAborted);
+            var dto = await _orders.GetLineAsync(
+                businessId, orderId, lineId, employeeId, HttpContext.RequestAborted);
             return Ok(dto);
         }
         catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
     }
 
+    // -------------------------------
+    // POST /api/orders
+    // -------------------------------
     [HttpPost]
-    public async Task<ActionResult<OrderDetailResponse>> CreateOrder(
-        [FromRoute] int businessId,
-        [FromQuery] int callerEmployeeId,
-        [FromBody] CreateOrderRequest body)
+    [Authorize(Roles = "Owner,Manager,Staff")]
+    public async Task<ActionResult<OrderDetailResponse>> CreateOrder([FromBody] CreateOrderRequest body)
     {
+        var businessId = User.GetBusinessId();
+        var employeeId = User.GetEmployeeId();
+
         try
         {
-            var dto = await _orders.CreateOrderAsync(businessId,callerEmployeeId, body, HttpContext.RequestAborted);
+            var dto = await _orders.CreateOrderAsync(
+                businessId, employeeId, body, HttpContext.RequestAborted);
+
             return CreatedAtAction(nameof(GetOrder),
-                new { businessId, orderId = dto.OrderId, callerEmployeeId = body.EmployeeId }, dto);
+                new { orderId = dto.OrderId }, dto);
         }
         catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
     }
 
-    // Update an OPEN order
+    // -------------------------------
+    // PUT /api/orders/{orderId}
+    // -------------------------------
     [HttpPut("{orderId:int}")]
-    public async Task<ActionResult<OrderDetailResponse>> UpdateOpenOrder(
-        [FromRoute] int businessId,
-        [FromRoute] int orderId,
-        [FromQuery] int callerEmployeeId,
-        [FromBody] UpdateOrderRequest body)
+    [Authorize(Roles = "Owner,Manager,Staff")]
+    public async Task<ActionResult<OrderDetailResponse>> UpdateOrder(
+        int orderId, [FromBody] UpdateOrderRequest body)
     {
+        var businessId = User.GetBusinessId();
+        var employeeId = User.GetEmployeeId();
+
         try
         {
-            var dto = await _orders.UpdateOrderAsync(businessId, orderId, callerEmployeeId, body, HttpContext.RequestAborted);
+            var dto = await _orders.UpdateOrderAsync(
+                businessId, orderId, employeeId, body, HttpContext.RequestAborted);
             return Ok(dto);
         }
         catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
     }
 
+    // -------------------------------
+    // POST /api/orders/{orderId}/close
+    // -------------------------------
     [HttpPost("{orderId:int}/close")]
-    public async Task<ActionResult<OrderDetailResponse>> CloseOrder(
-        [FromRoute] int businessId,
-        [FromRoute] int orderId,
-        [FromQuery] int callerEmployeeId)
+    [Authorize(Roles = "Owner,Manager,Staff")]
+    public async Task<ActionResult<OrderDetailResponse>> CloseOrder(int orderId)
     {
+        var businessId = User.GetBusinessId();
+        var employeeId = User.GetEmployeeId();
+
         try
         {
-            var dto = await _orders.CloseOrderAsync(businessId, orderId, callerEmployeeId, HttpContext.RequestAborted);
+            var dto = await _orders.CloseOrderAsync(
+                businessId, orderId, employeeId, HttpContext.RequestAborted);
             return Ok(dto);
         }
         catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
     }
 
+    // -------------------------------
+    // POST /api/orders/{orderId}/cancel
+    // -------------------------------
     [HttpPost("{orderId:int}/cancel")]
+    [Authorize(Roles = "Owner,Manager,Staff")]
     public async Task<ActionResult<OrderDetailResponse>> CancelOrder(
-        [FromRoute] int businessId,
-        [FromRoute] int orderId,
-        [FromQuery] int callerEmployeeId,
-        [FromBody] CancelOrderRequest body)
+        int orderId, [FromBody] CancelOrderRequest body)
     {
+        var businessId = User.GetBusinessId();
+        var employeeId = User.GetEmployeeId();
+
         try
         {
-            var dto = await _orders.CancelOrderAsync(businessId, orderId, callerEmployeeId, body, HttpContext.RequestAborted);
+            var dto = await _orders.CancelOrderAsync(
+                businessId, orderId, employeeId, body, HttpContext.RequestAborted);
             return Ok(dto);
         }
         catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
     }
 
+    // -------------------------------
+    // POST /api/orders/{orderId}/lines
+    // -------------------------------
     [HttpPost("{orderId:int}/lines")]
+    [Authorize(Roles = "Owner,Manager,Staff")]
     public async Task<ActionResult<OrderLineResponse>> AddLine(
-        [FromRoute] int businessId,
-        [FromRoute] int orderId,
-        [FromQuery] int callerEmployeeId,
-        [FromBody] AddLineRequest body)
+        int orderId, [FromBody] AddLineRequest body)
     {
+        var businessId = User.GetBusinessId();
+        var employeeId = User.GetEmployeeId();
+
         try
         {
-            var dto = await _orders.AddLineAsync(businessId, orderId, callerEmployeeId, body, HttpContext.RequestAborted);
+            var dto = await _orders.AddLineAsync(
+                businessId, orderId, employeeId, body, HttpContext.RequestAborted);
+
             return CreatedAtAction(nameof(GetLine),
-                new { businessId, orderId, orderLineId = dto.OrderLineId, callerEmployeeId }, dto);
+                new { orderId, lineId = dto.OrderLineId }, dto);
         }
         catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
     }
 
-    [HttpPut("{orderId:int}/lines/{orderLineId:int}")]
+    // -------------------------------
+    // PUT /api/orders/{orderId}/lines/{lineId}
+    // -------------------------------
+    [HttpPut("{orderId:int}/lines/{lineId:int}")]
+    [Authorize(Roles = "Owner,Manager,Staff")]
     public async Task<ActionResult<OrderLineResponse>> UpdateLine(
-        [FromRoute] int businessId,
-        [FromRoute] int orderId,
-        [FromRoute] int orderLineId,
-        [FromQuery] int callerEmployeeId,
-        [FromBody] UpdateLineRequest body)
+        int orderId, int lineId, [FromBody] UpdateLineRequest body)
     {
+        var businessId = User.GetBusinessId();
+        var employeeId = User.GetEmployeeId();
+
         try
         {
-            var dto = await _orders.UpdateLineAsync(businessId, orderId, orderLineId, callerEmployeeId, body, HttpContext.RequestAborted);
+            var dto = await _orders.UpdateLineAsync(
+                businessId, orderId, lineId, employeeId, body, HttpContext.RequestAborted);
             return Ok(dto);
         }
         catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
     }
 
-    [HttpDelete("{orderId:int}/lines/{orderLineId:int}")]
-    public async Task<IActionResult> RemoveLine(
-        [FromRoute] int businessId,
-        [FromRoute] int orderId,
-        [FromRoute] int orderLineId,
-        [FromQuery] int callerEmployeeId)
+    // -------------------------------
+    // DELETE /api/orders/{orderId}/lines/{lineId}
+    // -------------------------------
+    [HttpDelete("{orderId:int}/lines/{lineId:int}")]
+    [Authorize(Roles = "Owner,Manager,Staff")]
+    public async Task<IActionResult> RemoveLine(int orderId, int lineId)
     {
+        var businessId = User.GetBusinessId();
+        var employeeId = User.GetEmployeeId();
+
         try
         {
-            await _orders.RemoveLineAsync(businessId, orderId, orderLineId, callerEmployeeId, HttpContext.RequestAborted);
+            await _orders.RemoveLineAsync(
+                businessId, orderId, lineId, employeeId, HttpContext.RequestAborted);
             return NoContent();
         }
         catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
     }
 
-    
+    // -------------------------------
+    // POST /api/orders/{orderId}/reopen
+    // -------------------------------
     [HttpPost("{orderId:int}/reopen")]
-    public async Task<ActionResult<OrderDetailResponse>> ReopenOrder(
-        [FromRoute] int businessId,
-        [FromRoute] int orderId,
-        [FromQuery] int callerEmployeeId)
+    [Authorize(Roles = "Manager,Owner")]
+    public async Task<ActionResult<OrderDetailResponse>> ReopenOrder(int orderId)
     {
+        var businessId = User.GetBusinessId();
+        var employeeId = User.GetEmployeeId();
+
         try
         {
             var dto = await _orders.ReopenOrderAsync(
-                businessId,
-                orderId,
-                callerEmployeeId,
-                HttpContext.RequestAborted);
-
+                businessId, orderId, employeeId, HttpContext.RequestAborted);
             return Ok(dto);
         }
-        catch (InvalidOperationException ex)
-        {
-            return NotFoundOrBadRequest(ex);
-        }
+        catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
     }
-    
-    
-    
-    // --- small helpers to map common service exceptions ---
+
+    // -------------------------------
+    // Helpers
+    // -------------------------------
     private ActionResult NotFoundOrBadRequest(InvalidOperationException ex)
-        => ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase) ? NotFound(ex.Message) : BadRequest(ex.Message);
+        => ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase)
+            ? NotFound(ex.Message)
+            : BadRequest(ex.Message);
 
     private ActionResult ForbidOrBadRequest(InvalidOperationException ex)
-        => ex.Message.Contains("Forbidden", StringComparison.OrdinalIgnoreCase) ? Forbid() : BadRequest(ex.Message);
+        => ex.Message.Contains("Forbidden", StringComparison.OrdinalIgnoreCase)
+            ? Forbid()
+            : BadRequest(ex.Message);
 }
