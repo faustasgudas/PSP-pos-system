@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PsP.Auth;
 using PsP.Contracts.Catalog;
 using PsP.Contracts.Discounts;
 using PsP.Services.Interfaces;
@@ -6,21 +8,21 @@ using PsP.Services.Interfaces;
 namespace PsP.Controllers;
 
 [ApiController]
-[Route("api/businesses/{businessId:int}/discounts")]
+[Route("api/discounts")]
+[Authorize(Roles = "Manager,Owner")]
 public class DiscountsController : ControllerBase
 {
     private readonly IDiscountsService _svc;
 
     public DiscountsController(IDiscountsService svc) => _svc = svc;
 
-    // ===== DISCOUNTS =====
-
-    /// <summary>List all discounts for a business.</summary>
+   
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<DiscountSummaryResponse>>> ListDiscounts(
-        [FromRoute] int businessId,
-        [FromQuery] int callerId)
+    public async Task<ActionResult<IEnumerable<DiscountSummaryResponse>>> ListDiscounts()
     {
+        var businessId = User.GetBusinessId();
+        var callerId = User.GetEmployeeId();
+
         try
         {
             var list = await _svc.ListDiscountsAsync(businessId, callerId, HttpContext.RequestAborted);
@@ -29,13 +31,13 @@ public class DiscountsController : ControllerBase
         catch (InvalidOperationException ex) { return ForbidOrBadRequest(ex); }
     }
 
-    /// <summary>Get one discount with details (incl. eligibilities).</summary>
+    // GET /api/discounts/{discountId}
     [HttpGet("{discountId:int}")]
-    public async Task<ActionResult<DiscountDetailResponse>> GetDiscount(
-        [FromRoute] int businessId,
-        [FromQuery] int callerId,
-        [FromRoute] int discountId)
+    public async Task<ActionResult<DiscountDetailResponse>> GetDiscount(int discountId)
     {
+        var businessId = User.GetBusinessId();
+        var callerId = User.GetEmployeeId();
+
         try
         {
             var dto = await _svc.GetDiscountAsync(businessId, callerId, discountId, HttpContext.RequestAborted);
@@ -44,31 +46,35 @@ public class DiscountsController : ControllerBase
         catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
     }
 
-    /// <summary>Create a new discount.</summary>
+    // POST /api/discounts
     [HttpPost]
-    public async Task<ActionResult<DiscountDetailResponse>> CreateDiscount(
-        [FromRoute] int businessId,
-        [FromQuery] int callerId,
-        [FromBody] CreateDiscountRequest body)
+    public async Task<ActionResult<DiscountDetailResponse>> CreateDiscount([FromBody] CreateDiscountRequest body)
     {
+        var businessId = User.GetBusinessId();
+        var callerId = User.GetEmployeeId();
+
         try
         {
             var created = await _svc.CreateDiscountAsync(businessId, callerId, body, HttpContext.RequestAborted);
-            return CreatedAtAction(nameof(GetDiscount),
-                new { businessId, discountId = created.DiscountId, callerId },
-                created);
+
+            return CreatedAtAction(
+                nameof(GetDiscount),
+                new { discountId = created.DiscountId },
+                created
+            );
         }
         catch (InvalidOperationException ex) { return ForbidOrBadRequest(ex); }
     }
 
-    /// <summary>Update an existing discount (partial via request fields).</summary>
+    // PUT /api/discounts/{discountId}
     [HttpPut("{discountId:int}")]
     public async Task<ActionResult<DiscountDetailResponse>> UpdateDiscount(
-        [FromRoute] int businessId,
-        [FromQuery] int callerId,
-        [FromRoute] int discountId,
+        int discountId,
         [FromBody] UpdateDiscountRequest body)
     {
+        var businessId = User.GetBusinessId();
+        var callerId = User.GetEmployeeId();
+
         try
         {
             var updated = await _svc.UpdateDiscountAsync(businessId, callerId, discountId, body, HttpContext.RequestAborted);
@@ -77,13 +83,13 @@ public class DiscountsController : ControllerBase
         catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
     }
 
-    /// <summary>Delete a discount.</summary>
+    // DELETE /api/discounts/{discountId}
     [HttpDelete("{discountId:int}")]
-    public async Task<IActionResult> DeleteDiscount(
-        [FromRoute] int businessId,
-        [FromQuery] int callerId,
-        [FromRoute] int discountId)
+    public async Task<IActionResult> DeleteDiscount(int discountId)
     {
+        var businessId = User.GetBusinessId();
+        var callerId = User.GetEmployeeId();
+
         try
         {
             await _svc.DeleteDiscountAsync(businessId, callerId, discountId, HttpContext.RequestAborted);
@@ -92,15 +98,13 @@ public class DiscountsController : ControllerBase
         catch (InvalidOperationException ex) { return ForbidOrBadRequest(ex); }
     }
 
-    // ===== ELIGIBILITIES (scoped to a discount) =====
-
-    /// <summary>List eligibilities (catalog items) for a discount.</summary>
+ 
     [HttpGet("{discountId:int}/eligibilities")]
-    public async Task<ActionResult<IEnumerable<DiscountEligibilityResponse>>> ListEligibilities(
-        [FromRoute] int businessId,
-        [FromQuery] int callerId,
-        [FromRoute] int discountId)
+    public async Task<ActionResult<IEnumerable<DiscountEligibilityResponse>>> ListEligibilities(int discountId)
     {
+        var businessId = User.GetBusinessId();
+        var callerId = User.GetEmployeeId();
+
         try
         {
             var list = await _svc.ListEligibilitiesAsync(businessId, callerId, discountId, HttpContext.RequestAborted);
@@ -109,12 +113,13 @@ public class DiscountsController : ControllerBase
         catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
     }
 
+    // GET /api/discounts/{discountId}/eligible-items
     [HttpGet("{discountId:int}/eligible-items")]
-    public async Task<ActionResult<IEnumerable<CatalogItemSummaryResponse>>> ListEligibleItems(
-        [FromRoute] int businessId,
-        [FromQuery] int callerId,
-        [FromRoute] int discountId)
+    public async Task<ActionResult<IEnumerable<CatalogItemSummaryResponse>>> ListEligibleItems(int discountId)
     {
+        var businessId = User.GetBusinessId();
+        var callerId = User.GetEmployeeId();
+
         try
         {
             var list = await _svc.ListEligibleItemsAsync(businessId, callerId, discountId, HttpContext.RequestAborted);
@@ -122,36 +127,36 @@ public class DiscountsController : ControllerBase
         }
         catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
     }
-    
-    
-    
-    
-    /// <summary>Add an eligibility row for this discount.</summary>
+
+    // POST /api/discounts/{discountId}/eligibilities
     [HttpPost("{discountId:int}/eligibilities")]
     public async Task<ActionResult<DiscountEligibilityResponse>> AddEligibility(
-        [FromRoute] int businessId,
-        [FromQuery] int callerId,
-        [FromRoute] int discountId,
+        int discountId,
         [FromBody] CreateDiscountEligibilityRequest body)
     {
+        var businessId = User.GetBusinessId();
+        var callerId = User.GetEmployeeId();
+
         try
         {
             var created = await _svc.AddEligibilityAsync(businessId, callerId, discountId, body, HttpContext.RequestAborted);
-            return CreatedAtAction(nameof(ListEligibilities),
-                new { businessId, discountId, callerId },
-                created);
+
+            return CreatedAtAction(
+                nameof(ListEligibilities),
+                new { discountId },
+                created
+            );
         }
         catch (InvalidOperationException ex) { return ForbidOrBadRequest(ex); }
     }
 
-    /// <summary>Remove an eligibility for specific CatalogItem.</summary>
+  
     [HttpDelete("{discountId:int}/eligibilities/{catalogItemId:int}")]
-    public async Task<IActionResult> RemoveEligibility(
-        [FromRoute] int businessId,
-        [FromQuery] int callerId,
-        [FromRoute] int discountId,
-        [FromRoute] int catalogItemId)
+    public async Task<IActionResult> RemoveEligibility(int discountId, int catalogItemId)
     {
+        var businessId = User.GetBusinessId();
+        var callerId = User.GetEmployeeId();
+
         try
         {
             await _svc.RemoveEligibilityAsync(businessId, callerId, discountId, catalogItemId, HttpContext.RequestAborted);
@@ -160,7 +165,7 @@ public class DiscountsController : ControllerBase
         catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
     }
 
-    // --- common translation helpers ---
+  
     private ActionResult NotFoundOrBadRequest(InvalidOperationException ex)
         => ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase)
             ? NotFound(ex.Message)
