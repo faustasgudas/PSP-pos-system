@@ -1,8 +1,8 @@
 ﻿import "../../../App.css"
 import "./CateringCheckout.css"
 import { useState } from "react";
-import PayCardCI from "../PayCardCI/CateringPayCard";
-import PayCashCI from "../PayCashCI/CateringPayCash";
+import CateringPayCard from "../CateringPayCard/CateringPayCard";
+import CateringPayCash from "../CateringPayCash/CateringPayCash";
 
 function CateringCheckout() {
     // @ts-ignore
@@ -13,11 +13,11 @@ function CateringCheckout() {
     const [totalAmount, setTotalAmount] = useState(0.00);
     
     const goToCash = () => {
-        return <PayCashCI />
+        return <CateringPayCash />
     }
     
     const goToCard = () => {
-        return <PayCardCI />
+        return <CateringPayCard />
     }
 
     return (
