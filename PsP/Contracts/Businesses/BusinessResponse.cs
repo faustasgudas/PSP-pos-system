@@ -12,4 +12,6 @@ public class BusinessResponse
     public string CountryCode { get; set; } = string.Empty;
     public bool PriceIncludesTax { get; set; }
     public string BusinessStatus { get; set; } = string.Empty;
+    
+    public string BusinessType { get; set; } = "Catering";
 }

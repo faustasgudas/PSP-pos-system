@@ -33,13 +33,11 @@ public class AuthController : ControllerBase
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        // 1) patikrinam ar owner email jau nenaudojamas
         var email = req.OwnerEmail.Trim().ToLowerInvariant();
         var exists = await _db.Employees.AnyAsync(e => e.Email.ToLower() == email);
         if (exists)
             return Conflict(new { error = "owner_email_in_use" });
 
-        // 2) sukuriam Business
         var biz = new Business
         {
             Name             = req.BusinessName.Trim(),
@@ -48,13 +46,15 @@ public class AuthController : ControllerBase
             Email            = req.Email.Trim(),
             CountryCode      = req.CountryCode.Trim().ToUpperInvariant(),
             PriceIncludesTax = req.PriceIncludesTax,
-            BusinessStatus   = "Active"
+            BusinessStatus   = "Active",
+            BusinessType     = string.IsNullOrWhiteSpace(req.BusinessType)
+                ? "Catering"
+                : req.BusinessType.Trim()
         };
 
         _db.Businesses.Add(biz);
         await _db.SaveChangesAsync();
 
-        // 3) sukuriam Owner employee
         var owner = new Employee
         {
             BusinessId   = biz.BusinessId,
@@ -68,7 +68,6 @@ public class AuthController : ControllerBase
         _db.Employees.Add(owner);
         await _db.SaveChangesAsync();
 
-        // 4) sugeneruojam JWT per servisą (Business + Employee)
         var token = _jwtTokenService.GenerateToken(biz, owner);
 
         var resp = new RegisterBusinessResponse
@@ -76,10 +75,12 @@ public class AuthController : ControllerBase
             BusinessId      = biz.BusinessId,
             OwnerEmployeeId = owner.EmployeeId,
             Token           = token
+            // jei nori, čia irgi gali pridėti BusinessType = biz.BusinessType
         };
 
         return Ok(resp);
     }
+
 
     // ========= LOGIN =========
 
@@ -92,10 +93,8 @@ public class AuthController : ControllerBase
 
         var normalizedEmail = req.Email.Trim().ToLowerInvariant();
 
-        // čia pasiimam employee kartu su Business,
-        // kad turėtume Business tokenui
         var emp = await _db.Employees
-            .Include(e => e.Business)               // <- svarbu
+            .Include(e => e.Business)
             .FirstOrDefaultAsync(e => e.Email.ToLower() == normalizedEmail);
 
         if (emp is null)
@@ -112,6 +111,11 @@ public class AuthController : ControllerBase
 
         var token = _jwtTokenService.GenerateToken(emp.Business, emp);
 
-        return Ok(new LoginResponse { Token = token });
+        return Ok(new LoginResponse
+        {
+            Token        = token,
+            BusinessType = emp.Business.BusinessType  // 👈 čia frontend ui selector’iui
+        });
     }
+
 }

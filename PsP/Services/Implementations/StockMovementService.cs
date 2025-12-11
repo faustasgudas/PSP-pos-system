@@ -136,7 +136,6 @@ public class StockMovementService : IStockMovementService
         CreateStockMovementRequest request,
         CancellationToken ct = default)
     {
-       throw new InvalidOperationException("ble"); 
         ValidateType(request.Type);
 
         if (request.Delta == 0)

@@ -38,7 +38,17 @@ public class AppDbContext : DbContext
             e.Property(x => x.Name).HasMaxLength(200).IsRequired();
             e.Property(x => x.CountryCode).HasMaxLength(2).IsRequired();
             e.Property(x => x.Email).HasMaxLength(200).IsRequired();
+            
+            e.Property(x => x.BusinessStatus)
+                .HasMaxLength(32)
+                .IsRequired()
+                .HasDefaultValue("Active");
 
+            e.Property(x => x.BusinessType)
+                .HasMaxLength(32)
+                .IsRequired()
+                .HasDefaultValue("Catering");
+            
             e.HasMany(x => x.Employees)
                 .WithOne(x => x.Business)
                 .HasForeignKey(x => x.BusinessId)

@@ -13,10 +13,11 @@ public class OrdersService : IOrdersService
     private readonly AppDbContext _db;
     private readonly IDiscountsService _discounts;
     private readonly IStockMovementService _stockMovement;
-    public OrdersService(AppDbContext db, IDiscountsService discounts)
+    public OrdersService(AppDbContext db, IDiscountsService discounts, IStockMovementService stockMovement)
     {
         _db = db;
         _discounts = discounts;
+        _stockMovement = stockMovement;
     }
 
     private static bool IsManagerOrOwner(Employee e)
@@ -447,7 +448,7 @@ public class OrdersService : IOrdersService
         await _db.SaveChangesAsync(ct);
         if (string.Equals(item.Type, "product", StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException("ble");
+         
             await _stockMovement.CreateAsync(
                 businessId: businessId,
                 stockItemId: stockItem.StockItemId,
