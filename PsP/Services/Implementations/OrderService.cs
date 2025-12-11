@@ -1,3 +1,4 @@
+using PsP.Contracts.StockMovements;
 using PsP.Services.Interfaces;
 
 namespace PsP.Services.Implementations;
@@ -11,11 +12,12 @@ public class OrdersService : IOrdersService
 {
     private readonly AppDbContext _db;
     private readonly IDiscountsService _discounts;
-
-    public OrdersService(AppDbContext db, IDiscountsService discounts)
+    private readonly IStockMovementService _stockMovement;
+    public OrdersService(AppDbContext db, IDiscountsService discounts,IStockMovementService stockMovement)
     {
         _db = db;
         _discounts = discounts;
+        _stockMovement = stockMovement;
     }
 
     private static bool IsManagerOrOwner(Employee e)
@@ -34,7 +36,21 @@ public class OrdersService : IOrdersService
 
         return caller;
     }
+    
+    private async Task<Employee> EnsureActiveEmployeeBelongsToBusinessAsync(int businessId, int callerEmployeeId, CancellationToken ct)
+    {
+        var caller = await _db.Employees
+                         .AsNoTracking()
+                         .FirstOrDefaultAsync(x => x.BusinessId == businessId && x.EmployeeId == callerEmployeeId, ct)
+                     ?? throw new InvalidOperationException("Employee not found in this business.");
 
+        if (!string.Equals(caller.Status, "Active", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Employee is not active.");
+
+        return caller;
+    }
+    
+    
     private async Task<Order> GetOrderEntityAsync(int businessId, int orderId, CancellationToken ct)
     {
         return await _db.Orders
@@ -202,12 +218,12 @@ public class OrdersService : IOrdersService
         CancellationToken ct = default)
     {
         // validate caller exists & belongs to business
-        _ = await GetCallerAsync(businessId, request.EmployeeId, ct);
+        var caller = await GetCallerAsync(businessId, callerEmployeeId, ct);
 
         if (callerEmployeeId != request.EmployeeId)
         {
-            var manager = await GetCallerAsync(businessId, callerEmployeeId, ct);
-            if (!IsManagerOrOwner(manager))
+            var employee = await EnsureActiveEmployeeBelongsToBusinessAsync(businessId, request.EmployeeId, ct);
+            if (!IsManagerOrOwner(caller))
             {
                 throw new InvalidOperationException("Forbidden: only managers/owners can create order for others.");
             }
@@ -262,7 +278,7 @@ public class OrdersService : IOrdersService
         
         if (callerEmployeeId != request.EmployeeId)
         {
-            _ = await GetCallerAsync(businessId, request.EmployeeId, ct);
+            _ = await EnsureActiveEmployeeBelongsToBusinessAsync(businessId, request.EmployeeId, ct);
             if (!IsManagerOrOwner(caller))
             {
                 throw new InvalidOperationException("Forbidden: only managers/owners can update order for others.");
@@ -327,18 +343,57 @@ public class OrdersService : IOrdersService
         var caller = await GetCallerAsync(businessId, callerEmployeeId, ct);
         var order = await GetOrderEntityAsync(businessId, orderId, ct);
         EnsureCallerCanSeeOrder(caller, order);
+        
+        
+        
         EnsureOpen(order);
 
+        
+        
+        var lines = await _db.OrderLines
+            .Where(l => l.OrderId == orderId && l.BusinessId == businessId)
+            .ToListAsync(ct);
+
+        foreach (var line in lines)
+        {
+            var stockItem = await _db.StockItems
+                                .FirstOrDefaultAsync(s => s.CatalogItemId == line.CatalogItemId, ct)
+                            ?? throw new InvalidOperationException("stock_item_not_found");
+
+            var item = await _db.CatalogItems
+                           .AsNoTracking()
+                           .FirstOrDefaultAsync(
+                               ci => ci.BusinessId == businessId && ci.CatalogItemId == line.CatalogItemId, ct)
+                       ?? throw new InvalidOperationException("Catalog item not found in this business.");
+            
+            if (string.Equals(item.Type, "product", StringComparison.OrdinalIgnoreCase))
+            {
+                await _stockMovement.CreateAsync(
+                    businessId,
+                    stockItem.StockItemId,
+                    callerEmployeeId,
+                    new CreateStockMovementRequest
+                    {
+                        Type = "RefundReturn",
+                        Delta = line.Qty,
+                        OrderLineId = line.OrderLineId
+                    },
+                    ct
+                );
+            }
+        }
+        
+        
         order.ApplyCancel();
-        // If you need to persist reason: put into a separate audit table or log.
+        
         await _db.SaveChangesAsync(ct);
 
-        var lines = await _db.OrderLines
+        var lines_t = await _db.OrderLines
             .AsNoTracking()
             .Where(l => l.BusinessId == businessId && l.OrderId == orderId)
             .ToListAsync(ct);
 
-        return order.ToDetailResponse(lines);
+        return order.ToDetailResponse(lines_t);
     }
 
     public async Task<OrderLineResponse> AddLineAsync(
@@ -352,6 +407,7 @@ public class OrdersService : IOrdersService
         var caller = await GetCallerAsync(businessId, callerEmployeeId, ct);
         var order = await GetOrderEntityAsync(businessId, orderId, ct);
         EnsureCallerCanSeeOrder(caller, order);
+        
         EnsureOpen(order);
 
         // Resolve snapshots from CatalogItem (+ tax)
@@ -377,6 +433,19 @@ public class OrdersService : IOrdersService
             snapshot = _discounts.MakeLineDiscountSnapshot(discount, request.CatalogItemId, null);
         }
 
+        var stockItem = await _db.StockItems
+                            .FirstOrDefaultAsync(s => s.CatalogItemId == item.CatalogItemId, ct)
+                        ?? throw new InvalidOperationException("stock_item_not_found");
+
+        if (stockItem.QtyOnHand < request.Qty)
+            throw new InvalidOperationException("not_enough_stock");
+
+        
+        
+        
+        
+        
+        
         var line = request.ToNewLineEntity(
             businessId: businessId,
             orderId: orderId,
@@ -395,6 +464,23 @@ public class OrdersService : IOrdersService
        
         _db.OrderLines.Add(line);
         await _db.SaveChangesAsync(ct);
+        if (string.Equals(item.Type, "product", StringComparison.OrdinalIgnoreCase))
+        {
+            
+            await _stockMovement.CreateAsync(
+                businessId: businessId,
+                stockItemId: stockItem.StockItemId,
+                callerEmployeeId: callerEmployeeId,
+                new CreateStockMovementRequest
+                {
+                    Type = "sale",
+                    Delta = -request.Qty,
+                    OrderLineId = line.OrderLineId
+                },
+                ct
+            );
+           
+        }
 
         return line.ToLineResponse();
     }
@@ -411,7 +497,12 @@ public class OrdersService : IOrdersService
         var caller = await GetCallerAsync(businessId, callerEmployeeId, ct);
         var order = await GetOrderEntityAsync(businessId, orderId, ct);
         EnsureCallerCanSeeOrder(caller, order);
+        //---------------------------------------------------------------------------------------------------------------------
+        //ensure open tik staffui, manager ir owner galetu pakeisti update line ir t.t mental not reikia padaryti !!!!!!!!!
+        //---------------------------------------------------------------------------------------------------------------------
         EnsureOpen(order);
+        
+        
 
 
 
@@ -419,14 +510,81 @@ public class OrdersService : IOrdersService
                        .FirstOrDefaultAsync(
                            l => l.BusinessId == businessId && l.OrderId == orderId && l.OrderLineId == orderLineId, ct)
                    ?? throw new InvalidOperationException("Order line not found.");
+        decimal oldQty = line.Qty;
+        decimal newQty = request.Qty;
+        decimal diff = newQty - oldQty;
 
-        string? refreshedDiscountSnapshot = null;
-        if (request.DiscountId.HasValue)
+        
+         string? refreshedDiscountSnapshot = null;
+                if (request.DiscountId.HasValue)
+                {
+                    var discount = await _discounts.EnsureLineDiscountEligibleAsync(businessId, (int)request.DiscountId,
+                        line.CatalogItemId, null, ct);
+                    refreshedDiscountSnapshot = _discounts.MakeLineDiscountSnapshot(discount, line.CatalogItemId);
+                }
+        
+        
+        if (diff != 0)
         {
-            var discount = await _discounts.EnsureLineDiscountEligibleAsync(businessId, (int)request.DiscountId,
-                line.CatalogItemId, null, ct);
-            refreshedDiscountSnapshot = _discounts.MakeLineDiscountSnapshot(discount, line.CatalogItemId);
+            
+            var stockItem = await _db.StockItems
+                                .FirstOrDefaultAsync(s => s.CatalogItemId == line.CatalogItemId, ct)
+                            ?? throw new InvalidOperationException("stock_item_not_found");
+            
+            
+            
+            var item = await _db.CatalogItems
+                           .AsNoTracking()
+                           .FirstOrDefaultAsync(
+                               ci => ci.BusinessId == businessId && ci.CatalogItemId == line.CatalogItemId, ct)
+                       ?? throw new InvalidOperationException("Catalog item not found in this business.");
+
+            
+            
+            
+            
+            if (string.Equals(item.Type, "product", StringComparison.OrdinalIgnoreCase))
+            {
+                if (diff > 0)
+                {
+                    if (stockItem.QtyOnHand < diff)
+                        throw new InvalidOperationException("not_enough_stock");
+
+                    await _stockMovement.CreateAsync(
+                        businessId,
+                        stockItem.StockItemId,
+                        callerEmployeeId,
+                        new CreateStockMovementRequest
+                        {
+                            Type = "Sale",
+                            Delta = -diff,
+                            OrderLineId = line.OrderLineId
+                        },
+                        ct
+                    );
+                }
+                else
+                {
+                    // Return stock
+                    await _stockMovement.CreateAsync(
+                        businessId,
+                        stockItem.StockItemId,
+                        callerEmployeeId,
+                        new CreateStockMovementRequest
+                        {
+                            Type = "RefundReturn",
+                            Delta = Math.Abs(diff),
+                            OrderLineId = line.OrderLineId
+                        },
+                        ct
+                    );
+                }
+                
+            }
+            
         }
+        
+       
 
         request.ApplyUpdate(line, performedByEmployeeId: callerEmployeeId, nowUtc: DateTime.UtcNow,
             unitDiscountSnapshot: refreshedDiscountSnapshot);
@@ -453,11 +611,69 @@ public class OrdersService : IOrdersService
                            l => l.BusinessId == businessId && l.OrderId == orderId && l.OrderLineId == orderLineId, ct)
                    ?? throw new InvalidOperationException("Order line not found.");
 
+
+
+        var stockItem = await _db.StockItems
+            .FirstOrDefaultAsync(s => s.CatalogItemId == line.CatalogItemId, ct);
+
+        var item = await _db.CatalogItems
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                ci => ci.BusinessId == businessId && ci.CatalogItemId == line.CatalogItemId, ct)
+                   ?? throw new InvalidOperationException("Catalog item not found in this business.");
+            
+            
+        if (stockItem != null && string.Equals(item.Type, "product", StringComparison.OrdinalIgnoreCase))
+        {
+            
+                await _stockMovement.CreateAsync(
+                    businessId,
+                    stockItem.StockItemId,
+                    callerEmployeeId,
+                    new CreateStockMovementRequest
+                    {
+                        Type = "RefundReturn",
+                        Delta = line.Qty,
+                        OrderLineId = line.OrderLineId
+                    },
+                    ct
+                );
+            
+                
+        }
         _db.OrderLines.Remove(line);
         await _db.SaveChangesAsync(ct);
     }
 
 
+    public async Task<OrderDetailResponse> ReopenOrderAsync(
+        int businessId,
+        int orderId,
+        int callerEmployeeId,
+        CancellationToken ct = default)
+    {
+        var caller = await GetCallerAsync(businessId, callerEmployeeId, ct);
+
+        if (!IsManagerOrOwner(caller))
+            throw new InvalidOperationException("Forbidden: only managers/owners can reopen orders.");
+
+        var order = await GetOrderEntityAsync(businessId, orderId, ct);
+
+        if (order.Status == "Open")
+            throw new InvalidOperationException("Order is already open.");
+        
+        order.Status = "Open";
+        order.ClosedAt = null;
+
+        await _db.SaveChangesAsync(ct);
+
+        var lines = await _db.OrderLines
+            .AsNoTracking()
+            .Where(l => l.BusinessId == businessId && l.OrderId == orderId)
+            .ToListAsync(ct);
+
+        return order.ToDetailResponse(lines);
+    }
 
 
 

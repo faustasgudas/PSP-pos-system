@@ -11,7 +11,12 @@ public interface IOrdersService
         CreateOrderRequest request,
         CancellationToken ct = default);
 
-
+    Task<OrderDetailResponse> ReopenOrderAsync(
+        int businessId,
+        int orderId,
+        int callerEmployeeId,
+        CancellationToken ct = default);
+    
 
 
      Task<IEnumerable<OrderSummaryResponse>> ListAllAsync(

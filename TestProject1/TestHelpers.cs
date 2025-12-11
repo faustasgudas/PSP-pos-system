@@ -79,11 +79,39 @@ public static class TestHelpers
             DefaultDurationMin = 0,
             TaxClass = taxClass
         };
+
         db.CatalogItems.Add(item);
         db.SaveChanges();
+
+        // 🔥 NEW: auto-seed stock so OrderService does not crash
+        db.StockItems.Add(new StockItem
+        {
+            CatalogItemId = item.CatalogItemId,
+            Unit = "pcs",
+            QtyOnHand = 999,           // large enough for all tests
+            AverageUnitCost = 1m
+        });
+
+        db.SaveChanges();
+
         return item;
     }
     
+    public static StockItem SeedStockItem(AppDbContext db, int catalogItemId, decimal qty = 100)
+    {
+        var stock = new StockItem
+        {
+            CatalogItemId = catalogItemId,
+            Unit = "pcs",
+            QtyOnHand = qty,
+            AverageUnitCost = 1m
+        };
+
+        db.StockItems.Add(stock);
+        db.SaveChanges();
+        return stock;
+    }
+  
     public static class TestDbSqlite
     {
         public static async Task<(AppDbContext db, DbConnection conn)> NewAsync()
