@@ -74,7 +74,8 @@ public class AuthController : ControllerBase
         {
             BusinessId      = biz.BusinessId,
             OwnerEmployeeId = owner.EmployeeId,
-            Token           = token
+            Token           = token,
+            BusinessType    = biz.BusinessType
             // jei nori, čia irgi gali pridėti BusinessType = biz.BusinessType
         };
 

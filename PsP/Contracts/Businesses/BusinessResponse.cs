@@ -13,5 +13,5 @@ public class BusinessResponse
     public bool PriceIncludesTax { get; set; }
     public string BusinessStatus { get; set; } = string.Empty;
     
-    public string BusinessType { get; set; } = "Catering";
+    public string BusinessType { get; set; } = string.Empty;
 }
