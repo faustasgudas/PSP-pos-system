@@ -2,6 +2,12 @@ import { useState } from 'react';
 import "../../../App.css";
 import "./CateringTables.css";
 
+interface Table {
+    id: number;
+    seats: number;
+    status: string;
+}
+
 function CateringTables() {
     return (
         <div className="content-box" id="tables">

@@ -2,7 +2,16 @@ import { useState } from 'react';
 import "../../../App.css";
 import "./CateringGiftCards.css";
 
+interface GiftCard {
+    id: number;
+    code: string;
+    balance: { amount: number; currency: string };
+    status: string;
+}
+
 function CateringGiftCards() {
+    const [showModal, setShowModal] = useState(false);
+
     return (
         <div className="content-box" id="gift-cards">
             <div className="action-bar">

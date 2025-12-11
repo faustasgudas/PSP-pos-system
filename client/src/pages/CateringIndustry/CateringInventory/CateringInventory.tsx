@@ -2,7 +2,16 @@ import { useState } from 'react';
 import "../../../App.css";
 import "./CateringInventory.css";
 
+interface StockItem {
+    id: number;
+    name: string;
+    qtyOnHand: number;
+    unit: string;
+}
+
 function CateringInventory() {
+    const [showModal, setShowModal] = useState(false);
+    
     return (
         <div className="content-box" id="inventory">
             <div className="action-bar">

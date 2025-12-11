@@ -2,6 +2,31 @@ import { useState } from 'react';
 import "../../../App.css";
 import "./CateringReservations.css";
 
+interface Reservation {
+    id: number;
+    customerName: string;
+    customerPhone: string;
+    customerEmail: string;
+    reservationStart: string;
+    reservationEnd: string;
+    status: string;
+    employeeId: number;
+    notes?: string;
+}
+
+interface Table {
+    id: number;
+    seats: number;
+    status: string;
+}
+
+interface Employee {
+    id: number;
+    name: string;
+    role: string;
+    status: string;
+}
+
 function CateringReservations(){
     return(
         <div className="content-box" id="reservations">

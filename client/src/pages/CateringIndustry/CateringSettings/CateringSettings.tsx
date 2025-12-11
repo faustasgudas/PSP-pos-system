@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import "../../../App.css";
-import "./CateringDashboard.css";
+import "./CateringSettings.css";
 
 function CateringSettings() {
     return (

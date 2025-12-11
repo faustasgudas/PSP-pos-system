@@ -2,6 +2,14 @@ import { useState } from 'react';
 import "../../../App.css";
 import "./CateringPayments.css";
 
+interface Payment {
+    id: number;
+    reservationId: number;
+    amount: { amount: number; currency: string };
+    method: string;
+    status: string;
+}
+
 function CateringPayments() {
     return (
         <div className="content-box" id="payments">

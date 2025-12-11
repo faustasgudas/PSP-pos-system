@@ -15,14 +15,14 @@ h4 {
 /* Main */
 
 .user-info {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    color: rgba(255,255,255,0.9);
+    position: absolute;
+    bottom: 5px;
+    right: 20px;
+    gap: 10px;
 }
 
 .navbar {
-    background-color: #e6d68e !important;
+    background-color: #8ecae6;
     width: 100%;
     min-height: 7vh;
     display: flex;
@@ -31,21 +31,21 @@ h4 {
 }
 
 .nav-btn {
-    background-color: #d1b258 !important;
+    background-color: #58b4d1;
     border-radius: 6px;
     border: none;
     padding: 10px 20px;
     font-weight: 600;
     cursor: pointer;
-    color: #473c02 !important;
+    color: #023047;
 }
 
 .nav-btn:hover {
-    background-color: #bc8d21 !important;
+    background-color: #219ebc;
 }
 
-.nav-btn:active {
-    background-color: #bc8d21 !important;
+.nav-btn.active {
+    background-color: #219ebc;
 }
 
 .dashboard-container {
@@ -80,13 +80,13 @@ h4 {
 }
 
 .btn-primary {
-    background: #e6d68e;
-    color: white;
+    background: #8ecae6;
+    color: #023047;
+    margin-right: 20px;
 }
 
 .btn-primary:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(139, 69, 19, 0.3);
+    background: #219ebc;
 }
 
 .btn-secondary {
@@ -99,7 +99,7 @@ h4 {
 }
 
 .btn-success {
-    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    background: #ef7d38;
     color: white;
 }
 
@@ -122,7 +122,7 @@ h4 {
 }
 
 .stat-card {
-    background: linear-gradient(135deg, #8B4513 0%, #D2691E 100%);
+    background: linear-gradient(135deg, #023047 0%, #219ebc 100%);
     color: white;
     border-radius: 12px;
     padding: 30px;
