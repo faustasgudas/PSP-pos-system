@@ -675,6 +675,124 @@ public class OrdersService : IOrdersService
         return order.ToDetailResponse(lines);
     }
 
+    
+    
+    public async Task MoveLinesAsync(
+    int businessId,
+    int fromOrderId,
+    int callerEmployeeId,
+    MoveOrderLinesRequest request,
+    CancellationToken ct = default)
+{
+    if (request == null) throw new InvalidOperationException("bad request");
+    if (request.TargetOrderId <= 0) throw new InvalidOperationException("target order not found");
+    if (request.Lines == null || request.Lines.Count == 0) throw new InvalidOperationException("no lines to move");
+
+    
+    foreach (var r in request.Lines)
+    {
+        if (r.OrderLineId <= 0) throw new InvalidOperationException("bad order line id");
+        if (r.Qty <= 0) throw new InvalidOperationException("qty must be positive");
+    }
+
+    if (request.TargetOrderId == fromOrderId)
+        throw new InvalidOperationException("target order same as source");
+
+    var caller = await GetCallerAsync(businessId, callerEmployeeId, ct);
+
+    var fromOrder = await GetOrderEntityAsync(businessId, fromOrderId, ct);
+    EnsureCallerCanSeeOrder(caller, fromOrder);
+    EnsureOpen(fromOrder);
+
+    var targetOrder = await GetOrderEntityAsync(businessId, request.TargetOrderId, ct);
+    EnsureCallerCanSeeOrder(caller, targetOrder);
+    EnsureOpen(targetOrder);
+
+    
+    var requestedIds = request.Lines.Select(x => x.OrderLineId).ToList();
+    var distinctIds = requestedIds.Distinct().ToList();
+    if (distinctIds.Count != requestedIds.Count)
+        throw new InvalidOperationException("duplicate order line id in request");
+
+   
+    var sourceLines = await _db.OrderLines
+        .Where(l => l.BusinessId == businessId
+                    && l.OrderId == fromOrderId
+                    && distinctIds.Contains(l.OrderLineId))
+        .ToListAsync(ct);
+
+    if (sourceLines.Count != distinctIds.Count)
+        throw new InvalidOperationException("one or more lines not found in source order");
+
+   
+    await using var tx = await _db.Database.BeginTransactionAsync(ct);
+
+    try
+    {
+       
+        var byId = sourceLines.ToDictionary(x => x.OrderLineId, x => x);
+
+        foreach (var move in request.Lines)
+        {
+            var line = byId[move.OrderLineId];
+
+            
+            if (line.Qty <= 0)
+                throw new InvalidOperationException("line qty invalid");
+
+            if (move.Qty > line.Qty)
+                throw new InvalidOperationException("qty exceeds available");
+
+            
+            if (move.Qty == line.Qty)
+            {
+                line.OrderId = targetOrder.OrderId;
+                continue;
+            }
+
+         
+            line.Qty -= move.Qty;
+
+            if (line.Qty <= 0)
+                throw new InvalidOperationException("resulting qty invalid");
+
+            var clone = new OrderLine
+            {
+                BusinessId = line.BusinessId,
+                OrderId = targetOrder.OrderId,
+                CatalogItemId = line.CatalogItemId,
+                DiscountId = line.DiscountId,
+
+                Qty = move.Qty,
+
+              
+                ItemNameSnapshot = line.ItemNameSnapshot,
+                UnitPriceSnapshot = line.UnitPriceSnapshot,
+                UnitDiscountSnapshot = line.UnitDiscountSnapshot,
+                CatalogTypeSnapshot = line.CatalogTypeSnapshot,
+                TaxClassSnapshot = line.TaxClassSnapshot,
+                TaxRateSnapshotPct = line.TaxRateSnapshotPct,
+                
+                PerformedAt = line.PerformedAt,
+                PerformedByEmployeeId = line.PerformedByEmployeeId
+            };
+
+            _db.OrderLines.Add(clone);
+        }
+
+        await _db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+    }
+    catch
+    {
+        await tx.RollbackAsync(ct);
+        throw;
+    }
+}
+    
+    
+    
+    
 
 
 
