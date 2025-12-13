@@ -1,55 +1,55 @@
-import { useState } from 'react';
-import "../../../App.css";
 import "./CateringSettings.css";
 
-function CateringSettings() {
+export default function CateringSettings() {
     return (
-        <div className="content-box" id="settings">
+        <div className="settings-container">
             <div className="action-bar">
                 <h2 className="section-title">Business Configuration</h2>
-                <button className="btn btn-secondary">Back to Dashboard</button>
+                <button 
+                    className="btn btn-secondary">
+                    Back to Dashboard
+                </button>
             </div>
-            <div className="card">
-                <h3>Business Settings</h3>
-                <div className="form-grid">
-                    <div className="form-group">
-                        <label className="form-label">Business Name</label>
-                        <input type="text" className="form-input" value="SuperApp"></input>
+
+            <div className="settings-panel">
+                <h3 className="settings-card-title">Business Settings</h3>
+
+                <div className="settings-form-grid">
+                    <div className="settings-field">
+                        <label>Business Name</label>
+                        <input type="text" defaultValue="Catering" />
                     </div>
-                    <div className="form-group">
-                        <label className="form-label">Business Type</label>
-                        <select className="form-select" id="business-type">
-                            <option value="catering">Catering</option>
-                            <option value="beauty">Beauty</option>
+
+                    <div className="settings-field">
+                        <label>Country</label>
+                        <select defaultValue="LT">
+                            <option value="LT">Lithuania</option>
                         </select>
                     </div>
-                    <div className="form-group">
-                        <label className="form-label">Country</label>
-                        <select className="form-select" id="country">
-                            <option value="lt">Lithuania</option>
+
+                    <div className="settings-field">
+                        <label>Tax Calculation</label>
+                        <select defaultValue="PerLine">
+                            <option value="PerLine">Round tax per line</option>
+                            <option value="PerOrder">Round tax per order</option>
                         </select>
                     </div>
-                    <div className="form-group">
-                        <label className="form-label">Tax Calculation</label>
-                        <select className="form-select" id="tax-calculation">
-                            <option value="per-line">Round tax per line</option>
-                            <option value="per-order">Round tax per order</option>
-                        </select>
-                    </div>
-                    <div className="form-group">
-                        <label className="form-label">Price Includes Tax</label>
-                        <select className="form-select" id="price-incl-tax">
+
+                    <div className="settings-field">
+                        <label>Price Includes Tax</label>
+                        <select defaultValue="true">
                             <option value="true">Yes</option>
                             <option value="false">No</option>
                         </select>
                     </div>
                 </div>
-                <div>
-                    <button className="btn btn-success">Save Settings</button>
+
+                <div className="settings-actions">
+                    <button className="btn btn-success">
+                        Save Settings
+                    </button>
                 </div>
             </div>
         </div>
-    )
+    );
 }
-
-export default CateringSettings;

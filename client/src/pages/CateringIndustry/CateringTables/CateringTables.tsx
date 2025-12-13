@@ -8,9 +8,13 @@ interface Table {
     status: string;
 }
 
-function CateringTables() {
+interface CateringTablesProps {
+    tables: Table[];
+}
+
+export default function CateringTables({tables}: CateringTablesProps) {
     return (
-        <div className="content-box" id="tables">
+        <div className="tables-container">
             <div className="action-bar">
                 <h2 className="section-title">Table Management</h2>
                 <button className="btn btn-primary">
@@ -23,5 +27,3 @@ function CateringTables() {
         </div>
     )
 }
-
-export default CateringTables;
