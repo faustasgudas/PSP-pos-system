@@ -1,43 +1,57 @@
-@import "../CateringDashboard/CateringDashboard.css";
+.inventory-container {
+    padding: 20px;
+}
 
-.inventory-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 16px;
+.inventory-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
     margin-top: 20px;
 }
 
-.inventory-item {
-    background: white;
+.inventory-card {
+    background: #ffffff;
     border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    border-left: 4px solid #38ef7d;
-}
-
-.inventory-header {
+    padding: 18px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
     display: flex;
     justify-content: space-between;
-    align-items: start;
-    margin-bottom: 12px;
+    align-items: center;
 }
 
 .inventory-name {
-    font-weight: 700;
-    font-size: 16px;
-    color: #212529;
+    font-size: 18px;
+    font-weight: 600;
 }
 
-.inventory-stock {
-    font-size: 20px;
-    font-weight: 800;
-    color: #8B4513;
+.inventory-qty {
+    font-size: 14px;
+    color: #555;
 }
 
-.inventory-details {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    color: #6c757d;
-    font-size: 12px;
+.inventory-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-small {
+    background: #8ecae6;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.btn-small:hover {
+    background: #58b4d1;
+}
+
+.btn-danger {
+    background: #e63946;
+    color: white;
+}
+
+.no-inventory {
+    opacity: 0.7;
+    padding: 20px;
 }

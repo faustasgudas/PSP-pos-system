@@ -1,47 +1,118 @@
-@import "../CateringDashboard/CateringDashboard.css";
-
-.product-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 16px;
-    margin-bottom: 32px;
-}
-
-.product-card {
-    background: white;
-    border: 2px solid #e9ecef;
-    border-radius: 12px;
+.products-container {
     padding: 20px;
-    cursor: pointer;
-    transition: all 0.2s;
 }
 
-.product-card:hover {
-    border-color: #8B4513;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+.products-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 20px;
 }
 
-.product-card.selected {
-    border-color: #8B4513;
-    background: linear-gradient(135deg, rgba(139, 69, 19, 0.1) 0%, rgba(210, 105, 30, 0.1) 100%);
+.products-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .product-name {
-    font-weight: 700;
-    font-size: 16px;
-    color: #212529;
-    margin-bottom: 8px;
-}
-
-.product-category {
-    color: #6c757d;
-    font-size: 14px;
-    margin-bottom: 12px;
+    font-size: 18px;
+    font-weight: 600;
 }
 
 .product-price {
+    font-size: 14px;
+    color: #555;
+}
+
+.product-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-small {
+    background: #8ecae6;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.btn-small:hover {
+    background: #58b4d1;
+}
+
+.btn-danger {
+    background: #e63946;
+    color: white;
+}
+
+.no-services {
+    opacity: 0.7;
+    padding: 20px;
+}
+
+/* ========================= */
+/* ✅ MODAL STYLES */
+/* ========================= */
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+}
+
+.modal-card {
+    background: white;
+    border-radius: 14px;
+    padding: 30px 36px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+.modal-title {
     font-size: 20px;
-    font-weight: 800;
-    color: #8B4513;
+    font-weight: 700;
+    margin-bottom: 24px;
+    text-align: center;
+}
+
+.modal-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.modal-field {
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-field label {
+    font-size: 14px;
+    margin-bottom: 6px;
+}
+
+.modal-field input,
+.modal-field select {
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 26px;
 }

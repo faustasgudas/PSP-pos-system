@@ -307,7 +307,7 @@ function CateringMain(){
                 {activeScreen === "employees" && (<CateringEmployees employees={employees}/>)}
                 {activeScreen === "tables" && (<CateringTables tables={tables} />)}
                 {activeScreen === "products" && (<CateringProducts products={products} />)}
-                {activeScreen === "inventory" && (<CateringInventory />)}
+                {activeScreen === "inventory" && (<CateringInventory stockItems={stockItems} />)}
                 {activeScreen === "payments" && (<CateringPayments payments={payments} />)}
                 {activeScreen === "gift-cards" && (<CateringGiftCards giftCards={giftCards} />)}
                 {activeScreen === "settings" && <CateringSettings />}

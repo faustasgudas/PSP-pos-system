@@ -1,29 +1,40 @@
-@import "../CateringDashboard/CateringDashboard.css";
+.reservations-container {
+    padding: 20px;
+}
 
-.calendar-container {
-    background: white;
-    border-radius: 16px;
-    padding: 24px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    margin-bottom: 24px;
+/* Calendar */
+.calendar-wrapper {
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
 }
 
 .calendar-header {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
+    gap: 12px;
     margin-bottom: 20px;
 }
 
-.calendar-title {
-    font-size: 20px;
-    font-weight: 700;
-    color: #212529;
+.cal-nav-btn {
+    background: #8ecae6;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
 }
 
-.calendar-nav {
-    display: flex;
-    gap: 10px;
+.cal-nav-btn:hover {
+    background: #58b4d1;
+}
+
+.calendar-title {
+    font-weight: 600;
+    font-size: 18px;
 }
 
 .calendar-grid {
@@ -32,100 +43,41 @@
     gap: 8px;
 }
 
-.calendar-day-header {
-    text-align: center;
-    font-weight: 700;
-    color: #6c757d;
-    padding: 10px;
-    font-size: 12px;
-}
-
 .calendar-day {
-    aspect-ratio: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    padding: 14px;
+    background: #e8f4fa;
     border-radius: 10px;
+    text-align: center;
     cursor: pointer;
-    transition: all 0.2s;
-    background: #f8f9fa;
-    border: 2px solid transparent;
     position: relative;
-    padding: 8px;
+    transition: 0.15s;
+    font-weight: 500;
 }
 
 .calendar-day:hover {
-    background: #f5e6d3;
-    border-color: #8B4513;
+    background: #cde9f5;
+}
+
+.calendar-day.today {
+    border: 2px solid #219ebc;
 }
 
 .calendar-day.selected {
-    background: linear-gradient(135deg, #8B4513 0%, #D2691E 100%);
+    background: #219ebc;
     color: white;
 }
 
-.calendar-day.has-reservations::after {
-    content: '';
+.calendar-day .dot {
+    width: 7px;
+    height: 7px;
+    background: #38b000;
+    border-radius: 50%;
     position: absolute;
     bottom: 6px;
-    width: 4px;
-    height: 4px;
-    background: #38ef7d;
-    border-radius: 50%;
+    left: 50%;
+    transform: translateX(-50%);
 }
 
-.day-number {
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.day-reservations {
-    font-size: 10px;
-    opacity: 0.8;
-    margin-top: 2px;
-}
-
-.time-slots-container {
-    margin-top: 24px;
-    background: #f8f9fa;
-    border-radius: 12px;
-    padding: 20px;
-}
-
-.time-slots-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    gap: 10px;
-    margin-top: 12px;
-}
-
-.time-slot {
-    padding: 12px;
-    background: white;
-    border: 2px solid #e9ecef;
-    border-radius: 8px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-weight: 600;
-    font-size: 14px;
-}
-
-.time-slot:hover {
-    border-color: #8B4513;
-    background: #f5e6d3;
-}
-
-.time-slot.booked {
-    background: #fee;
-    border-color: #fcc;
-    color: #c44;
-    cursor: not-allowed;
-}
-
-.time-slot.selected {
-    background: linear-gradient(135deg, #8B4513 0%, #D2691E 100%);
-    color: white;
-    border-color: #8B4513;
+.sub-title {
+    margin-bottom: 12px;
 }
