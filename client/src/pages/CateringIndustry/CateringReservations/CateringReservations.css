@@ -1,0 +1,131 @@
+@import "../CateringDashboard/CateringDashboard.css";
+
+.calendar-container {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    margin-bottom: 24px;
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.calendar-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #212529;
+}
+
+.calendar-nav {
+    display: flex;
+    gap: 10px;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+}
+
+.calendar-day-header {
+    text-align: center;
+    font-weight: 700;
+    color: #6c757d;
+    padding: 10px;
+    font-size: 12px;
+}
+
+.calendar-day {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #f8f9fa;
+    border: 2px solid transparent;
+    position: relative;
+    padding: 8px;
+}
+
+.calendar-day:hover {
+    background: #f5e6d3;
+    border-color: #8B4513;
+}
+
+.calendar-day.selected {
+    background: linear-gradient(135deg, #8B4513 0%, #D2691E 100%);
+    color: white;
+}
+
+.calendar-day.has-reservations::after {
+    content: '';
+    position: absolute;
+    bottom: 6px;
+    width: 4px;
+    height: 4px;
+    background: #38ef7d;
+    border-radius: 50%;
+}
+
+.day-number {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.day-reservations {
+    font-size: 10px;
+    opacity: 0.8;
+    margin-top: 2px;
+}
+
+.time-slots-container {
+    margin-top: 24px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.time-slots-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.time-slot {
+    padding: 12px;
+    background: white;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.time-slot:hover {
+    border-color: #8B4513;
+    background: #f5e6d3;
+}
+
+.time-slot.booked {
+    background: #fee;
+    border-color: #fcc;
+    color: #c44;
+    cursor: not-allowed;
+}
+
+.time-slot.selected {
+    background: linear-gradient(135deg, #8B4513 0%, #D2691E 100%);
+    color: white;
+    border-color: #8B4513;
+}
