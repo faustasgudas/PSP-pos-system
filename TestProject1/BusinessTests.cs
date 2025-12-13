@@ -34,6 +34,7 @@ public class BusinessTests
             Address = "A",
             Phone = "P",
             Email = "t@test.lt",
+            BusinessType = "Catering",
             CountryCode = "LT"
         };
 
@@ -57,6 +58,7 @@ public class BusinessTests
             Address = "A",
             Phone = "P",
             Email = "old@test.lt",
+            BusinessType = "Catering",
             CountryCode = "LT"
         };
 
@@ -69,6 +71,7 @@ public class BusinessTests
             Address = "NewAddress",
             Phone = "222",
             Email = "new@test.lt",
+            BusinessType = "Catering",
             CountryCode = "LV",
             PriceIncludesTax = true
         };
@@ -92,6 +95,7 @@ public class BusinessTests
             Address = "A",
             Phone = "P",
             Email = "d@test.lt",
+            BusinessType = "Catering",
             CountryCode = "LT"
         };
 

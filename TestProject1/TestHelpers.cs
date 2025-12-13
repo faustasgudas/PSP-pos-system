@@ -47,6 +47,7 @@ public static class TestHelpers
             Phone = "+3700000000",
             Email = "biz@test.local",
             CountryCode = "LT",
+            BusinessType = "Catering",
             PriceIncludesTax = false
         };
         db.Businesses.Add(biz);
