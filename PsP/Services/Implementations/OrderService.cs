@@ -319,6 +319,39 @@ public class OrdersService : IOrdersService
         return order.ToDetailResponse(lines);
     }
 
+    public async Task<OrderDetailResponse> ReopenOrderAsync(
+        int businessId,
+        int orderId,
+        int callerEmployeeId,
+        CancellationToken ct = default)
+    {
+        var caller = await GetCallerAsync(businessId, callerEmployeeId, ct);
+        var order = await GetOrderEntityAsync(businessId, orderId, ct);
+        EnsureCallerCanSeeOrder(caller, order);
+
+        // Only managers/owners can reopen orders
+        if (!IsManagerOrOwner(caller))
+            throw new InvalidOperationException("Forbidden: only managers/owners can reopen orders.");
+
+        // Can only reopen Closed, Cancelled, or Refunded orders
+        if (!string.Equals(order.Status, "Closed", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(order.Status, "Cancelled", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(order.Status, "Refunded", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Order must be Closed, Cancelled, or Refunded to be reopened.");
+        }
+
+        order.ApplyReopen();
+        await _db.SaveChangesAsync(ct);
+
+        var lines = await _db.OrderLines
+            .AsNoTracking()
+            .Where(l => l.BusinessId == businessId && l.OrderId == orderId)
+            .ToListAsync(ct);
+
+        return order.ToDetailResponse(lines);
+    }
+
     public async Task<OrderDetailResponse> CancelOrderAsync(
         int businessId,
         int orderId,

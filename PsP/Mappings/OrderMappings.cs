@@ -99,6 +99,14 @@ public static class OrderMappings
                 o.ClosedAt = DateTime.UtcNow;
                 // If you log a cancel reason, do it in a separate audit table (no field on Order).
             }
+            
+            // Order: apply "reopen" action
+            public static void ApplyReopen(this Order o)
+            {
+                o.Status = "Open";
+                o.ClosedAt = null;
+            }
+            
             public static void ApplyRefund(this Order o)
             {
                 o.Status = "Refunded";

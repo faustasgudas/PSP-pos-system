@@ -1,36 +1,16 @@
 import { useState, useMemo } from "react";
 import "./BeautyReservations.css";
-
-interface Booking {
-    id: number;
-    customerName: string;
-    customerPhone: string;
-    customerEmail: string;
-    appointmentStart: string;
-    appointmentEnd: string;
-    status: string;
-    services: number[];
-    employeeId: number;
-    notes?: string;
-}
-
-interface Service {
-    id: number;
-    name: string;
-    basePrice: { amount: number; currency: string };
-}
-
-interface Employee {
-    id: number;
-    name: string;
-    role: string;
-}
+import type { ReservationSummaryResponse } from "../../../types/api";
+import type { CatalogItemSummaryResponse } from "../../../types/api";
+import type { EmployeeSummaryResponse } from "../../../types/api";
 
 interface ReservationsProps {
-    reservations: Booking[];
-    services: Service[];
-    employees: Employee[];
+    reservations: ReservationSummaryResponse[];
+    services: CatalogItemSummaryResponse[];
+    employees: EmployeeSummaryResponse[];
     goToNewBooking: () => void;
+    businessId: number;
+    onRefresh: () => void;
 }
 
 export default function BeautyReservations({
@@ -146,15 +126,31 @@ export default function BeautyReservations({
 
             <div className="booking-list">
                 {bookingsForSelectedDate.length > 0 ? (
-                    bookingsForSelectedDate.map(b => (
-                        <div key={b.id} className="booking-item">
-                            <div className="booking-details">
-                                <div className="detail-value">
-                                    {b.customerName}
+                    bookingsForSelectedDate.map(r => {
+                        const service = services.find(s => s.catalogItemId === r.catalogItemId);
+                        const employee = employees.find(e => e.employeeId === r.employeeId);
+                        return (
+                            <div key={r.reservationId} className="booking-item">
+                                <div className="booking-details">
+                                    <div className="detail-value">
+                                        Reservation #{r.reservationId}
+                                    </div>
+                                    <div className="detail-value">
+                                        Service: {service?.name || 'Unknown'}
+                                    </div>
+                                    <div className="detail-value">
+                                        Employee: {employee?.name || 'Unassigned'}
+                                    </div>
+                                    <div className="detail-value">
+                                        Time: {new Date(r.appointmentStart).toLocaleTimeString()} - {new Date(r.appointmentEnd).toLocaleTimeString()}
+                                    </div>
+                                    <div className="detail-value">
+                                        Status: {r.status}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    ))
+                        );
+                    })
                 ) : (
                     <div className="booking-item">
                         <div className="booking-details">

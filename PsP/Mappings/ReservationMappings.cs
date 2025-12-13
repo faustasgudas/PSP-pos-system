@@ -12,6 +12,7 @@ public static class ReservationMappings
         EmployeeId = r.EmployeeId,
         CatalogItemId = r.CatalogItemId,
         AppointmentStart = r.AppointmentStart,
+        AppointmentEnd = r.AppointmentStart.AddMinutes(r.PlannedDurationMin),
         Status = r.Status
     };
 
@@ -22,6 +23,7 @@ public static class ReservationMappings
         EmployeeId = r.EmployeeId,
         CatalogItemId = r.CatalogItemId,
         AppointmentStart = r.AppointmentStart,
+        AppointmentEnd = r.AppointmentStart.AddMinutes(r.PlannedDurationMin),
         Status = r.Status,
         BookedAt = r.BookedAt,
         PlannedDurationMin = r.PlannedDurationMin,

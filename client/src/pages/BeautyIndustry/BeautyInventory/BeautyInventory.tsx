@@ -1,15 +1,10 @@
 import { useState } from "react";
 import "./BeautyInventory.css";
-
-interface StockItem {
-    id: number;
-    name: string;
-    qtyOnHand: number;
-    unit: string;
-}
+import type { StockItemSummaryResponse } from "../../../types/api";
 
 interface BeautyInventoryProps {
-    stockItems: StockItem[];
+    stockItems: StockItemSummaryResponse[];
+    onRefresh: () => void;
 }
 
 export default function BeautyInventory({ stockItems }: BeautyInventoryProps) {
@@ -27,12 +22,13 @@ export default function BeautyInventory({ stockItems }: BeautyInventoryProps) {
             <div className="inventory-list">
                 {stockItems.length > 0 ? (
                     stockItems.map(item => (
-                        <div key={item.id} className="inventory-card">
+                        <div key={item.stockItemId} className="inventory-card">
                             <div>
-                                <div className="inventory-name">{item.name}</div>
+                                <div className="inventory-name">Stock Item #{item.stockItemId}</div>
                                 <div className="inventory-qty">
                                     {item.qtyOnHand} {item.unit}
                                 </div>
+                                <div className="inventory-catalog">Catalog Item ID: {item.catalogItemId}</div>
                             </div>
                         </div>
                     ))

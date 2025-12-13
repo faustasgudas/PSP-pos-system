@@ -1,19 +1,18 @@
 import { useState } from "react";
 import "./BeautyGiftCards.css";
-
-interface GiftCard {
-    id: number;
-    code: string;
-    balance: { amount: number; currency: string };
-    status: string;
-}
+import type { GiftCardResponse } from "../../../types/api";
+import * as giftCardService from "../../../services/giftCardService";
 
 interface BeautyGiftCardsProps {
-    giftCards: GiftCard[];
+    giftCards: GiftCardResponse[];
+    onRefresh: () => void;
 }
 
-export default function BeautyGiftCards({ giftCards }: BeautyGiftCardsProps) {
+export default function BeautyGiftCards({ giftCards, onRefresh }: BeautyGiftCardsProps) {
     const [showModal, setShowModal] = useState(false);
+    const [balance, setBalance] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     return (
         <div className="giftcards-container">
@@ -27,8 +26,15 @@ export default function BeautyGiftCards({ giftCards }: BeautyGiftCardsProps) {
             <div className="giftcards-list">
                 {giftCards.length > 0 ? (
                     giftCards.map(card => (
-                        <div key={card.id} className="giftcard-card">
-                            <div className="giftcard-code">{card.code}</div>
+                        <div key={card.giftCardId} className="giftcard-card">
+                            <div className="giftcard-code">Code: {card.code}</div>
+                            <div className="giftcard-balance">Balance: €{(card.balance / 100).toFixed(2)}</div>
+                            <div className="giftcard-status">Status: {card.status}</div>
+                            {card.expiresAt && (
+                                <div className="giftcard-expires">
+                                    Expires: {new Date(card.expiresAt).toLocaleDateString()}
+                                </div>
+                            )}
                         </div>
                     ))
                 ) : (
@@ -38,32 +44,68 @@ export default function BeautyGiftCards({ giftCards }: BeautyGiftCardsProps) {
 
             {/* ✅ NEW GIFT CARD MODAL */}
             {showModal && (
-                <div className="modal-overlay">
-                    <div className="modal-card">
+                <div className="modal-overlay" onClick={() => setShowModal(false)}>
+                    <div className="modal-card" onClick={(e) => e.stopPropagation()}>
                         <h3 className="modal-title">New Gift Card</h3>
 
-                        <div className="modal-form">
-                            <div className="modal-field">
-                                <label>Initial Balance</label>
-                                <input type="number" />
+                        {error && (
+                            <div style={{ color: "red", marginBottom: "1rem" }}>
+                                {error}
+                            </div>
+                        )}
+
+                        <form
+                            onSubmit={async (e) => {
+                                e.preventDefault();
+                                setIsSubmitting(true);
+                                setError(null);
+                                try {
+                                    // Balance is in cents, so multiply by 100
+                                    await giftCardService.createGiftCard({
+                                        balance: Math.round(parseFloat(balance) * 100),
+                                    });
+                                    setBalance("");
+                                    setShowModal(false);
+                                    onRefresh();
+                                } catch (err) {
+                                    setError(err instanceof Error ? err.message : "Failed to create gift card");
+                                } finally {
+                                    setIsSubmitting(false);
+                                }
+                            }}
+                        >
+                            <div className="modal-form">
+                                <div className="modal-field">
+                                    <label>Initial Balance (EUR) *</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={balance}
+                                        onChange={(e) => setBalance(e.target.value)}
+                                        required
+                                    />
+                                </div>
                             </div>
 
-                            <div className="modal-field">
-                                <label>Currency</label>
-                                <select>
-                                    <option value="EUR">EUR</option>
-                                </select>
+                            <div className="modal-actions">
+                                <button
+                                    type="button"
+                                    className="btn btn-secondary"
+                                    onClick={() => setShowModal(false)}
+                                    disabled={isSubmitting}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="btn btn-success"
+                                    disabled={isSubmitting}
+                                >
+                                    {isSubmitting ? "Creating..." : "Create Gift Card"}
+                                </button>
                             </div>
-                        </div>
-
-                        <div className="modal-actions">
-                            <button className="btn btn-secondary" onClick={() => setShowModal(false)}>
-                                Cancel
-                            </button>
-                            <button className="btn btn-success">
-                                Create Gift Card
-                            </button>
-                        </div>
+                        </form>
                     </div>
                 </div>
             )}

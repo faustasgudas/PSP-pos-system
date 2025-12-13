@@ -1,45 +1,42 @@
 import "./BeautyPayments.css";
-
-interface Payment {
-    id: number;
-    reservationId: number;
-    amount: { amount: number; currency: string };
-    method: string;
-    status: string;
-}
+import type { OrderSummaryResponse } from "../../../types/api";
 
 interface BeautyPaymentsProps {
-    payments: Payment[];
+    orders: OrderSummaryResponse[];
+    onRefresh: () => void;
 }
 
-export default function BeautyPayments({ payments }: BeautyPaymentsProps) {
+export default function BeautyPayments({ orders, onRefresh }: BeautyPaymentsProps) {
     return (
         <div className="payments-container">
             <div className="action-bar">
-                <h2 className="section-title">Payments</h2>
+                <h2 className="section-title">Orders & Payments</h2>
             </div>
 
             <div className="payments-list">
-                {payments.length > 0 ? (
-                    payments.map(payment => (
-                        <div key={payment.id} className="payment-card">
+                {orders.length > 0 ? (
+                    orders.map(order => (
+                        <div key={order.orderId} className="payment-card">
                             <div className="payment-main">
                                 <div className="payment-amount">
-                                    {payment.amount.amount} {payment.amount.currency}
+                                    Order #{order.orderId}
                                 </div>
                                 <div className="payment-status">
-                                    {payment.status}
+                                    {order.status}
                                 </div>
                             </div>
 
                             <div className="payment-details">
-                                <div>Reservation #{payment.reservationId}</div>
-                                <div>Method: {payment.method}</div>
+                                {order.reservationId && <div>Reservation #{order.reservationId}</div>}
+                                <div>Created: {new Date(order.createdAt).toLocaleString()}</div>
+                                {order.closedAt && <div>Closed: {new Date(order.closedAt).toLocaleString()}</div>}
+                                {order.tableOrArea && <div>Table/Area: {order.tableOrArea}</div>}
+                                {order.tipAmount > 0 && <div>Tip: €{order.tipAmount.toFixed(2)}</div>}
                             </div>
                         </div>
                     ))
                 ) : (
-                    <div className="no-payments">No payments found</div>
+                    <div className="no-payments">No orders found</div>
                 )}
             </div>
         </div>

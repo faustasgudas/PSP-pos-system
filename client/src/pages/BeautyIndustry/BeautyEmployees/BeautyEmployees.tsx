@@ -1,18 +1,22 @@
 import { useState } from "react";
 import "./BeautyEmployees.css";
-
-interface Employee {
-    id: number;
-    name: string;
-    role: string;
-}
+import type { EmployeeSummaryResponse } from "../../../types/api";
+import * as employeeService from "../../../services/employeeService";
 
 interface BeautyEmployeesProps {
-    employees: Employee[];
+    employees: EmployeeSummaryResponse[];
+    businessId: number;
+    onRefresh: () => void;
 }
 
-export default function BeautyEmployees({ employees }: BeautyEmployeesProps) {
+export default function BeautyEmployees({ employees, businessId, onRefresh }: BeautyEmployeesProps) {
     const [showModal, setShowModal] = useState(false);
+    const [name, setName] = useState("");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [role, setRole] = useState("Staff");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     return (
         <div className="employees-container">
@@ -26,10 +30,12 @@ export default function BeautyEmployees({ employees }: BeautyEmployeesProps) {
             <div className="employees-list">
                 {employees.length > 0 ? (
                     employees.map(emp => (
-                        <div key={emp.id} className="employee-card">
+                        <div key={emp.employeeId} className="employee-card">
                             <div>
                                 <div className="employee-name">{emp.name}</div>
                                 <div className="employee-role">{emp.role}</div>
+                                <div className="employee-email">{emp.email}</div>
+                                <div className="employee-status">Status: {emp.status}</div>
                             </div>
                         </div>
                     ))
@@ -40,33 +46,104 @@ export default function BeautyEmployees({ employees }: BeautyEmployeesProps) {
 
             {/* ✅ ADD EMPLOYEE MODAL */}
             {showModal && (
-                <div className="modal-overlay">
-                    <div className="modal-card">
+                <div className="modal-overlay" onClick={() => setShowModal(false)}>
+                    <div className="modal-card" onClick={(e) => e.stopPropagation()}>
                         <h3 className="modal-title">Add Employee</h3>
 
-                        <div className="modal-form">
-                            <div className="modal-field">
-                                <label>Name</label>
-                                <input type="text" />
+                        {error && (
+                            <div style={{ color: "red", marginBottom: "1rem" }}>
+                                {error}
+                            </div>
+                        )}
+
+                        <form
+                            onSubmit={async (e) => {
+                                e.preventDefault();
+                                setIsSubmitting(true);
+                                setError(null);
+                                try {
+                                    await employeeService.createEmployee(businessId, {
+                                        name,
+                                        email,
+                                        password,
+                                        role,
+                                    });
+                                    setName("");
+                                    setEmail("");
+                                    setPassword("");
+                                    setRole("Staff");
+                                    setShowModal(false);
+                                    onRefresh();
+                                } catch (err) {
+                                    setError(err instanceof Error ? err.message : "Failed to create employee");
+                                } finally {
+                                    setIsSubmitting(false);
+                                }
+                            }}
+                        >
+                            <div className="modal-form">
+                                <div className="modal-field">
+                                    <label>Name *</label>
+                                    <input
+                                        type="text"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        required
+                                    />
+                                </div>
+
+                                <div className="modal-field">
+                                    <label>Email *</label>
+                                    <input
+                                        type="email"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        required
+                                    />
+                                </div>
+
+                                <div className="modal-field">
+                                    <label>Password *</label>
+                                    <input
+                                        type="password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        required
+                                    />
+                                </div>
+
+                                <div className="modal-field">
+                                    <label>Role *</label>
+                                    <select
+                                        value={role}
+                                        onChange={(e) => setRole(e.target.value)}
+                                        required
+                                    >
+                                        <option value="Staff">Staff</option>
+                                        <option value="Manager">Manager</option>
+                                        <option value="Owner">Owner</option>
+                                    </select>
+                                </div>
                             </div>
 
-                            <div className="modal-field">
-                                <label>Role</label>
-                                <input type="text" />
+                            <div className="modal-actions">
+                                <button
+                                    type="button"
+                                    className="btn btn-secondary"
+                                    onClick={() => setShowModal(false)}
+                                    disabled={isSubmitting}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="btn btn-success"
+                                    disabled={isSubmitting}
+                                >
+                                    {isSubmitting ? "Saving..." : "Save Employee"}
+                                </button>
                             </div>
-                        </div>
-
-                        <div className="modal-actions">
-                            <button
-                                className="btn btn-secondary"
-                                onClick={() => setShowModal(false)}
-                            >
-                                Cancel
-                            </button>
-                            <button className="btn btn-success">
-                                Save Employee
-                            </button>
-                        </div>
+                        </form>
                     </div>
                 </div>
             )}
