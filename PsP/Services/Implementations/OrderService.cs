@@ -374,7 +374,7 @@ public class OrdersService : IOrdersService
                     callerEmployeeId,
                     new CreateStockMovementRequest
                     {
-                        Type = "RefundReturn",
+                        Type = "Adjust",
                         Delta = line.Qty,
                         OrderLineId = line.OrderLineId
                     },
@@ -572,7 +572,7 @@ public class OrdersService : IOrdersService
                         callerEmployeeId,
                         new CreateStockMovementRequest
                         {
-                            Type = "RefundReturn",
+                            Type = "Adjust",
                             Delta = Math.Abs(diff),
                             OrderLineId = line.OrderLineId
                         },
@@ -632,7 +632,7 @@ public class OrdersService : IOrdersService
                     callerEmployeeId,
                     new CreateStockMovementRequest
                     {
-                        Type = "RefundReturn",
+                        Type = "Adjust",
                         Delta = line.Qty,
                         OrderLineId = line.OrderLineId
                     },
