@@ -1,58 +1,84 @@
-import { useEffect, useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
+import { useState } from "react";
 import "./App.css";
+import { login } from "./frontapi/authApi";
 import BeautyDashboard from "./pages/BeautyIndustry/BeautyDashboard/BeautyDashboard";
 import CateringDashboard from "./pages/CateringIndustry/CateringDashboard/CateringDashboard";
 
 function App() {
-    const [count, setCount] = useState(0);
-    const [apiMessage, setApiMessage] = useState("Loading from API...");
     const [selectedOption, setSelectedOption] = useState("");
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
 
-    const handleLogin = () => {
-        if(!selectedOption) {
-            alert('Please select an option first!');
-            return;
+    const handleLogin = async () => {
+        try {
+            const result = await login(email, password);
+
+            localStorage.setItem("token", result.token);
+
+            setSelectedOption(
+                result.businessType === "Beauty"
+                    ? "beautyIndustry"
+                    : "cateringIndustry"
+            );
+
+            setIsLoggedIn(true);
+        } catch (err) {
+            alert("Invalid email or password");
+            console.error(err);
         }
-        //simulating login for easier design at this time
-        setIsLoggedIn(true);
+    };
+
+
+    // ✅ DASHBOARD GATE (SINGLE POINT OF TRUTH)
+    if (isLoggedIn) {
+        if (selectedOption === "beautyIndustry") return <BeautyDashboard />;
+        if (selectedOption === "cateringIndustry") return <CateringDashboard />;
+        return <div>Invalid business type</div>;
     }
-    
-    if(isLoggedIn){
-        switch(selectedOption){
-            case "beautyIndustry":
-                return <BeautyDashboard />;
-            case "cateringIndustry":
-                return <CateringDashboard />;
-            default:
-                return <div>Invalid business type</div>
-        }
-    }
-    
-    return(
-        <div className="content-box">{}
+
+    return (
+        <div className="content-box">
             <div className="top-bar">
                 <h1 className="title">SuperApp</h1>
             </div>
+
             <div className="login">
-                <h1 className="login-text">Login</h1>
+                <h1 className="login-text">Select Industry & Log In</h1>
+
+                {/* ✅ INDUSTRY PICKER */}
                 <select
-                    id = "role-select"
-                    value = {selectedOption}
-                    onChange = {(e) => setSelectedOption(e.currentTarget.value)}
-                    className = "dropdown"
+                    value={selectedOption}
+                    onChange={(e) => setSelectedOption(e.currentTarget.value)}
+                    className="dropdown"
                 >
                     <option value="">Select account type</option>
                     <option value="beautyIndustry">Beauty Industry</option>
                     <option value="cateringIndustry">Catering Industry</option>
                 </select>
-                <button onClick={handleLogin} className="login-btn">
-                    Log in with Google
+
+                {/* ✅ LOGIN FORM */}
+                <input
+                    className="dropdown"
+                    placeholder="Email"
+                    value={email}
+                    onChange={(e) => setEmail(e.currentTarget.value)}
+                />
+
+                <input
+                    className="dropdown"
+                    placeholder="Password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.currentTarget.value)}
+                />
+
+                <button className="login-btn" onClick={handleLogin}>
+                    Log In
                 </button>
+
                 <p className="login-info">
-                    You will be redirected to Google 0Auth for authentication.
+                    Enter your credentials to access your business.
                 </p>
             </div>
         </div>

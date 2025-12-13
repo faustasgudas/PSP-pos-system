@@ -1,6 +1,7 @@
 import { useState } from "react";
 import "../../../App.css";
 import "./BeautyDashboard.css";
+import { getUserFromToken } from "../../../utils/auth"
 
 import BeautyReservations from "../BeautyReservations/BeautyReservations";
 import BeautyEmployees from "../BeautyEmployees/BeautyEmployees";
@@ -77,7 +78,7 @@ function BeautyMain() {
     const [activeScreen, setActiveScreen] = useState<Screen>("dashboard");
     const [activeTab, setActiveTab] = useState<DashboardTab>("upcoming");
 
-    // ✅ DATA ARRAYS – EMPTY FOR NOW
+    // DATA ARRAYS – TEMP EMPTY (BACKEND LATER)
     const [reservations] = useState<Booking[]>([]);
     const [payments] = useState<Payment[]>([]);
     const [services] = useState<Service[]>([]);
@@ -85,7 +86,7 @@ function BeautyMain() {
     const [stockItems] = useState<StockItem[]>([]);
     const [giftCards] = useState<GiftCard[]>([]);
 
-    // === DASHBOARD STATS ===
+    // DASHBOARD STATS
     const todayBookings = reservations.length;
     const todayRevenue = payments.reduce((sum, p) => sum + p.amount.amount, 0);
     const activeEmployees = employees.length;
@@ -96,6 +97,8 @@ function BeautyMain() {
         .slice(0, 5);
 
     const recentPayments = payments.slice(0, 5);
+    
+    const user = getUserFromToken();
 
     return (
         <div className="content-box">
@@ -103,7 +106,7 @@ function BeautyMain() {
             <div className="top-bar">
                 <h1 className="title">SuperApp</h1>
                 <div className="user-info">
-                    <span>Jane Doe (Owner)</span>
+                    {user ? `${user.email} (${user.role})` : ""}
                     <button
                         className="nav-btn"
                         onClick={() => setActiveScreen("settings")}
@@ -167,13 +170,14 @@ function BeautyMain() {
 
             {/* SCREEN CONTENT */}
             <div className="dashboard-container">
-                {/* ✅ DASHBOARD (VIEW ONLY) */}
+                {/* DASHBOARD OVERVIEW */}
                 {activeScreen === "dashboard" && (
                     <>
                         <div className="action-bar">
                             <h2 className="section-title">Today's Overview</h2>
                         </div>
 
+                        {/* STAT CARDS */}
                         <div className="stat-grid">
                             <div
                                 className="stat-card"
@@ -208,6 +212,7 @@ function BeautyMain() {
                             </div>
                         </div>
 
+                        {/* TABS: UPCOMING / PAYMENTS */}
                         <div className="tabs">
                             <button
                                 className={`tab ${activeTab === "upcoming" ? "active" : ""}`}
@@ -223,14 +228,29 @@ function BeautyMain() {
                             </button>
                         </div>
 
+                        {/* TAB CONTENT */}
                         {activeTab === "upcoming" && (
                             <div className="booking-list">
                                 {upcomingReservations.length > 0 ? (
                                     upcomingReservations.map(b => (
                                         <div key={b.id} className="booking-item">
+                                            <div className="booking-header">
+                                                <div className="booking-time">
+                                                    {new Date(b.appointmentStart).toLocaleTimeString(
+                                                        [],
+                                                        { hour: "2-digit", minute: "2-digit" }
+                                                    )}
+                                                </div>
+                                                <div className="booking-status status-confirmed">
+                                                    {b.status || "Confirmed"}
+                                                </div>
+                                            </div>
                                             <div className="booking-details">
-                                                <div className="detail-value">
-                                                    {b.customerName}
+                                                <div className="detail-item">
+                                                    <div className="detail-label">Client</div>
+                                                    <div className="detail-value">
+                                                        {b.customerName}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -252,9 +272,26 @@ function BeautyMain() {
                                 {recentPayments.length > 0 ? (
                                     recentPayments.map(p => (
                                         <div key={p.id} className="booking-item">
-                                            <div className="booking-details">
-                                                <div className="detail-value">
+                                            <div className="booking-header">
+                                                <div className="booking-time">
                                                     €{p.amount.amount}
+                                                </div>
+                                                <div className="booking-status status-completed">
+                                                    {p.method}
+                                                </div>
+                                            </div>
+                                            <div className="booking-details">
+                                                <div className="detail-item">
+                                                    <div className="detail-label">Reservation</div>
+                                                    <div className="detail-value">
+                                                        #{p.reservationId}
+                                                    </div>
+                                                </div>
+                                                <div className="detail-item">
+                                                    <div className="detail-label">Status</div>
+                                                    <div className="detail-value">
+                                                        {p.status}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -273,7 +310,7 @@ function BeautyMain() {
                     </>
                 )}
 
-                {/* ✅ RESERVATIONS (ONLY PLACE WITH NEW BOOKING BUTTON) */}
+                {/* OTHER SCREENS */}
                 {activeScreen === "reservations" && (
                     <BeautyReservations
                         reservations={reservations}
@@ -283,14 +320,28 @@ function BeautyMain() {
                     />
                 )}
 
-                {activeScreen === "employees" && <BeautyEmployees employees={employees} />}
-                {activeScreen === "services" && <BeautyServices services={services} />}
-                {activeScreen === "inventory" && <BeautyInventory stockItems={stockItems} />}
-                {activeScreen === "payments" && <BeautyPayments payments={payments} />}
-                {activeScreen === "giftcards" && <BeautyGiftCards giftCards={giftCards} />}
+                {activeScreen === "employees" && (
+                    <BeautyEmployees employees={employees} />
+                )}
+
+                {activeScreen === "services" && (
+                    <BeautyServices services={services} />
+                )}
+
+                {activeScreen === "inventory" && (
+                    <BeautyInventory stockItems={stockItems} />
+                )}
+
+                {activeScreen === "payments" && (
+                    <BeautyPayments payments={payments} />
+                )}
+
+                {activeScreen === "giftcards" && (
+                    <BeautyGiftCards giftCards={giftCards} />
+                )}
+
                 {activeScreen === "settings" && <BeautySettings />}
 
-                {/* ✅ NEW BOOKING PAGE */}
                 {activeScreen === "new-booking" && (
                     <BeautyNewBooking
                         goBack={() => setActiveScreen("reservations")}

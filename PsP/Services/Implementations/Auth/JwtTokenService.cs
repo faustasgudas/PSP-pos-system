@@ -37,7 +37,9 @@ public class JwtTokenService : IJwtTokenService
             new("businessId", business.BusinessId.ToString()),
             new("employeeId", employee.EmployeeId.ToString()),
             new(ClaimTypes.Role, employee.Role),
-            new("status", employee.Status)
+            new("status", employee.Status),
+            new("businessType", business.BusinessType)
+
         };
 
         var token = new JwtSecurityToken(

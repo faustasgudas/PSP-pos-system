@@ -6,28 +6,40 @@ namespace PsP.Mappings;
 public static class EmployeeMappings
 {
        // Entity -> Responses
-    public static EmployeeSummaryResponse ToSummaryResponse(this Employee e) => new()
-    {
-        EmployeeId = e.EmployeeId,
-        BusinessId = e.BusinessId,
-        Name       = e.Name,
-        Role       = e.Role,
-        Status     = e.Status
-    };
+       public static EmployeeSummaryResponse ToSummaryResponse(this Employee e) => new()
+       {
+           EmployeeId = e.EmployeeId,
+           BusinessId = e.BusinessId,
+           Name       = e.Name,
+           Email      = e.Email,
+           Role       = e.Role,
+           Status     = e.Status
+       };
+
     
     // Request -> Entity
     public static Employee ToNewEntity(this CreateEmployeeRequest req, int businessId)
     {
-        var name = req.Name?.Trim() ?? throw new ArgumentException("Name is required");
-        var role = NormalizeRole(req.Role);
+        if (string.IsNullOrWhiteSpace(req.Name))
+            throw new ArgumentException("Name is required");
+
+        if (string.IsNullOrWhiteSpace(req.Email))
+            throw new ArgumentException("Email is required");
+
+        if (string.IsNullOrWhiteSpace(req.Password))
+            throw new ArgumentException("Password is required");
+
+        var role   = NormalizeRole(req.Role ?? "Staff");
         var status = NormalizeEmployeeStatus(req.Status ?? "Active");
 
         return new Employee
         {
-            BusinessId = businessId,
-            Name       = name,
-            Role       = role,
-            Status     = status
+            BusinessId   = businessId,
+            Name         = req.Name.Trim(),
+            Email        = req.Email.Trim().ToLowerInvariant(),
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password),
+            Role         = role,
+            Status       = status
         };
     }
 
