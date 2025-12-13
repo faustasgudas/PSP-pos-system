@@ -28,14 +28,7 @@ function App() {
             console.error(err);
         }
     };
-
-
-    // ✅ DASHBOARD GATE (SINGLE POINT OF TRUTH)
-    if (isLoggedIn) {
-        if (selectedOption === "beautyIndustry") return <BeautyDashboard />;
-        if (selectedOption === "cateringIndustry") return <CateringDashboard />;
-        return <div>Invalid business type</div>;
-    }
+    
 
     return (
         <div className="content-box">
@@ -44,20 +37,8 @@ function App() {
             </div>
 
             <div className="login">
-                <h1 className="login-text">Select Industry & Log In</h1>
-
-                {/* ✅ INDUSTRY PICKER */}
-                <select
-                    value={selectedOption}
-                    onChange={(e) => setSelectedOption(e.currentTarget.value)}
-                    className="dropdown"
-                >
-                    <option value="">Select account type</option>
-                    <option value="beautyIndustry">Beauty Industry</option>
-                    <option value="cateringIndustry">Catering Industry</option>
-                </select>
-
-                {/* ✅ LOGIN FORM */}
+                <h1 className="login-text">Log In</h1>
+                
                 <input
                     className="dropdown"
                     placeholder="Email"

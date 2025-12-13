@@ -4,8 +4,10 @@
 
 namespace PsP.Migrations
 {
+    /// <inheritdoc />
     public partial class AddBusinessTypeToBusinesses : Migration
     {
+        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<string>(
@@ -24,5 +26,6 @@ namespace PsP.Migrations
                 table: "Businesses"
             );
         }
+
     }
 }

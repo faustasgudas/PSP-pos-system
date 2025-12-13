@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import "../../../App.css";
 import "./CateringDashboard.css";
+import { getUserFromToken } from "../../../utils/auth"
 
 import CateringEmployees from "../CateringEmployees/CateringEmployees";
 import CateringGiftCards from "../CateringGiftCards/CateringGiftCards";
@@ -102,13 +103,15 @@ function CateringMain(){
     
     const recentPayments = payments.slice(0, 5);
     
+    const user = getUserFromToken();
+    
     return(
         <div className="content-box">
             {/* Top Bar */}
             <div className="top-bar">
                 <h1 className="title">SuperApp</h1>
                 <div className="user-info">
-                    <span>John Smith (Manager)</span>
+                    {user ? `${user.email} (${user.role})` : ""}
                     <button 
                         className="nav-btn"
                         onClick={() => setActiveScreen("settings")}
