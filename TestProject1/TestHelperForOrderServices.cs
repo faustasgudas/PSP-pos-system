@@ -146,7 +146,6 @@ public static class Seed
             BusinessId = bizId, EmployeeId = empId, CatalogItemId = itemId,
             BookedAt = DateTime.UtcNow,
             AppointmentStart = DateTime.UtcNow.AddHours(1),
-            AppointmentEnd = DateTime.UtcNow.AddHours(2),
             PlannedDurationMin = 60, Status = "Booked"
         };
         db.Reservations.Add(r);

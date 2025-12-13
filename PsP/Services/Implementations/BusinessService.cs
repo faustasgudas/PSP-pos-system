@@ -51,6 +51,7 @@ namespace PsP.Services.Implementations
             existing.Email = updated.Email;
             existing.CountryCode = updated.CountryCode;
             existing.PriceIncludesTax = updated.PriceIncludesTax;
+            existing.BusinessType     = updated.BusinessType;
             // BusinessStatus specialiai neliečiam – atskiras concern
 
             await _db.SaveChangesAsync();

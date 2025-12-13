@@ -8,10 +8,9 @@ public class Reservation
     public int BusinessId { get; set; }
     public int EmployeeId { get; set; }        // assigned staff for the service
     public int CatalogItemId { get; set; }     // the service being reserved (Type = "Service")
-
+    public int? OrderId { get; set; }          // linked order (optional)
     public DateTime BookedAt { get; set; }
     public DateTime AppointmentStart { get; set; }
-    public DateTime AppointmentEnd { get; set; }
     public int PlannedDurationMin { get; set; }
     public string Status { get; set; } = "Booked";   // "Booked" / "Cancelled" / "Completed"
     public string? Notes { get; set; }

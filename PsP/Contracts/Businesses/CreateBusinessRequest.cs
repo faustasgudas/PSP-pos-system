@@ -26,4 +26,7 @@ public class CreateBusinessRequest
     public string CountryCode { get; set; } = string.Empty;
 
     public bool PriceIncludesTax { get; set; }
+    [Required]
+    [StringLength(32)]
+    public string BusinessType { get; set; } = "Catering";
 }
