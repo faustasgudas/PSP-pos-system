@@ -1,5 +1,3 @@
-import { useState } from 'react';
-import "../../../App.css";
 import "./CateringPayments.css";
 
 interface Payment {
@@ -10,20 +8,38 @@ interface Payment {
     status: string;
 }
 
-function CateringPayments() {
+interface CateringPaymentsProps {
+    payments: Payment[];
+}
+
+export default function CateringPayments({ payments }: CateringPaymentsProps) {
     return (
-        <div className="content-box" id="payments">
+        <div className="payments-container">
             <div className="action-bar">
-                <h2 className="section-title">Payment Management</h2>
-                <button className="btn btn-primary">
-                    <span>📅</span> View Reservations
-                </button>
+                <h2 className="section-title">Payments</h2>
             </div>
-            <div className="table-list" id="unpaid-orders">
-                {/* todo - add list of unpaid orders */}
+            <div className="payments-list">
+                {payments.length > 0 ? (
+                    payments.map(payment => (
+                        <div key={payment.id} className="payment-card">
+                            <div className="payment-main">
+                                <div className="payment-amount">
+                                    {payment.amount.amount} {payment.amount.currency}
+                                </div>
+                                <div className="payment-status">
+                                    {payment.status}
+                                </div>
+                            </div>
+                            <div className="payment-details">
+                                <div>Reservation #{payment.reservationId}</div>
+                                <div>Method: {payment.method}</div>
+                            </div>
+                        </div>
+                    ))
+                ) : (
+                    <div className="no-payments">No payments found</div>
+                )}
             </div>
         </div>
     )
 }
-
-export default CateringPayments;

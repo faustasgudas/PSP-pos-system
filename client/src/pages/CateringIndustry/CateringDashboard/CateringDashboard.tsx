@@ -22,6 +22,8 @@ type Screen =
     | "settings"
     | "tables";
 
+type DashboardTab = "upcoming" | "payments";
+
 interface Reservation {
     id: number;
     customerName: string;
@@ -77,7 +79,9 @@ interface GiftCard {
 
 function CateringMain(){
     const [activeScreen, setActiveScreen] = useState<Screen>("dashboard");
+    const [activeTab, setActiveTab] = useState<DashboardTab>("upcoming");
     
+    // data arrays (empty)
     const [reservations] = useState<Reservation[]>([]);
     const [payments] = useState<Payment[]>([]);
     const [products] = useState<Product[]>([]);
@@ -86,13 +90,20 @@ function CateringMain(){
     const [stockItems] = useState<StockItem[]>([]);
     const [giftCards] = useState<GiftCard[]>([]);
     
+    // dashboard tabs
     const todayRevenue = payments.reduce((sum, p) => sum + p.amount.amount, 0);
     const availableTables = tables.filter(table => table.status = "Available").length;
     const activeEmployees = employees.filter(employee => employee.status = "Active").length;
     const lowStockItems = stockItems.filter(item => item.qtyOnHand < 5).length;
     
+    const upcomingReservations = reservations
+        .filter(r => new Date(r.reservationStart) > new Date())
+        .slice(0, 5);
+    
+    const recentPayments = payments.slice(0, 5);
+    
     return(
-        <div className="content-box" id="dashboard">
+        <div className="content-box">
             {/* Top Bar */}
             <div className="top-bar">
                 <h1 className="title">SuperApp</h1>
@@ -168,9 +179,9 @@ function CateringMain(){
 
             {/* Screen Switch */}
             <div className="dashboard-container">
+                {/* Dashboard */}
                 {activeScreen === "dashboard" && (
                     <>
-                        {/* Dashboard */}
                         <div className="action-bar">
                             <h2 className="section-title">Today's Overview</h2>
                             <div className="action-buttons">
@@ -178,35 +189,111 @@ function CateringMain(){
                                     className="btn btn-primary"
                                 >
                                     <span>➕</span> New Reservation
+                                    {/* todo - add modal */}
                                 </button>
                                 <button 
                                     className="btn btn-primary"
                                 >
                                     <span>⚡</span> Quick Order
+                                    {/* todo - add modal */}
                                 </button>
                             </div>
                         </div>
                         
                         <div className="stat-grid">
-                            <div className="stat-card">
+                            <div 
+                                className="stat-card"
+                                onClick={() => setActiveScreen("payments")}
+                            >
                                 <div className="stat-number" id="today-revenue">€{todayRevenue}</div>
                                 <div className="stat-label">Today's Revenue</div>
                             </div>
-                            <div className="stat-card">
+                            <div 
+                                className="stat-card"
+                                onClick={() => setActiveScreen("tables")}
+                            >
                                 <div className="stat-number" id="available-tables">{availableTables}</div>
                                 <div className="stat-label">Available Tables</div>
                             </div>
-                            <div className="stat-card">
+                            <div 
+                                className="stat-card"
+                                onClick={() => setActiveScreen("employees")}
+                            >
                                 <div className="stat-number" id="active-employees">{activeEmployees}</div>
                                 <div className="stat-label">Active Employees</div>
                             </div>
-                            <div className="stat-card">
+                            <div 
+                                className="stat-card"
+                                onClick={() => setActiveScreen("inventory")}
+                            >
                                 <div className="stat-number" id="low-stock-items">{lowStockItems}</div>
                                 <div className="stat-label">Low Stock Items</div>
                             </div>
                         </div>
+                        
+                        <div className="tabs">
+                            <button
+                                className={`tab ${activeTab === "upcoming" ? "active" : ""}`}
+                                onClick={() => setActiveTab("upcoming")}
+                            >
+                                Upcoming Reservations
+                            </button>
+                            <button
+                                className={`tab ${activeTab === "payments" ? "active" : ""}`}
+                                onClick={() => setActiveTab("payments")}
+                            >
+                                Recent Payments
+                            </button>
+                        </div>
+                        {activeTab === "upcoming" && (
+                            <div className="reservation-list">
+                                {upcomingReservations.length > 0 ? (
+                                    upcomingReservations.map(b => (
+                                        <div key={b.id} className="reservation-item">
+                                            <div className="reservation-details">
+                                                <div className="detail-value">
+                                                    {b.customerName}
+                                                </div>
+                                            </div>
+                                        </div>    
+                                    ))
+                                ) : (
+                                    <div className="reservation-item">
+                                        <div className="reservation-details">
+                                            <div className="detail-value">
+                                                No upcoming reservations
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        {activeTab === "payments" && (
+                            <div className="reservation-list">
+                                {recentPayments.length > 0 ? (
+                                    recentPayments.map(p => (
+                                        <div key={p.id} className="reservation-item">
+                                            <div className="reservation-details">
+                                                <div className="detail-value">
+                                                    €{p.amount.amount}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="reservation-item">
+                                        <div className="reservation-details">
+                                            <div className="detail-value">
+                                                No recent payments
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </>
-                )}
+                )}    
+                        
                 {activeScreen === "reservations" && (
                     <CateringReservations
                         reservations={reservations}
@@ -214,40 +301,16 @@ function CateringMain(){
                         tables={tables}
                     />
                 )}
-                {activeScreen === "employees" && (
-                    <CateringEmployees
-                        employees={employees}
-                    />
-                )}
-                {activeScreen === "tables" && (
-                    <CateringTables
-                        tables={tables}
-                    />
-                )}
-                {activeScreen === "products" && (
-                    <CateringProducts
-                        products={products}
-                    />
-                )}
-                {activeScreen === "inventory" && (
-                    <CateringInventory/>
-                )}
-                {activeScreen === "payments" && (
-                    <CateringPayments
-                        payments={payments}
-                    />
-                )}
-                {activeScreen === "gift-cards" && (
-                    <CateringGiftCards
-                        giftCards={giftCards}
-                    />
-                )}
-                {activeScreen === "settings" && (
-                    <CateringSettings/>
-                )}
+                {activeScreen === "employees" && (<CateringEmployees employees={employees}/>)}
+                {activeScreen === "tables" && (<CateringTables tables={tables} />)}
+                {activeScreen === "products" && (<CateringProducts products={products} />)}
+                {activeScreen === "inventory" && (<CateringInventory />)}
+                {activeScreen === "payments" && (<CateringPayments payments={payments} />)}
+                {activeScreen === "gift-cards" && (<CateringGiftCards giftCards={giftCards} />)}
+                {activeScreen === "settings" && <CateringSettings />}
             </div>
         </div>
-    )
+    );
 }
 
 export default CateringMain;
