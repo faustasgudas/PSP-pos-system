@@ -16,7 +16,8 @@ public static class BusinessMappings
             Email            = entity.Email,
             CountryCode      = entity.CountryCode,
             PriceIncludesTax = entity.PriceIncludesTax,
-            BusinessStatus   = entity.BusinessStatus
+            BusinessStatus   = entity.BusinessStatus,
+            BusinessType    = entity.BusinessType
         };
 
     // CreateBusinessRequest -> naujas Business entity
@@ -29,7 +30,8 @@ public static class BusinessMappings
             Email            = req.Email,
             CountryCode      = req.CountryCode,
             PriceIncludesTax = req.PriceIncludesTax,
-            BusinessStatus   = "Active"
+            BusinessStatus   = "Active",
+            BusinessType = req.BusinessType
         };
 
     // UpdateBusinessRequest -> "detached" Business su atnaujintom reikšmėm
@@ -43,6 +45,7 @@ public static class BusinessMappings
             Phone            = req.Phone,
             Email            = req.Email,
             CountryCode      = req.CountryCode,
-            PriceIncludesTax = req.PriceIncludesTax
+            PriceIncludesTax = req.PriceIncludesTax,
+            BusinessType = req.BusinessType
         };
 }

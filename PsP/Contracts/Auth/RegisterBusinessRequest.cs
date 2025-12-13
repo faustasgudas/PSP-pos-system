@@ -14,4 +14,7 @@ public class RegisterBusinessRequest
     public string OwnerName { get; set; } = null!;
     public string OwnerEmail { get; set; } = null!;
     public string OwnerPassword { get; set; } = null!;
+    
+    public string BusinessType { get; set; }
+
 }

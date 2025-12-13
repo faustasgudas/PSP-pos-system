@@ -36,7 +36,17 @@ namespace PsP.Migrations
 
                     b.Property<string>("BusinessStatus")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasDefaultValue("Active");
+
+                    b.Property<string>("BusinessType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasDefaultValue("Catering");
 
                     b.Property<string>("CountryCode")
                         .IsRequired()

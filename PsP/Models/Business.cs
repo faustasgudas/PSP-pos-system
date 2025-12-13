@@ -10,7 +10,8 @@ public class Business
     public string CountryCode { get; set; } = null!;
     public bool PriceIncludesTax { get; set; }
     public string BusinessStatus { get; set; } = "Active";
-
+        
+    public string BusinessType { get; set; } = null!;
     public ICollection<Payment> Payments { get; set; } =new List<Payment>();
 
     public ICollection<Employee> Employees { get; set; } = new List<Employee>();
