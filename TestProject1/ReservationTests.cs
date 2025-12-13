@@ -20,7 +20,6 @@ public class ReservationTests
             CatalogItemId = service.CatalogItemId,
             BookedAt = DateTime.UtcNow,
             AppointmentStart = DateTime.UtcNow.AddHours(1),
-            AppointmentEnd = DateTime.UtcNow.AddHours(2),
             PlannedDurationMin = 60,
             Status = "Booked",
             Notes = "VIP"

@@ -52,12 +52,47 @@ public static class Seed
     {
         var item = new CatalogItem
         {
-            BusinessId = bizId, Name = "Coffee", Code = "SKU-1", Type = "Product",
-            BasePrice = price, Status = "Active", DefaultDurationMin = 0, TaxClass = taxClass
+            BusinessId = bizId,
+            Name = "Coffee",
+            Code = "SKU-1",
+            Type = "Product",
+            BasePrice = price,
+            Status = "Active",
+            DefaultDurationMin = 0,
+            TaxClass = taxClass
         };
         db.CatalogItems.Add(item);
         db.SaveChanges();
+
+        // NEW: automatically create stock if item is a product
+        if (string.Equals(item.Type, "Product", StringComparison.OrdinalIgnoreCase))
+        {
+            db.StockItems.Add(new StockItem
+            {
+                CatalogItemId = item.CatalogItemId,
+                Unit = "pcs",
+                QtyOnHand = 999,
+                AverageUnitCost = 1m
+            });
+            db.SaveChanges();
+        }
+
         return item;
+    }
+    
+    public static StockItem SeedStockItem(AppDbContext db, int catalogItemId, decimal qty = 100)
+    {
+        var stock = new StockItem
+        {
+            CatalogItemId = catalogItemId,
+            Unit = "pcs",
+            QtyOnHand = qty,
+            AverageUnitCost = 1m
+        };
+
+        db.StockItems.Add(stock);
+        db.SaveChanges();
+        return stock;
     }
 
     public static void Tax(AppDbContext db, string country, string taxClass, decimal rate, DateTime? from = null, DateTime? to = null)
@@ -111,7 +146,6 @@ public static class Seed
             BusinessId = bizId, EmployeeId = empId, CatalogItemId = itemId,
             BookedAt = DateTime.UtcNow,
             AppointmentStart = DateTime.UtcNow.AddHours(1),
-            AppointmentEnd = DateTime.UtcNow.AddHours(2),
             PlannedDurationMin = 60, Status = "Booked"
         };
         db.Reservations.Add(r);
