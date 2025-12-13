@@ -272,6 +272,35 @@ public class OrdersController : ControllerBase
         }
         catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
     }
+    
+    [HttpPost("{orderId:int}/move-lines")]
+    [Authorize(Roles = "Owner,Manager,Staff")]
+    public async Task<IActionResult> MoveLines(
+        [FromRoute] int orderId,
+        [FromBody] MoveOrderLinesRequest body)
+    {
+        var businessId = User.GetBusinessId();
+        var callerEmployeeId = User.GetEmployeeId();
+
+        try
+        {
+            await _orders.MoveLinesAsync(
+                businessId: businessId,
+                fromOrderId: orderId,
+                callerEmployeeId: callerEmployeeId,
+                request: body,
+                ct: HttpContext.RequestAborted);
+
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return NotFoundOrBadRequest(ex);
+        }
+    }
+    
+    
+    
 
     // -------------------------------
     // Helpers

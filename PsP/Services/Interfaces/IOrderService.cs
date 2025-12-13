@@ -96,4 +96,12 @@ public interface IOrdersService
          int callerEmployeeId,
          CancellationToken ct = default);
 
+
+     Task MoveLinesAsync(
+         int businessId,
+         int fromOrderId,
+         int callerEmployeeId,
+         MoveOrderLinesRequest request,
+         CancellationToken ct = default);
+
 }
