@@ -20,7 +20,8 @@ public class DiscountsServiceCRUDTests
             Email = "b@b.lt",
             Phone = "+370000000",
             CountryCode = "LT",
-            PriceIncludesTax = false
+            PriceIncludesTax = false,
+            BusinessType = "Catering"
         };
         db.Businesses.Add(biz);
         db.SaveChanges();
@@ -416,6 +417,7 @@ public async Task AddEligibility_ManagerOnly_PreventsDuplicates_And_BusinessMism
         Email = "x@x.lt",
         Phone = "+370",
         CountryCode = "LT",
+        BusinessType = "Catering",
         PriceIncludesTax = false
     };
     db.Businesses.Add(otherBiz);
@@ -644,6 +646,7 @@ public async Task AddEligibility_ManagerOnly_PreventsDuplicates_And_BusinessMism
                 Phone = "+370000001",
                 Email = "o@test",
                 CountryCode = "LT",
+                BusinessType = "Catering",
                 PriceIncludesTax = false
             };
             db.Businesses.Add(otherBiz);
@@ -698,6 +701,7 @@ public async Task AddEligibility_ManagerOnly_PreventsDuplicates_And_BusinessMism
                 Phone = "+370000002",
                 Email = "o2@test",
                 CountryCode = "LT",
+                BusinessType = "Catering",
                 PriceIncludesTax = false
             };
             db.Businesses.Add(otherBiz);

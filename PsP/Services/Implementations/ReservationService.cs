@@ -11,11 +11,11 @@ public class ReservationService : IReservationService
 {
     private readonly AppDbContext _db;
 
-    public ReservationService(AppDbContext db)
-    {
-        _db = db;
-    }
+    public ReservationService(AppDbContext db) => _db = db;
 
+    // -----------------------------
+    // Security / lookups
+    // -----------------------------
     private async Task<Employee> GetCallerAsync(int businessId, int callerEmployeeId, CancellationToken ct)
     {
         var caller = await _db.Employees
@@ -40,12 +40,11 @@ public class ReservationService : IReservationService
             throw new InvalidOperationException("forbidden");
     }
 
-    private static void EnsureServiceCatalogItem(CatalogItem item)
+    private async Task<Reservation> GetReservationEntityAsync(int businessId, int reservationId, CancellationToken ct)
     {
-        if (!string.Equals(item.Type, "Service", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("catalog_item_not_service");
-        if (!string.Equals(item.Status, "Active", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("catalog_item_not_active");
+        return await _db.Reservations
+            .FirstOrDefaultAsync(r => r.BusinessId == businessId && r.ReservationId == reservationId, ct)
+            ?? throw new InvalidOperationException("reservation_not_found");
     }
 
     private async Task<CatalogItem> GetCatalogItemAsync(int businessId, int catalogItemId, CancellationToken ct)
@@ -56,28 +55,48 @@ public class ReservationService : IReservationService
             ?? throw new InvalidOperationException("catalog_item_not_found");
     }
 
-    private static void EnsureStatusCanChange(string currentStatus)
+    private static void EnsureServiceCatalogItem(CatalogItem item)
     {
+        if (!string.Equals(item.Type, "Service", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("catalog_item_not_service");
+
+        if (!string.Equals(item.Status, "Active", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("catalog_item_not_active");
+    }
+
+    private static int ResolveDurationFromCatalog(CatalogItem item)
+    {
+        // Your new rule: duration ALWAYS comes from catalog.
+        if (item.DefaultDurationMin <= 0)
+            throw new InvalidOperationException("duration_invalid");
+
+        return item.DefaultDurationMin;
+    }
+
+    private static void EnsureStatusModifiable(string currentStatus)
+    {
+        // Only allow changing booked reservations (matches your old behavior).
         if (!string.Equals(currentStatus, "Booked", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("reservation_not_modifiable");
     }
 
-    private static void EnsureStatusCanCancel(string currentStatus)
+    private static void EnsureStatusCancellable(string currentStatus)
     {
         if (!string.Equals(currentStatus, "Booked", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("reservation_not_cancellable");
     }
 
-    private static void EnsureValidTimeRange(DateTime start, DateTime end, int durationMinutes)
+    private static void EnsureStartValid(DateTime start)
     {
-        if (end <= start)
-            throw new InvalidOperationException("appointment_end_before_start");
-
-        var computed = (int)Math.Round((end - start).TotalMinutes, MidpointRounding.AwayFromZero);
-        if (computed != durationMinutes)
-            throw new InvalidOperationException("appointment_duration_mismatch");
+        // Minimal "bulletproof" sanity check:
+        // prevent default(DateTime) accidents (0001-01-01)
+        if (start == default)
+            throw new InvalidOperationException("appointment_start_invalid");
     }
 
+    // -----------------------------
+    // Public API
+    // -----------------------------
     public async Task<IEnumerable<ReservationSummaryResponse>> ListAsync(
         int businessId,
         int callerEmployeeId,
@@ -94,18 +113,25 @@ public class ReservationService : IReservationService
             .AsNoTracking()
             .Where(r => r.BusinessId == businessId);
 
+       
         if (!IsOwnerOrManager(caller))
-        {
-            // staff: only own reservations
             q = q.Where(r => r.EmployeeId == caller.EmployeeId);
-        }
 
         if (!string.IsNullOrWhiteSpace(status))
             q = q.Where(r => r.Status == status);
-        if (dateFrom.HasValue) q = q.Where(r => r.AppointmentStart >= dateFrom.Value);
-        if (dateTo.HasValue) q = q.Where(r => r.AppointmentStart <= dateTo.Value);
-        if (employeeId.HasValue) q = q.Where(r => r.EmployeeId == employeeId.Value);
-        if (catalogItemId.HasValue) q = q.Where(r => r.CatalogItemId == catalogItemId.Value);
+
+        if (dateFrom.HasValue)
+            q = q.Where(r => r.AppointmentStart >= dateFrom.Value);
+
+        if (dateTo.HasValue)
+            q = q.Where(r => r.AppointmentStart <= dateTo.Value);
+
+        // These filters only make sense for managers/owners, but harmless either way
+        if (employeeId.HasValue)
+            q = q.Where(r => r.EmployeeId == employeeId.Value);
+
+        if (catalogItemId.HasValue)
+            q = q.Where(r => r.CatalogItemId == catalogItemId.Value);
 
         var list = await q
             .OrderBy(r => r.AppointmentStart)
@@ -140,27 +166,39 @@ public class ReservationService : IReservationService
         CreateReservationRequest request,
         CancellationToken ct = default)
     {
-        var caller = await GetCallerAsync(businessId, callerEmployeeId, ct);
-        if (!IsOwnerOrManager(caller))
-            throw new InvalidOperationException("forbidden");
+        await EnsureCanManageAsync(businessId, callerEmployeeId, ct);
 
+        // Assign employee: if your contract has EmployeeId optional, keep this;
+        // if it's required, this still works.
         var assignedEmployeeId = request.EmployeeId ?? callerEmployeeId;
+
         var employee = await _db.Employees
             .AsNoTracking()
-            .FirstOrDefaultAsync(e => e.EmployeeId == assignedEmployeeId && e.BusinessId == businessId, ct)
+            .FirstOrDefaultAsync(e => e.BusinessId == businessId && e.EmployeeId == assignedEmployeeId, ct)
             ?? throw new InvalidOperationException("employee_not_found");
+
         if (!string.Equals(employee.Status, "Active", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("employee_inactive");
+
+        EnsureStartValid(request.AppointmentStart);
 
         var catalogItem = await GetCatalogItemAsync(businessId, request.CatalogItemId, ct);
         EnsureServiceCatalogItem(catalogItem);
 
-        if (request.PlannedDurationMin <= 0)
-            throw new InvalidOperationException("duration_invalid");
+        var duration = ResolveDurationFromCatalog(catalogItem);
 
-        EnsureValidTimeRange(request.AppointmentStart, request.AppointmentEnd, request.PlannedDurationMin);
-
-        var entity = request.ToNewEntity(businessId, assignedEmployeeId, DateTime.UtcNow);
+        var entity = new Reservation
+        {
+            BusinessId = businessId,
+            EmployeeId = assignedEmployeeId,
+            CatalogItemId = request.CatalogItemId,
+            BookedAt = DateTime.UtcNow,
+            AppointmentStart = request.AppointmentStart,
+            PlannedDurationMin = duration,
+            Status = "Booked",
+            Notes = request.Notes,
+            TableOrArea = request.TableOrArea,
+        };
 
         _db.Reservations.Add(entity);
         await _db.SaveChangesAsync(ct);
@@ -177,61 +215,47 @@ public class ReservationService : IReservationService
     {
         await EnsureCanManageAsync(businessId, callerEmployeeId, ct);
 
-        var reservation = await _db.Reservations
-            .FirstOrDefaultAsync(r => r.BusinessId == businessId && r.ReservationId == reservationId, ct)
-            ?? throw new InvalidOperationException("reservation_not_found");
+        var reservation = await GetReservationEntityAsync(businessId, reservationId, ct);
 
-        EnsureStatusCanChange(reservation.Status);
+        EnsureStatusModifiable(reservation.Status);
 
-        if (request.PlannedDurationMin.HasValue && request.PlannedDurationMin <= 0)
-            throw new InvalidOperationException("duration_invalid");
-
+        // If employee changes, validate it exists + active
         if (request.EmployeeId.HasValue)
         {
             var emp = await _db.Employees
                 .AsNoTracking()
-                .FirstOrDefaultAsync(e => e.EmployeeId == request.EmployeeId.Value && e.BusinessId == businessId, ct)
+                .FirstOrDefaultAsync(e => e.BusinessId == businessId && e.EmployeeId == request.EmployeeId.Value, ct)
                 ?? throw new InvalidOperationException("employee_not_found");
+
             if (!string.Equals(emp.Status, "Active", StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException("employee_inactive");
         }
 
-        if (request.CatalogItemId.HasValue)
-        {
-            var catalogItem = await GetCatalogItemAsync(businessId, request.CatalogItemId.Value, ct);
-            EnsureServiceCatalogItem(catalogItem);
-        }
+        // Determine the catalog item to use after update
+        int effectiveCatalogItemId = request.CatalogItemId ?? reservation.CatalogItemId;
 
-        // derive consistent start/end/duration trio
+        var effectiveCatalog = await GetCatalogItemAsync(businessId, effectiveCatalogItemId, ct);
+        EnsureServiceCatalogItem(effectiveCatalog);
+
+        // Determine new start
         var newStart = request.AppointmentStart ?? reservation.AppointmentStart;
-        var newDuration = request.PlannedDurationMin ?? reservation.PlannedDurationMin;
+        EnsureStartValid(newStart);
 
-        DateTime newEnd;
-        if (request.AppointmentEnd.HasValue)
-        {
-            newEnd = request.AppointmentEnd.Value;
-            if (request.PlannedDurationMin.HasValue)
-            {
-                // ensure provided end matches provided duration
-                EnsureValidTimeRange(newStart, newEnd, newDuration);
-            }
-            else
-            {
-                // recompute duration from provided end
-                newDuration = (int)Math.Round((newEnd - newStart).TotalMinutes, MidpointRounding.AwayFromZero);
-            }
-        }
-        else
-        {
-            // recompute end from start + duration if end not provided
-            newEnd = newStart.AddMinutes(newDuration);
-        }
+        // IMPORTANT: duration is ALWAYS from catalog item (after update)
+        var newDuration = ResolveDurationFromCatalog(effectiveCatalog);
 
-        EnsureValidTimeRange(newStart, newEnd, newDuration);
+        // Apply fields
+        reservation.AppointmentStart = newStart;
+        reservation.PlannedDurationMin = newDuration;
 
-        request.ApplyUpdate(reservation, newStart, newEnd, newDuration);
+        if (request.EmployeeId.HasValue) reservation.EmployeeId = request.EmployeeId.Value;
+        if (request.CatalogItemId.HasValue) reservation.CatalogItemId = request.CatalogItemId.Value;
+        if (request.Notes is not null) reservation.Notes = request.Notes;
+        if (request.TableOrArea is not null) reservation.TableOrArea = request.TableOrArea;
+        if (!string.IsNullOrWhiteSpace(request.Status)) reservation.Status = request.Status;
 
         await _db.SaveChangesAsync(ct);
+
         return reservation.ToDetailResponse();
     }
 
@@ -243,16 +267,14 @@ public class ReservationService : IReservationService
     {
         await EnsureCanManageAsync(businessId, callerEmployeeId, ct);
 
-        var reservation = await _db.Reservations
-            .FirstOrDefaultAsync(r => r.BusinessId == businessId && r.ReservationId == reservationId, ct)
-            ?? throw new InvalidOperationException("reservation_not_found");
+        var reservation = await GetReservationEntityAsync(businessId, reservationId, ct);
 
-        EnsureStatusCanCancel(reservation.Status);
+        EnsureStatusCancellable(reservation.Status);
+
         reservation.Status = "Cancelled";
 
         await _db.SaveChangesAsync(ct);
+
         return reservation.ToDetailResponse();
     }
-
 }
-

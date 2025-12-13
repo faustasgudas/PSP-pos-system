@@ -41,6 +41,7 @@ public class OrdersStockIntegrationTests
             Email = "test@biz.local",
             CountryCode = "LT",
             PriceIncludesTax = true,
+            BusinessType = "Catering",
             BusinessStatus = "Active"
         };
         db.Businesses.Add(business);
