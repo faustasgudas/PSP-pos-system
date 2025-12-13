@@ -197,6 +197,31 @@ public class OrdersController : ControllerBase
         catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
     }
 
+    
+    [HttpPost("{orderId:int}/reopen")]
+    public async Task<ActionResult<OrderDetailResponse>> ReopenOrder(
+        [FromRoute] int businessId,
+        [FromRoute] int orderId,
+        [FromQuery] int callerEmployeeId)
+    {
+        try
+        {
+            var dto = await _orders.ReopenOrderAsync(
+                businessId,
+                orderId,
+                callerEmployeeId,
+                HttpContext.RequestAborted);
+
+            return Ok(dto);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return NotFoundOrBadRequest(ex);
+        }
+    }
+    
+    
+    
     // --- small helpers to map common service exceptions ---
     private ActionResult NotFoundOrBadRequest(InvalidOperationException ex)
         => ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase) ? NotFound(ex.Message) : BadRequest(ex.Message);
