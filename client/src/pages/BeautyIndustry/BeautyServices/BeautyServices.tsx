@@ -1,88 +1,255 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./BeautyServices.css";
+import {
+    deactivateService,
+    updateService,
+    createService,
+} from "../../../frontapi/catalogApi";
 
 interface Service {
-    id: number;
+    catalogItemId: number;
     name: string;
-    basePrice: { amount: number; currency: string };
+    basePrice: number;
+    status: string;
+    defaultDurationMin: number;
 }
 
-interface BeautyServicesProps {
-    services: Service[];
-}
+export default function BeautyServices() {
+    const [services, setServices] = useState<Service[]>([]);
+    const [editing, setEditing] = useState<Service | null>(null);
+    const [confirmDeactivate, setConfirmDeactivate] =
+        useState<Service | null>(null);
+    const [adding, setAdding] = useState(false);
 
-export default function BeautyServices({ services }: BeautyServicesProps) {
-    const [showModal, setShowModal] = useState(false);
+    const [name, setName] = useState("");
+    const [price, setPrice] = useState("");
+    const [duration, setDuration] = useState("");
+    const [status, setStatus] = useState("Active");
+
+    const businessId = Number(localStorage.getItem("businessId"));
+    const token = localStorage.getItem("token");
+
+    useEffect(() => {
+        if (!token || !businessId) return;
+
+        fetch(
+            `https://localhost:44317/api/businesses/${businessId}/catalog-items?type=Service&status=Active`,
+            {
+                headers: { Authorization: `Bearer ${token}` },
+            }
+        )
+            .then((r) => r.json())
+            .then(setServices);
+    }, [businessId, token]);
+
+    const saveEdit = async () => {
+        if (!editing) return;
+
+        const updated = await updateService(
+            businessId,
+            editing.catalogItemId,
+            {
+                name,
+                basePrice: Number(price),
+                defaultDurationMin: Number(duration),
+                status,
+            }
+        );
+
+        setServices((prev) =>
+            prev.map((s) =>
+                s.catalogItemId === updated.catalogItemId ? updated : s
+            )
+        );
+
+        setEditing(null);
+    };
+
+    const confirmArchive = async () => {
+        if (!confirmDeactivate) return;
+
+        await deactivateService(
+            businessId,
+            confirmDeactivate.catalogItemId
+        );
+
+        setServices((prev) =>
+            prev.filter(
+                (s) =>
+                    s.catalogItemId !==
+                    confirmDeactivate.catalogItemId
+            )
+        );
+
+        setConfirmDeactivate(null);
+    };
+
+    const saveNewService = async () => {
+        const created = await createService(businessId, {
+            name,
+            code: name.toUpperCase().replace(/\s+/g, "_"),
+            type: "Service",
+            basePrice: Number(price),
+            defaultDurationMin: Number(duration),
+            taxClass: "Service",
+            status,
+        });
+
+        setServices((prev) => [...prev, created]);
+        setAdding(false);
+    };
 
     return (
-        <div className="services-container">
-            <div className="action-bar">
-                <h2 className="section-title">Services</h2>
+        <div className="services-page">
+            <div className="services-header">
+                <h1>Services</h1>
                 <button
-                    className="btn btn-primary"
-                    onClick={() => setShowModal(true)}
+                    className="add-service-btn"
+                    onClick={() => {
+                        setName("");
+                        setPrice("");
+                        setDuration("");
+                        setStatus("Active");
+                        setAdding(true);
+                    }}
                 >
-                    ➕ Add Service
+                    + Add Service
                 </button>
             </div>
 
-            <div className="services-list">
-                {services.length > 0 ? (
-                    services.map(service => (
-                        <div key={service.id} className="service-card">
-                            <div>
-                                <div className="service-name">{service.name}</div>
-                                <div className="service-price">
-                                    {service.basePrice.amount} {service.basePrice.currency}
-                                </div>
-                            </div>
-
-                            <div className="service-actions">
-                                <button className="btn-small">Edit</button>
-                                <button className="btn-small btn-danger">Deactivate</button>
-                            </div>
+            <div className="services-grid">
+                {services.map((s) => (
+                    <div key={s.catalogItemId} className="service-card">
+                        <div className="service-top">
+                            <h2>{s.name}</h2>
+                            <span className="service-price">
+                                €{s.basePrice.toFixed(2)}
+                            </span>
                         </div>
-                    ))
-                ) : (
-                    <div className="no-services">No services found</div>
-                )}
+
+
+                        <div className="service-actions">
+                            <button
+                                className="edit-btn"
+                                onClick={() => {
+                                    setEditing(s);
+                                    setName(s.name);
+                                    setPrice(s.basePrice.toString());
+                                    setDuration(
+                                        s.defaultDurationMin.toString()
+                                    );
+                                    setStatus(s.status);
+                                }}
+                            >
+                                Edit
+                            </button>
+
+                            <button
+                                className="deactivate-btn"
+                                onClick={() =>
+                                    setConfirmDeactivate(s)
+                                }
+                            >
+                                Deactivate
+                            </button>
+                        </div>
+                    </div>
+                ))}
             </div>
 
-            {/* ✅ ADD SERVICE MODAL */}
-            {showModal && (
+            {/* ADD / EDIT MODAL */}
+            {(editing || adding) && (
                 <div className="modal-overlay">
-                    <div className="modal-card">
-                        <h3 className="modal-title">Add Service</h3>
+                    <div className="modal">
+                        <h2>
+                            {adding ? "Add Service" : "Edit Service"}
+                        </h2>
 
-                        <div className="modal-form">
-                            <div className="modal-field">
-                                <label>Service Name</label>
-                                <input type="text" />
-                            </div>
+                        <input
+                            placeholder="Service name"
+                            value={name}
+                            onChange={(e) =>
+                                setName(e.target.value)
+                            }
+                        />
 
-                            <div className="modal-field">
-                                <label>Price</label>
-                                <input type="number" />
-                            </div>
+                        <input
+                            placeholder="Price (€)"
+                            value={price}
+                            onChange={(e) =>
+                                setPrice(e.target.value)
+                            }
+                        />
 
-                            <div className="modal-field">
-                                <label>Currency</label>
-                                <select>
-                                    <option value="EUR">EUR</option>
-                                </select>
-                            </div>
-                        </div>
+                        <select
+                            value={status}
+                            onChange={(e) =>
+                                setStatus(e.target.value)
+                            }
+                        >
+                            <option value="Active">Active</option>
+                            <option value="Archived">Archive</option>
+                        </select>
+
+                        <input
+                            placeholder="Duration (minutes)"
+                            value={duration}
+                            onChange={(e) =>
+                                setDuration(e.target.value)
+                            }
+                        />
 
                         <div className="modal-actions">
                             <button
-                                className="btn btn-secondary"
-                                onClick={() => setShowModal(false)}
+                                onClick={() =>
+                                    adding
+                                        ? saveNewService()
+                                        : saveEdit()
+                                }
+                            >
+                                Save
+                            </button>
+                            <button
+                                className="secondary"
+                                onClick={() => {
+                                    setEditing(null);
+                                    setAdding(false);
+                                }}
                             >
                                 Cancel
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
-                            <button className="btn btn-success">
-                                Save Service
+            {/* DEACTIVATE CONFIRM */}
+            {confirmDeactivate && (
+                <div className="modal-overlay">
+                    <div className="modal">
+                        <h2>Deactivate Service</h2>
+                        <p>
+                            Are you sure you want to deactivate{" "}
+                            <strong>
+                                {confirmDeactivate.name}
+                            </strong>
+                            ?
+                        </p>
+
+                        <div className="modal-actions">
+                            <button
+                                className="danger"
+                                onClick={confirmArchive}
+                            >
+                                Deactivate
+                            </button>
+                            <button
+                                className="secondary"
+                                onClick={() =>
+                                    setConfirmDeactivate(null)
+                                }
+                            >
+                                Cancel
                             </button>
                         </div>
                     </div>

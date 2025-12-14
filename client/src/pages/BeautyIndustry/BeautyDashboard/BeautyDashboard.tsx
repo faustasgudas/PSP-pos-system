@@ -1,7 +1,7 @@
 import { useState } from "react";
 import "../../../App.css";
 import "./BeautyDashboard.css";
-import { getUserFromToken } from "../../../utils/auth"
+import { getUserFromToken } from "../../../utils/auth";
 
 import BeautyReservations from "../BeautyReservations/BeautyReservations";
 import BeautyEmployees from "../BeautyEmployees/BeautyEmployees";
@@ -11,8 +11,6 @@ import BeautyPayments from "../BeautyPayments/BeautyPayments";
 import BeautyGiftCards from "../BeautyGiftCards/BeautyGiftCards";
 import BeautySettings from "../BeautySettings/BeautySettings";
 import BeautyNewBooking from "../BeautyNewBooking/BeautyNewBooking";
-
-// ==== TYPES ====
 
 interface Booking {
     id: number;
@@ -70,15 +68,16 @@ type Screen =
     | "payments"
     | "giftcards"
     | "settings"
-    | "new-booking";
+    | "new-booking"
+    | "order-create";
 
 type DashboardTab = "upcoming" | "payments";
 
-function BeautyMain() {
+export default function BeautyDashboard() {
     const [activeScreen, setActiveScreen] = useState<Screen>("dashboard");
     const [activeTab, setActiveTab] = useState<DashboardTab>("upcoming");
 
-    // DATA ARRAYS – TEMP EMPTY (BACKEND LATER)
+    // TEMP DATA (BACKEND LATER)
     const [reservations] = useState<Booking[]>([]);
     const [payments] = useState<Payment[]>([]);
     const [services] = useState<Service[]>([]);
@@ -86,7 +85,6 @@ function BeautyMain() {
     const [stockItems] = useState<StockItem[]>([]);
     const [giftCards] = useState<GiftCard[]>([]);
 
-    // DASHBOARD STATS
     const todayBookings = reservations.length;
     const todayRevenue = payments.reduce((sum, p) => sum + p.amount.amount, 0);
     const activeEmployees = employees.length;
@@ -97,8 +95,13 @@ function BeautyMain() {
         .slice(0, 5);
 
     const recentPayments = payments.slice(0, 5);
-    
+
     const user = getUserFromToken();
+
+    const handleNewOrder = () => {
+        // UI.html flow => order-create
+        setActiveScreen("order-create");
+    };
 
     return (
         <div className="content-box">
@@ -124,42 +127,36 @@ function BeautyMain() {
                 >
                     📊 Dashboard
                 </button>
-
                 <button
                     className={`nav-btn ${activeScreen === "reservations" ? "active" : ""}`}
                     onClick={() => setActiveScreen("reservations")}
                 >
                     📅 Reservations
                 </button>
-
                 <button
                     className={`nav-btn ${activeScreen === "employees" ? "active" : ""}`}
                     onClick={() => setActiveScreen("employees")}
                 >
                     👥 Employees
                 </button>
-
                 <button
                     className={`nav-btn ${activeScreen === "services" ? "active" : ""}`}
                     onClick={() => setActiveScreen("services")}
                 >
                     📋 Services
                 </button>
-
                 <button
                     className={`nav-btn ${activeScreen === "inventory" ? "active" : ""}`}
                     onClick={() => setActiveScreen("inventory")}
                 >
                     📦 Inventory
                 </button>
-
                 <button
                     className={`nav-btn ${activeScreen === "payments" ? "active" : ""}`}
                     onClick={() => setActiveScreen("payments")}
                 >
                     💳 Payments
                 </button>
-
                 <button
                     className={`nav-btn ${activeScreen === "giftcards" ? "active" : ""}`}
                     onClick={() => setActiveScreen("giftcards")}
@@ -168,51 +165,41 @@ function BeautyMain() {
                 </button>
             </div>
 
-            {/* SCREEN CONTENT */}
+            {/* MAIN */}
             <div className="dashboard-container">
                 {/* DASHBOARD OVERVIEW */}
                 {activeScreen === "dashboard" && (
                     <>
                         <div className="action-bar">
                             <h2 className="section-title">Today's Overview</h2>
+
+                            {/* ✅ only addition: button */}
+                            <button className="btn btn-primary" onClick={handleNewOrder}>
+                                ➕ New Order
+                            </button>
                         </div>
 
                         {/* STAT CARDS */}
                         <div className="stat-grid">
-                            <div
-                                className="stat-card"
-                                onClick={() => setActiveScreen("reservations")}
-                            >
+                            <div className="stat-card" onClick={() => setActiveScreen("reservations")}>
                                 <div className="stat-number">{todayBookings}</div>
                                 <div className="stat-label">Today's Reservations</div>
                             </div>
-
-                            <div
-                                className="stat-card"
-                                onClick={() => setActiveScreen("payments")}
-                            >
+                            <div className="stat-card" onClick={() => setActiveScreen("payments")}>
                                 <div className="stat-number">€{todayRevenue}</div>
                                 <div className="stat-label">Today's Revenue</div>
                             </div>
-
-                            <div
-                                className="stat-card"
-                                onClick={() => setActiveScreen("employees")}
-                            >
+                            <div className="stat-card" onClick={() => setActiveScreen("employees")}>
                                 <div className="stat-number">{activeEmployees}</div>
                                 <div className="stat-label">Active Employees</div>
                             </div>
-
-                            <div
-                                className="stat-card"
-                                onClick={() => setActiveScreen("inventory")}
-                            >
+                            <div className="stat-card" onClick={() => setActiveScreen("inventory")}>
                                 <div className="stat-number">{lowStockItems}</div>
                                 <div className="stat-label">Low Stock Items</div>
                             </div>
                         </div>
 
-                        {/* TABS: UPCOMING / PAYMENTS */}
+                        {/* TABS */}
                         <div className="tabs">
                             <button
                                 className={`tab ${activeTab === "upcoming" ? "active" : ""}`}
@@ -248,9 +235,7 @@ function BeautyMain() {
                                             <div className="booking-details">
                                                 <div className="detail-item">
                                                     <div className="detail-label">Client</div>
-                                                    <div className="detail-value">
-                                                        {b.customerName}
-                                                    </div>
+                                                    <div className="detail-value">{b.customerName}</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -258,9 +243,7 @@ function BeautyMain() {
                                 ) : (
                                     <div className="booking-item">
                                         <div className="booking-details">
-                                            <div className="detail-value">
-                                                No upcoming bookings
-                                            </div>
+                                            <div className="detail-value">No upcoming appointments</div>
                                         </div>
                                     </div>
                                 )}
@@ -273,24 +256,16 @@ function BeautyMain() {
                                     recentPayments.map(p => (
                                         <div key={p.id} className="booking-item">
                                             <div className="booking-header">
-                                                <div className="booking-time">
-                                                    €{p.amount.amount}
-                                                </div>
-                                                <div className="booking-status status-completed">
-                                                    {p.method}
+                                                <div className="booking-time">{p.method}</div>
+                                                <div className="booking-status status-confirmed">
+                                                    {p.status || "Paid"}
                                                 </div>
                                             </div>
                                             <div className="booking-details">
                                                 <div className="detail-item">
-                                                    <div className="detail-label">Reservation</div>
+                                                    <div className="detail-label">Amount</div>
                                                     <div className="detail-value">
-                                                        #{p.reservationId}
-                                                    </div>
-                                                </div>
-                                                <div className="detail-item">
-                                                    <div className="detail-label">Status</div>
-                                                    <div className="detail-value">
-                                                        {p.status}
+                                                        {p.amount.amount} {p.amount.currency}
                                                     </div>
                                                 </div>
                                             </div>
@@ -299,15 +274,59 @@ function BeautyMain() {
                                 ) : (
                                     <div className="booking-item">
                                         <div className="booking-details">
-                                            <div className="detail-value">
-                                                No recent payments
-                                            </div>
+                                            <div className="detail-value">No recent payments</div>
                                         </div>
                                     </div>
                                 )}
                             </div>
                         )}
                     </>
+                )}
+
+                {/* ✅ ORDER CREATE (matches UI.html flow; split payment comes later) */}
+                {activeScreen === "order-create" && (
+                    <div>
+                        <div className="action-bar">
+                            <h2 className="section-title">New Order</h2>
+                            <button className="btn" onClick={() => setActiveScreen("dashboard")}>
+                                Cancel
+                            </button>
+                        </div>
+
+                        <div className="booking-list">
+                            <div className="booking-item">
+                                <div className="booking-details">
+                                    <div className="detail-label">Search</div>
+                                    <input className="dropdown" placeholder="Search services..." />
+                                </div>
+                            </div>
+
+                            <div className="booking-item">
+                                <div className="booking-details">
+                                    <div className="detail-label">Order</div>
+                                    <div className="detail-value">
+                                        No items yet. (Next: render services + add to order.)
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="booking-item">
+                                <div className="booking-details">
+                                    <div className="detail-label">Total</div>
+                                    <div className="detail-value">€0.00</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="action-bar">
+                            <button className="btn" onClick={() => setActiveScreen("dashboard")}>
+                                Save as open
+                            </button>
+                            <button className="btn btn-primary" onClick={() => setActiveScreen("payments")}>
+                                Go to payment
+                            </button>
+                        </div>
+                    </div>
                 )}
 
                 {/* OTHER SCREENS */}
@@ -319,37 +338,16 @@ function BeautyMain() {
                         goToNewBooking={() => setActiveScreen("new-booking")}
                     />
                 )}
-
-                {activeScreen === "employees" && (
-                    <BeautyEmployees employees={employees} />
-                )}
-
-                {activeScreen === "services" && (
-                    <BeautyServices services={services} />
-                )}
-
-                {activeScreen === "inventory" && (
-                    <BeautyInventory stockItems={stockItems} />
-                )}
-
-                {activeScreen === "payments" && (
-                    <BeautyPayments payments={payments} />
-                )}
-
-                {activeScreen === "giftcards" && (
-                    <BeautyGiftCards giftCards={giftCards} />
-                )}
-
+                {activeScreen === "employees" && <BeautyEmployees employees={employees} />}
+                {activeScreen === "services" && <BeautyServices services={services} />}
+                {activeScreen === "inventory" && <BeautyInventory stockItems={stockItems} />}
+                {activeScreen === "payments" && <BeautyPayments payments={payments} />}
+                {activeScreen === "giftcards" && <BeautyGiftCards giftCards={giftCards} />}
                 {activeScreen === "settings" && <BeautySettings />}
-
                 {activeScreen === "new-booking" && (
-                    <BeautyNewBooking
-                        goBack={() => setActiveScreen("reservations")}
-                    />
+                    <BeautyNewBooking goBack={() => setActiveScreen("reservations")} />
                 )}
             </div>
         </div>
     );
 }
-
-export default BeautyMain;

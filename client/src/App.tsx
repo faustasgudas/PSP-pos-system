@@ -5,16 +5,18 @@ import BeautyDashboard from "./pages/BeautyIndustry/BeautyDashboard/BeautyDashbo
 import CateringDashboard from "./pages/CateringIndustry/CateringDashboard/CateringDashboard";
 
 function App() {
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [businessType, setBusinessType] = useState<string | null>(null);
+    const [isLoggedIn, setIsLoggedIn] = useState(
+        !!localStorage.getItem("token")
+    );
+    const [businessType, setBusinessType] = useState<string | null>(
+        localStorage.getItem("businessType")
+    );
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
     const handleLogin = async () => {
         try {
             const result = await login(email, password);
-
-            localStorage.setItem("token", result.token);
 
             setBusinessType(result.businessType);
             setIsLoggedIn(true);
@@ -24,7 +26,6 @@ function App() {
         }
     };
 
-    // 🔴 LOGIN SCREEN
     if (!isLoggedIn) {
         return (
             <div className="content-box">
@@ -62,7 +63,6 @@ function App() {
         );
     }
 
-    // 🟢 DASHBOARD SWITCH
     if (businessType === "Beauty") {
         return <BeautyDashboard />;
     }
