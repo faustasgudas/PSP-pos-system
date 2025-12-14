@@ -5,8 +5,8 @@ import BeautyDashboard from "./pages/BeautyIndustry/BeautyDashboard/BeautyDashbo
 import CateringDashboard from "./pages/CateringIndustry/CateringDashboard/CateringDashboard";
 
 function App() {
-    const [selectedOption, setSelectedOption] = useState("");
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [businessType, setBusinessType] = useState<string | null>(null);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
@@ -16,54 +16,62 @@ function App() {
 
             localStorage.setItem("token", result.token);
 
-            setSelectedOption(
-                result.businessType === "Beauty"
-                    ? "beautyIndustry"
-                    : "cateringIndustry"
-            );
-
+            setBusinessType(result.businessType);
             setIsLoggedIn(true);
         } catch (err) {
             alert("Invalid email or password");
             console.error(err);
         }
     };
-    
 
-    return (
-        <div className="content-box">
-            <div className="top-bar">
-                <h1 className="title">SuperApp</h1>
+    // 🔴 LOGIN SCREEN
+    if (!isLoggedIn) {
+        return (
+            <div className="content-box">
+                <div className="top-bar">
+                    <h1 className="title">SuperApp</h1>
+                </div>
+
+                <div className="login">
+                    <h1 className="login-text">Log In</h1>
+
+                    <input
+                        className="dropdown"
+                        placeholder="Email"
+                        value={email}
+                        onChange={(e) => setEmail(e.currentTarget.value)}
+                    />
+
+                    <input
+                        className="dropdown"
+                        placeholder="Password"
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.currentTarget.value)}
+                    />
+
+                    <button className="login-btn" onClick={handleLogin}>
+                        Log In
+                    </button>
+
+                    <p className="login-info">
+                        Enter your credentials to access your business.
+                    </p>
+                </div>
             </div>
+        );
+    }
 
-            <div className="login">
-                <h1 className="login-text">Log In</h1>
-                
-                <input
-                    className="dropdown"
-                    placeholder="Email"
-                    value={email}
-                    onChange={(e) => setEmail(e.currentTarget.value)}
-                />
+    // 🟢 DASHBOARD SWITCH
+    if (businessType === "Beauty") {
+        return <BeautyDashboard />;
+    }
 
-                <input
-                    className="dropdown"
-                    placeholder="Password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.currentTarget.value)}
-                />
+    if (businessType === "Catering") {
+        return <CateringDashboard />;
+    }
 
-                <button className="login-btn" onClick={handleLogin}>
-                    Log In
-                </button>
-
-                <p className="login-info">
-                    Enter your credentials to access your business.
-                </p>
-            </div>
-        </div>
-    );
+    return <div>Unknown business type</div>;
 }
 
 export default App;
