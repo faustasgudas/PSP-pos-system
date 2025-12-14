@@ -3,6 +3,14 @@ import "./App.css";
 import { login } from "./frontapi/authApi";
 import BeautyDashboard from "./pages/BeautyIndustry/BeautyDashboard/BeautyDashboard";
 import CateringDashboard from "./pages/CateringIndustry/CateringDashboard/CateringDashboard";
+import { jwtDecode } from "jwt-decode";
+
+interface JwtPayload {
+    businessId: string;
+    employeeId: string;
+    role: string;
+    email: string;
+}
 
 function App() {
     const [isLoggedIn, setIsLoggedIn] = useState(
@@ -15,8 +23,18 @@ function App() {
     const [password, setPassword] = useState("");
 
     const handleLogin = async () => {
+        console.log("LOGIN CLICKED", email, password);
+
         try {
             const result = await login(email, password);
+
+            const decoded = jwtDecode<JwtPayload>(result.token);
+
+            localStorage.setItem("token", result.token);
+            localStorage.setItem("businessId", decoded.businessId);
+            localStorage.setItem("employeeId", decoded.employeeId);
+            localStorage.setItem("role", decoded.role);
+            localStorage.setItem("businessType", result.businessType);
 
             setBusinessType(result.businessType);
             setIsLoggedIn(true);
@@ -26,6 +44,7 @@ function App() {
         }
     };
 
+    // 🔴 LOGIN SCREEN
     if (!isLoggedIn) {
         return (
             <div className="content-box">
@@ -51,7 +70,11 @@ function App() {
                         onChange={(e) => setPassword(e.currentTarget.value)}
                     />
 
-                    <button className="login-btn" onClick={handleLogin}>
+                    <button
+                        type="button"
+                        className="login-btn"
+                        onClick={handleLogin}
+                    >
                         Log In
                     </button>
 
@@ -63,6 +86,7 @@ function App() {
         );
     }
 
+    // 🟢 DASHBOARD SWITCH
     if (businessType === "Beauty") {
         return <BeautyDashboard />;
     }

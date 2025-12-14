@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "../../../App.css";
 import "./BeautyDashboard.css";
 import { getUserFromToken } from "../../../utils/auth";
@@ -11,53 +11,6 @@ import BeautyPayments from "../BeautyPayments/BeautyPayments";
 import BeautyGiftCards from "../BeautyGiftCards/BeautyGiftCards";
 import BeautySettings from "../BeautySettings/BeautySettings";
 import BeautyNewBooking from "../BeautyNewBooking/BeautyNewBooking";
-
-interface Booking {
-    id: number;
-    customerName: string;
-    customerPhone: string;
-    customerEmail: string;
-    appointmentStart: string;
-    appointmentEnd: string;
-    status: string;
-    services: number[];
-    employeeId: number;
-    notes?: string;
-}
-
-interface Payment {
-    id: number;
-    reservationId: number;
-    amount: { amount: number; currency: string };
-    method: string;
-    status: string;
-}
-
-interface Service {
-    id: number;
-    name: string;
-    basePrice: { amount: number; currency: string };
-}
-
-interface Employee {
-    id: number;
-    name: string;
-    role: string;
-}
-
-interface StockItem {
-    id: number;
-    name: string;
-    qtyOnHand: number;
-    unit: string;
-}
-
-interface GiftCard {
-    id: number;
-    code: string;
-    balance: { amount: number; currency: string };
-    status: string;
-}
 
 type Screen =
     | "dashboard"
@@ -74,47 +27,96 @@ type Screen =
 type DashboardTab = "upcoming" | "payments";
 
 export default function BeautyDashboard() {
+    const user = getUserFromToken();
+    const role = user?.role ?? null;
+
     const [activeScreen, setActiveScreen] = useState<Screen>("dashboard");
     const [activeTab, setActiveTab] = useState<DashboardTab>("upcoming");
+    const [employeeCount, setEmployeeCount] = useState<number | null>(null);
 
-    // TEMP DATA (BACKEND LATER)
-    const [reservations] = useState<Booking[]>([]);
-    const [payments] = useState<Payment[]>([]);
-    const [services] = useState<Service[]>([]);
-    const [employees] = useState<Employee[]>([]);
-    const [stockItems] = useState<StockItem[]>([]);
-    const [giftCards] = useState<GiftCard[]>([]);
+    // temporary placeholders (wired elsewhere)
+    const reservations: any[] = [];
+    const payments: any[] = [];
+    const services: any[] = [];
+    const employees: any[] = [];
+    const stockItems: any[] = [];
 
     const todayBookings = reservations.length;
-    const todayRevenue = payments.reduce((sum, p) => sum + p.amount.amount, 0);
-    const activeEmployees = employees.length;
-    const lowStockItems = stockItems.filter(item => item.qtyOnHand < 5).length;
+    const todayRevenue = payments.reduce(
+        (sum, p) => sum + (p?.amount?.amount ?? 0),
+        0
+    );
 
-    const upcomingReservations = reservations
-        .filter(r => new Date(r.appointmentStart) > new Date())
-        .slice(0, 5);
+    const lowStockItems = stockItems.filter(
+        (item) => (item?.qtyOnHand ?? 0) < 5
+    ).length;
 
-    const recentPayments = payments.slice(0, 5);
+    const upcomingReservations = useMemo(
+        () =>
+            reservations
+                .filter((r) => new Date(r.appointmentStart) > new Date())
+                .slice(0, 5),
+        [reservations]
+    );
 
-    const user = getUserFromToken();
+    const recentPayments = useMemo(
+        () => payments.slice(0, 5),
+        [payments]
+    );
 
-    const handleNewOrder = () => {
-        // UI.html flow => order-create
-        setActiveScreen("order-create");
+    const token = localStorage.getItem("token");
+    const businessId = localStorage.getItem("businessId");
+
+    /* ---------------- LOGOUT ---------------- */
+    const handleLogout = () => {
+        localStorage.clear();
+        window.location.reload();
     };
+
+    /* -------- ACTIVE EMPLOYEE COUNT ---------- */
+    useEffect(() => {
+        if (role === "Staff") return;
+        if (!token || !businessId) {
+            setEmployeeCount(null);
+            return;
+        }
+
+        fetch(`https://localhost:44317/api/businesses/${businessId}/employees`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        })
+            .then((res) => {
+                if (!res.ok) throw new Error("unauthorized");
+                return res.json();
+            })
+            .then((data) => {
+                const active = data.filter(
+                    (e: any) => e.status === "Active"
+                );
+                setEmployeeCount(active.length);
+            })
+            .catch(() => setEmployeeCount(null));
+    }, [role, token, businessId]);
 
     return (
         <div className="content-box">
             {/* TOP BAR */}
             <div className="top-bar">
-                <h1 className="title">SuperApp</h1>
+                <div className="top-left">
+                    <h1 className="title">SuperApp</h1>
+                    <button className="logout-btn" onClick={handleLogout}>
+                        🚪 Log out
+                    </button>
+                </div>
+
                 <div className="user-info">
                     {user ? `${user.email} (${user.role})` : ""}
                     <button
                         className="nav-btn"
                         onClick={() => setActiveScreen("settings")}
                     >
-                        ⚙️ Settings
+                         ⚙️ Settings
                     </button>
                 </div>
             </div>
@@ -122,129 +124,178 @@ export default function BeautyDashboard() {
             {/* NAVBAR */}
             <div className="navbar">
                 <button
-                    className={`nav-btn ${activeScreen === "dashboard" ? "active" : ""}`}
+                    className={`nav-btn ${
+                        activeScreen === "dashboard" ? "active" : ""
+                    }`}
                     onClick={() => setActiveScreen("dashboard")}
                 >
                     📊 Dashboard
                 </button>
+
                 <button
-                    className={`nav-btn ${activeScreen === "reservations" ? "active" : ""}`}
+                    className={`nav-btn ${
+                        activeScreen === "reservations" ? "active" : ""
+                    }`}
                     onClick={() => setActiveScreen("reservations")}
                 >
                     📅 Reservations
                 </button>
+
+                {/* STAFF NEVER SEES EMPLOYEES */}
+                {role !== "Staff" && (
+                    <button
+                        className={`nav-btn ${
+                            activeScreen === "employees" ? "active" : ""
+                        }`}
+                        onClick={() => setActiveScreen("employees")}
+                    >
+                        👥 Employees
+                    </button>
+                )}
+
                 <button
-                    className={`nav-btn ${activeScreen === "employees" ? "active" : ""}`}
-                    onClick={() => setActiveScreen("employees")}
-                >
-                    👥 Employees
-                </button>
-                <button
-                    className={`nav-btn ${activeScreen === "services" ? "active" : ""}`}
+                    className={`nav-btn ${
+                        activeScreen === "services" ? "active" : ""
+                    }`}
                     onClick={() => setActiveScreen("services")}
                 >
                     📋 Services
                 </button>
+
                 <button
-                    className={`nav-btn ${activeScreen === "inventory" ? "active" : ""}`}
+                    className={`nav-btn ${
+                        activeScreen === "inventory" ? "active" : ""
+                    }`}
                     onClick={() => setActiveScreen("inventory")}
                 >
                     📦 Inventory
                 </button>
+
                 <button
-                    className={`nav-btn ${activeScreen === "payments" ? "active" : ""}`}
+                    className={`nav-btn ${
+                        activeScreen === "payments" ? "active" : ""
+                    }`}
                     onClick={() => setActiveScreen("payments")}
                 >
                     💳 Payments
                 </button>
+
                 <button
-                    className={`nav-btn ${activeScreen === "giftcards" ? "active" : ""}`}
+                    className={`nav-btn ${
+                        activeScreen === "giftcards" ? "active" : ""
+                    }`}
                     onClick={() => setActiveScreen("giftcards")}
                 >
                     🎁 Gift Cards
                 </button>
             </div>
 
-            {/* MAIN */}
+            {/* MAIN CONTENT */}
             <div className="dashboard-container">
-                {/* DASHBOARD OVERVIEW */}
                 {activeScreen === "dashboard" && (
                     <>
                         <div className="action-bar">
-                            <h2 className="section-title">Today's Overview</h2>
-
-                            {/* ✅ only addition: button */}
-                            <button className="btn btn-primary" onClick={handleNewOrder}>
+                            <h2 className="section-title">
+                                Today’s Overview
+                            </h2>
+                            <button
+                                className="btn btn-primary"
+                                onClick={() =>
+                                    setActiveScreen("order-create")
+                                }
+                            >
                                 ➕ New Order
                             </button>
                         </div>
 
-                        {/* STAT CARDS */}
                         <div className="stat-grid">
-                            <div className="stat-card" onClick={() => setActiveScreen("reservations")}>
-                                <div className="stat-number">{todayBookings}</div>
-                                <div className="stat-label">Today's Reservations</div>
+                            <div
+                                className="stat-card"
+                                onClick={() =>
+                                    setActiveScreen("reservations")
+                                }
+                            >
+                                <div className="stat-number">
+                                    {todayBookings}
+                                </div>
+                                <div className="stat-label">
+                                    Today’s Reservations
+                                </div>
                             </div>
-                            <div className="stat-card" onClick={() => setActiveScreen("payments")}>
-                                <div className="stat-number">€{todayRevenue}</div>
-                                <div className="stat-label">Today's Revenue</div>
+
+                            <div
+                                className="stat-card"
+                                onClick={() =>
+                                    setActiveScreen("payments")
+                                }
+                            >
+                                <div className="stat-number">
+                                    €{todayRevenue}
+                                </div>
+                                <div className="stat-label">
+                                    Today’s Revenue
+                                </div>
                             </div>
-                            <div className="stat-card" onClick={() => setActiveScreen("employees")}>
-                                <div className="stat-number">{activeEmployees}</div>
-                                <div className="stat-label">Active Employees</div>
-                            </div>
-                            <div className="stat-card" onClick={() => setActiveScreen("inventory")}>
-                                <div className="stat-number">{lowStockItems}</div>
-                                <div className="stat-label">Low Stock Items</div>
+
+                            {role !== "Staff" && (
+                                <div
+                                    className="stat-card"
+                                    onClick={() =>
+                                        setActiveScreen("employees")
+                                    }
+                                >
+                                    <div className="stat-number">
+                                        {employeeCount ?? "—"}
+                                    </div>
+                                    <div className="stat-label">
+                                        Active Employees
+                                    </div>
+                                </div>
+                            )}
+
+                            <div
+                                className="stat-card"
+                                onClick={() =>
+                                    setActiveScreen("inventory")
+                                }
+                            >
+                                <div className="stat-number">
+                                    {lowStockItems}
+                                </div>
+                                <div className="stat-label">
+                                    Low Stock Items
+                                </div>
                             </div>
                         </div>
 
-                        {/* TABS */}
                         <div className="tabs">
                             <button
-                                className={`tab ${activeTab === "upcoming" ? "active" : ""}`}
-                                onClick={() => setActiveTab("upcoming")}
+                                className={`tab ${
+                                    activeTab === "upcoming" ? "active" : ""
+                                }`}
+                                onClick={() =>
+                                    setActiveTab("upcoming")
+                                }
                             >
                                 Upcoming Reservations
                             </button>
                             <button
-                                className={`tab ${activeTab === "payments" ? "active" : ""}`}
-                                onClick={() => setActiveTab("payments")}
+                                className={`tab ${
+                                    activeTab === "payments" ? "active" : ""
+                                }`}
+                                onClick={() =>
+                                    setActiveTab("payments")
+                                }
                             >
                                 Recent Payments
                             </button>
                         </div>
 
-                        {/* TAB CONTENT */}
                         {activeTab === "upcoming" && (
                             <div className="booking-list">
-                                {upcomingReservations.length > 0 ? (
-                                    upcomingReservations.map(b => (
-                                        <div key={b.id} className="booking-item">
-                                            <div className="booking-header">
-                                                <div className="booking-time">
-                                                    {new Date(b.appointmentStart).toLocaleTimeString(
-                                                        [],
-                                                        { hour: "2-digit", minute: "2-digit" }
-                                                    )}
-                                                </div>
-                                                <div className="booking-status status-confirmed">
-                                                    {b.status || "Confirmed"}
-                                                </div>
-                                            </div>
-                                            <div className="booking-details">
-                                                <div className="detail-item">
-                                                    <div className="detail-label">Client</div>
-                                                    <div className="detail-value">{b.customerName}</div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))
-                                ) : (
+                                {upcomingReservations.length === 0 && (
                                     <div className="booking-item">
-                                        <div className="booking-details">
-                                            <div className="detail-value">No upcoming appointments</div>
-                                        </div>
+                                        No upcoming appointments
                                     </div>
                                 )}
                             </div>
@@ -252,30 +303,9 @@ export default function BeautyDashboard() {
 
                         {activeTab === "payments" && (
                             <div className="booking-list">
-                                {recentPayments.length > 0 ? (
-                                    recentPayments.map(p => (
-                                        <div key={p.id} className="booking-item">
-                                            <div className="booking-header">
-                                                <div className="booking-time">{p.method}</div>
-                                                <div className="booking-status status-confirmed">
-                                                    {p.status || "Paid"}
-                                                </div>
-                                            </div>
-                                            <div className="booking-details">
-                                                <div className="detail-item">
-                                                    <div className="detail-label">Amount</div>
-                                                    <div className="detail-value">
-                                                        {p.amount.amount} {p.amount.currency}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))
-                                ) : (
+                                {recentPayments.length === 0 && (
                                     <div className="booking-item">
-                                        <div className="booking-details">
-                                            <div className="detail-value">No recent payments</div>
-                                        </div>
+                                        No recent payments
                                     </div>
                                 )}
                             </div>
@@ -283,69 +313,32 @@ export default function BeautyDashboard() {
                     </>
                 )}
 
-                {/* ✅ ORDER CREATE (matches UI.html flow; split payment comes later) */}
-                {activeScreen === "order-create" && (
-                    <div>
-                        <div className="action-bar">
-                            <h2 className="section-title">New Order</h2>
-                            <button className="btn" onClick={() => setActiveScreen("dashboard")}>
-                                Cancel
-                            </button>
-                        </div>
+                {activeScreen === "employees" &&
+                    role !== "Staff" && <BeautyEmployees />}
 
-                        <div className="booking-list">
-                            <div className="booking-item">
-                                <div className="booking-details">
-                                    <div className="detail-label">Search</div>
-                                    <input className="dropdown" placeholder="Search services..." />
-                                </div>
-                            </div>
+                {activeScreen === "services" && <BeautyServices />}
+                {activeScreen === "inventory" && <BeautyInventory />}
+                {activeScreen === "payments" && <BeautyPayments />}
+                {activeScreen === "giftcards" && <BeautyGiftCards />}
+                {activeScreen === "settings" && <BeautySettings />}
 
-                            <div className="booking-item">
-                                <div className="booking-details">
-                                    <div className="detail-label">Order</div>
-                                    <div className="detail-value">
-                                        No items yet. (Next: render services + add to order.)
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="booking-item">
-                                <div className="booking-details">
-                                    <div className="detail-label">Total</div>
-                                    <div className="detail-value">€0.00</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="action-bar">
-                            <button className="btn" onClick={() => setActiveScreen("dashboard")}>
-                                Save as open
-                            </button>
-                            <button className="btn btn-primary" onClick={() => setActiveScreen("payments")}>
-                                Go to payment
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {/* OTHER SCREENS */}
                 {activeScreen === "reservations" && (
                     <BeautyReservations
                         reservations={reservations}
                         services={services}
                         employees={employees}
-                        goToNewBooking={() => setActiveScreen("new-booking")}
+                        goToNewBooking={() =>
+                            setActiveScreen("new-booking")
+                        }
                     />
                 )}
-                {activeScreen === "employees" && <BeautyEmployees employees={employees} />}
-                {activeScreen === "services" && <BeautyServices services={services} />}
-                {activeScreen === "inventory" && <BeautyInventory stockItems={stockItems} />}
-                {activeScreen === "payments" && <BeautyPayments payments={payments} />}
-                {activeScreen === "giftcards" && <BeautyGiftCards giftCards={giftCards} />}
-                {activeScreen === "settings" && <BeautySettings />}
+
                 {activeScreen === "new-booking" && (
-                    <BeautyNewBooking goBack={() => setActiveScreen("reservations")} />
+                    <BeautyNewBooking
+                        goBack={() =>
+                            setActiveScreen("reservations")
+                        }
+                    />
                 )}
             </div>
         </div>

@@ -243,9 +243,32 @@
     font-weight: 600;
 }
 
-/* ===============================
-   ✅ TABLETS & SMALL LAPTOPS
-   =============================== */
+.top-left {
+    display: flex;
+    align-items: center;
+    top: 50px;
+    left: 20px;
+    gap: 14px;
+}
+
+.logout-btn {
+    background-color: #58b4d1;
+    border-radius: 6px;
+    border: none;
+    padding: 8px 16px;
+    font-weight: 600;
+    cursor: pointer;
+    color: #023047;
+    margin-top: 5px;
+    margin-left: 20px;
+}
+
+.logout-btn:hover {
+    background-color: #219ebc;
+    cursor: pointer;
+}
+
+
 @media (max-width: 1024px) {
     .navbar {
         flex-wrap: wrap;
@@ -286,9 +309,7 @@
     }
 }
 
-/* ===============================
-   ✅ MOBILE & TABLETS
-   =============================== */
+
 @media (max-width: 768px) {
     .navbar {
         justify-content: center;
@@ -329,9 +350,6 @@
     }
 }
 
-/* ===============================
-   ✅ PHONES
-   =============================== */
 @media (max-width: 480px) {
     .navbar {
         flex-direction: column;
@@ -372,3 +390,6 @@
         width: 100%;
     }
 }
+
+
+

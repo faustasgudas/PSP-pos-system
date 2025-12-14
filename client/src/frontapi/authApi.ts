@@ -1,33 +1,53 @@
-const API_URL = "https://localhost:44317/api";
+// client/src/frontapi/authApi.ts
 
-function parseJwt(token: string) {
-    const base64Url = token.split(".")[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    return JSON.parse(atob(base64));
+export type LoginResponse = {
+    token: string;
+    businessType: string;
+};
+
+const API_BASE = "/api";
+
+async function readErrorMessage(res: Response): Promise<string> {
+    // Backend might return JSON or plain text. Handle both safely.
+    const contentType = res.headers.get("content-type") ?? "";
+    try {
+        if (contentType.includes("application/json")) {
+            const data = await res.json();
+            // common patterns: { error: "..."} or validation errors
+            if (typeof data?.error === "string") return data.error;
+            return JSON.stringify(data);
+        }
+        return await res.text();
+    } catch {
+        return "Request failed.";
+    }
 }
 
-export async function login(email: string, password: string) {
-    const res = await fetch(`${API_URL}/auth/login`, {
+export async function login(email: string, password: string): Promise<LoginResponse> {
+    const res = await fetch(`${API_BASE}/auth/login`, {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
     });
 
     if (!res.ok) {
-        throw new Error("Invalid email or password");
+        const msg = await readErrorMessage(res);
+        throw new Error(msg || "Invalid email or password");
     }
 
-    const data = await res.json();
-    const decoded = parseJwt(data.token);
+    const data = (await res.json()) as LoginResponse;
 
-    // ✅ store EVERYTHING auth-related here
-    localStorage.setItem("token", data.token);
-    localStorage.setItem("businessType", data.businessType);
-    localStorage.setItem("businessId", decoded.businessId);
-    localStorage.setItem("employeeId", decoded.employeeId);
-    localStorage.setItem("role", decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"]);
+    if (!data?.token) {
+        throw new Error("Login response missing token");
+    }
 
     return data;
+}
+
+export function logout() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("businessId");
+    localStorage.removeItem("employeeId");
+    localStorage.removeItem("role");
+    localStorage.removeItem("businessType");
 }
