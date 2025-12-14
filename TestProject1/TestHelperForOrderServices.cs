@@ -27,6 +27,7 @@ public static class Seed
             Address = "Addr",
             Phone = "+370000000",
             Email = "a@b.c",
+            BusinessType = "Catering",
             CountryCode = country,
             PriceIncludesTax = false
         };

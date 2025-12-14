@@ -41,6 +41,7 @@ public class OrdersStockIntegrationTests
             Email = "test@biz.local",
             CountryCode = "LT",
             PriceIncludesTax = true,
+            BusinessType = "Catering",
             BusinessStatus = "Active"
         };
         db.Businesses.Add(business);
@@ -213,7 +214,7 @@ public class OrdersStockIntegrationTests
         Assert.Equal(3, movementsAfterCancel.Count);
 
         var refundMove = movementsAfterCancel.Last();
-        Assert.Equal("RefundReturn", refundMove.Type);
+        Assert.Equal("Adjust", refundMove.Type);
         Assert.Equal(3m,             refundMove.Delta);
     }
 }

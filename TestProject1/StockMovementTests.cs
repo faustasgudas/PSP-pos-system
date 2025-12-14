@@ -27,6 +27,7 @@ public class StockMovementTests
             Phone = "1",
             Email = "a@a.com",
             CountryCode = "LT",
+            BusinessType = "Catering",
             PriceIncludesTax = true
         };
         db.Businesses.Add(biz);
