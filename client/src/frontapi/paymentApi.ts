@@ -1,4 +1,5 @@
-const API_URL = "https://localhost:44317/api";
+const API_URL = "http://localhost:5269/api";
+
 
 export async function createPayment(
     orderId: number,
