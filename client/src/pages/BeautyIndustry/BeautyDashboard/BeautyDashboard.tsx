@@ -12,6 +12,9 @@ import BeautyGiftCards from "../BeautyGiftCards/BeautyGiftCards";
 import BeautySettings from "../BeautySettings/BeautySettings";
 import BeautyNewBooking from "../BeautyNewBooking/BeautyNewBooking";
 import BeautyOrderCreate from "../BeautyOrders/BeautyOrderCreate";
+import BeautyOrders from "../BeautyOrders/BeautyOrders";
+import BeautyOrderDetails from "../BeautyOrders/BeautyOrderDetails";
+import BeautyOrderPayment from "../BeautyOrders/BeautyOrderPayment";
 
 type Screen =
     | "dashboard"
@@ -23,7 +26,10 @@ type Screen =
     | "giftcards"
     | "settings"
     | "new-booking"
-    | "order-create";
+    | "orders"
+    | "order-create"
+    | "order-detail"
+    | "order-payment";
 
 type DashboardTab = "upcoming" | "payments";
 
@@ -32,6 +38,7 @@ export default function BeautyDashboard() {
     const role = user?.role ?? null;
 
     const [activeScreen, setActiveScreen] = useState<Screen>("dashboard");
+    const [activeOrderId, setActiveOrderId] = useState<number | null>(null);
     const [activeTab, setActiveTab] = useState<DashboardTab>("upcoming");
     const [employeeCount, setEmployeeCount] = useState<number | null>(null);
 
@@ -192,6 +199,15 @@ export default function BeautyDashboard() {
                 >
                     🎁 Gift Cards
                 </button>
+
+                <button
+                    className={`nav-btn ${
+                        activeScreen === "orders" ? "active" : ""
+                    }`}
+                    onClick={() => setActiveScreen("orders")}
+                >
+                    🧾 Orders
+                </button>
             </div>
 
             {/* MAIN CONTENT */}
@@ -329,8 +345,42 @@ export default function BeautyDashboard() {
 
                 {activeScreen === "settings" && <BeautySettings />}
 
+                {activeScreen === "orders" && (
+                    <BeautyOrders
+                        onNewOrder={() => setActiveScreen("order-create")}
+                        onOpenOrder={(orderId) => {
+                            setActiveOrderId(orderId);
+                            setActiveScreen("order-detail");
+                        }}
+                    />
+                )}
+
                 {activeScreen === "order-create" && (
-                    <BeautyOrderCreate goBack={() => setActiveScreen("dashboard")} />
+                    <BeautyOrderCreate
+                        goBack={() => setActiveScreen("dashboard")}
+                        onCreated={(orderId) => {
+                            setActiveOrderId(orderId);
+                            setActiveScreen("order-detail");
+                        }}
+                    />
+                )}
+
+                {activeScreen === "order-detail" && activeOrderId && (
+                    <BeautyOrderDetails
+                        orderId={activeOrderId}
+                        onBack={() => setActiveScreen("orders")}
+                        onPay={(orderId) => {
+                            setActiveOrderId(orderId);
+                            setActiveScreen("order-payment");
+                        }}
+                    />
+                )}
+
+                {activeScreen === "order-payment" && activeOrderId && (
+                    <BeautyOrderPayment
+                        orderId={activeOrderId}
+                        onBack={() => setActiveScreen("order-detail")}
+                    />
                 )}
 
                 {activeScreen === "reservations" && (

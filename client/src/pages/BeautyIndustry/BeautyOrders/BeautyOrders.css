@@ -1,0 +1,126 @@
+.beauty-orders {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.beauty-orders__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.beauty-orders__header-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.beauty-orders__controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    background: white;
+    border-radius: 14px;
+    padding: 14px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.control-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.beauty-orders__error {
+    background: rgba(214, 40, 40, 0.1);
+    border: 1px solid rgba(214, 40, 40, 0.3);
+    color: #b01d1d;
+    border-radius: 12px;
+    padding: 10px 12px;
+}
+
+.beauty-orders__empty {
+    background: white;
+    border-radius: 14px;
+    padding: 18px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    color: #555;
+}
+
+.beauty-orders__list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px;
+}
+
+.beauty-orders__card {
+    text-align: left;
+    border: 2px solid transparent;
+    background: white;
+    border-radius: 14px;
+    padding: 14px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.beauty-orders__card:hover {
+    border-color: #219ebc;
+}
+
+.beauty-orders__card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.beauty-orders__card-title {
+    font-weight: 700;
+    color: #023047;
+}
+
+.beauty-orders__status {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid #ddd;
+    background: #f7f7f7;
+    color: #333;
+}
+
+.beauty-orders__status.status-open {
+    background: rgba(33, 158, 188, 0.12);
+    border-color: rgba(33, 158, 188, 0.3);
+    color: #167a90;
+}
+
+.beauty-orders__status.status-closed {
+    background: rgba(42, 157, 143, 0.12);
+    border-color: rgba(42, 157, 143, 0.3);
+    color: #1f7469;
+}
+
+.beauty-orders__status.status-cancelled {
+    background: rgba(214, 40, 40, 0.12);
+    border-color: rgba(214, 40, 40, 0.3);
+    color: #b01d1d;
+}
+
+.beauty-orders__card-meta {
+    margin-top: 10px;
+    display: grid;
+    gap: 4px;
+    color: #444;
+    font-size: 13px;
+}
+
+

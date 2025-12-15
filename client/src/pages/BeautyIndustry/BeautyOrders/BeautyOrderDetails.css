@@ -1,0 +1,182 @@
+.beauty-order-details {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.beauty-order-details__top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.beauty-order-details__top-left {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.beauty-order-details__top-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.beauty-order-details__meta {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 14px;
+}
+
+.meta-card {
+    background: white;
+    border-radius: 14px;
+    padding: 14px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.meta-title {
+    font-weight: 800;
+    color: #023047;
+    font-size: 16px;
+}
+
+.meta-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 13px;
+}
+
+.meta-row.total {
+    font-size: 16px;
+    font-weight: 800;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+}
+
+.status-pill {
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    border: 1px solid #ddd;
+    background: #f7f7f7;
+}
+
+.status-pill.status-open {
+    background: rgba(33, 158, 188, 0.12);
+    border-color: rgba(33, 158, 188, 0.3);
+    color: #167a90;
+}
+
+.status-pill.status-closed {
+    background: rgba(42, 157, 143, 0.12);
+    border-color: rgba(42, 157, 143, 0.3);
+    color: #1f7469;
+}
+
+.status-pill.status-cancelled {
+    background: rgba(214, 40, 40, 0.12);
+    border-color: rgba(214, 40, 40, 0.3);
+    color: #b01d1d;
+}
+
+.beauty-order-details__error {
+    background: rgba(214, 40, 40, 0.1);
+    border: 1px solid rgba(214, 40, 40, 0.3);
+    color: #b01d1d;
+    border-radius: 12px;
+    padding: 10px 12px;
+}
+
+.beauty-order-details__lines {
+    background: white;
+    border-radius: 14px;
+    padding: 14px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.lines-list {
+    margin-top: 10px;
+    display: grid;
+    gap: 10px;
+}
+
+.line-card {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 12px;
+    background: #fbfbfb;
+    border: 1px solid #eee;
+}
+
+.line-main {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 240px;
+}
+
+.line-title {
+    font-weight: 700;
+    color: #023047;
+}
+
+.line-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.qty-pill {
+    min-width: 46px;
+    text-align: center;
+    padding: 6px 10px;
+    background: white;
+    border: 1px solid #eee;
+    border-radius: 10px;
+    font-weight: 700;
+    color: #023047;
+}
+
+.line-total {
+    min-width: 90px;
+    text-align: right;
+    font-weight: 800;
+    color: #023047;
+}
+
+.btn.danger {
+    background: rgba(214, 40, 40, 0.12);
+    border: 1px solid rgba(214, 40, 40, 0.3);
+    color: #b01d1d;
+}
+
+.small {
+    font-size: 12px;
+}
+
+@media (max-width: 900px) {
+    .beauty-order-details__meta {
+        grid-template-columns: 1fr;
+    }
+    .line-card {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .line-actions {
+        justify-content: space-between;
+        flex-wrap: wrap;
+    }
+}
+
+

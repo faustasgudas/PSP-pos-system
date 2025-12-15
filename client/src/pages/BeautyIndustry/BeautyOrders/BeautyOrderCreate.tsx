@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { getActiveServices, type CatalogItem } from "../../../frontapi/catalogApi";
-import { createOrder } from "../../../frontapi/orderApi";
+import { addOrderLine, createOrder } from "../../../frontapi/orderApi";
 
 import "../../../App.css";
 import "./BeautyOrderCreate.css";
@@ -13,12 +13,14 @@ interface OrderLine {
 }
 
 interface BeautyOrderCreateProps {
-    onProceedToPayment: (orderId: number) => void;
+    goBack: () => void;
+    onCreated: (orderId: number) => void;
 }
 
 export default function BeautyOrderCreate({
-                                              onProceedToPayment,
-                                          }: BeautyOrderCreateProps) {
+    goBack,
+    onCreated,
+}: BeautyOrderCreateProps) {
     const businessId = Number(localStorage.getItem("businessId"));
     const employeeId = Number(localStorage.getItem("employeeId"));
 
@@ -26,6 +28,7 @@ export default function BeautyOrderCreate({
     const [lines, setLines] = useState<OrderLine[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     /* ---------------- LOAD SERVICES ---------------- */
     useEffect(() => {
@@ -33,7 +36,10 @@ export default function BeautyOrderCreate({
 
         getActiveServices(businessId)
             .then(setServices)
-            .catch(console.error)
+            .catch((e) => {
+                console.error(e);
+                setError(e?.message || "Failed to load services");
+            })
             .finally(() => setLoading(false));
     }, [businessId]);
 
@@ -103,18 +109,27 @@ export default function BeautyOrderCreate({
 
         try {
             setSaving(true);
+            setError(null);
 
             const order = await createOrder(employeeId);
+            const orderId = Number(order?.orderId);
+            if (!orderId) throw new Error("Backend returned invalid orderId");
 
-            sessionStorage.setItem(
-                "selectedServices",
-                JSON.stringify(lines)
+            const results = await Promise.allSettled(
+                lines.map((l) => addOrderLine(orderId, l.serviceId, l.quantity))
             );
 
-            onProceedToPayment(order.orderId);
-        } catch (err) {
+            const failed = results.filter((r) => r.status === "rejected");
+            if (failed.length > 0) {
+                setError(
+                    `Order created, but ${failed.length} line(s) failed to add. Open the order to review and retry.`
+                );
+            }
+
+            onCreated(orderId);
+        } catch (err: any) {
             console.error(err);
-            alert("Failed to create order");
+            setError(err?.message || "Failed to create order");
         } finally {
             setSaving(false);
         }
@@ -126,7 +141,26 @@ export default function BeautyOrderCreate({
 
     return (
         <div className="page order-create">
-            <h2>New Walk-in Order</h2>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                <h2 style={{ margin: 0 }}>New Walk-in Order</h2>
+                <button className="btn" onClick={goBack} disabled={saving}>
+                    ← Back
+                </button>
+            </div>
+
+            {error && (
+                <div
+                    style={{
+                        background: "rgba(214, 40, 40, 0.1)",
+                        border: "1px solid rgba(214, 40, 40, 0.3)",
+                        color: "#b01d1d",
+                        borderRadius: 12,
+                        padding: "10px 12px",
+                    }}
+                >
+                    {error}
+                </div>
+            )}
 
             {/* SERVICES */}
             <div className="service-grid">
@@ -206,7 +240,7 @@ export default function BeautyOrderCreate({
                     disabled={lines.length === 0 || saving}
                     onClick={proceed}
                 >
-                    {saving ? "Creating order…" : "Proceed to Payment"}
+                    {saving ? "Creating order…" : "Create order"}
                 </button>
             </div>
         </div>
