@@ -11,6 +11,7 @@ import BeautyPayments from "../BeautyPayments/BeautyPayments";
 import BeautyGiftCards from "../BeautyGiftCards/BeautyGiftCards";
 import BeautySettings from "../BeautySettings/BeautySettings";
 import BeautyNewBooking from "../BeautyNewBooking/BeautyNewBooking";
+import BeautyOrderCreate from "../BeautyOrders/BeautyOrderCreate";
 
 type Screen =
     | "dashboard"
@@ -34,7 +35,7 @@ export default function BeautyDashboard() {
     const [activeTab, setActiveTab] = useState<DashboardTab>("upcoming");
     const [employeeCount, setEmployeeCount] = useState<number | null>(null);
 
-    // temporary placeholders (wired elsewhere)
+    /* ---------------- TEMP PLACEHOLDERS ---------------- */
     const reservations: any[] = [];
     const payments: any[] = [];
     const services: any[] = [];
@@ -81,13 +82,16 @@ export default function BeautyDashboard() {
             return;
         }
 
-        fetch(`https://localhost:44317/api/businesses/${businessId}/employees`, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
-        })
+        fetch(
+            `https://localhost:44317/api/businesses/${businessId}/employees`,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            }
+        )
             .then((res) => {
-                if (!res.ok) throw new Error("unauthorized");
+                if (!res.ok) throw new Error();
                 return res.json();
             })
             .then((data) => {
@@ -116,7 +120,7 @@ export default function BeautyDashboard() {
                         className="nav-btn"
                         onClick={() => setActiveScreen("settings")}
                     >
-                         ⚙️ Settings
+                        ⚙️ Settings
                     </button>
                 </div>
             </div>
@@ -141,7 +145,6 @@ export default function BeautyDashboard() {
                     📅 Reservations
                 </button>
 
-                {/* STAFF NEVER SEES EMPLOYEES */}
                 {role !== "Staff" && (
                     <button
                         className={`nav-btn ${
@@ -321,6 +324,8 @@ export default function BeautyDashboard() {
                 {activeScreen === "payments" && <BeautyPayments />}
                 {activeScreen === "giftcards" && <BeautyGiftCards />}
                 {activeScreen === "settings" && <BeautySettings />}
+
+                {activeScreen === "order-create" && <BeautyOrderCreate />}
 
                 {activeScreen === "reservations" && (
                     <BeautyReservations

@@ -8,61 +8,34 @@ function authHeaders() {
     };
 }
 
-export async function deactivateService(
-    businessId: number,
-    catalogItemId: number
-) {
+/* 🔹 THIS WAS MISSING OR NOT EXPORTED BEFORE */
+export type CatalogItem = {
+    catalogItemId: number;
+    name: string;
+    status: "Active" | "Archived";
+    basePrice: number;  // ← Changed from object to number
+    code: string;
+    type: string;
+    businessId: number;
+    taxClass: string;
+};
+
+/* 🔹 ONLY ACTIVE SERVICES */
+export async function getActiveServices(
+    businessId: number
+): Promise<CatalogItem[]> {
     const res = await fetch(
-        `${API_URL}/businesses/${businessId}/catalog-items/${catalogItemId}/archive`,
+        `${API_URL}/businesses/${businessId}/catalog-items?type=Service`,
         {
-            method: "POST",
             headers: authHeaders(),
         }
     );
 
-    if (!res.ok) throw new Error("Failed to deactivate service");
-}
+    if (!res.ok) {
+        throw new Error("Failed to fetch services");
+    }
 
-export async function updateService(
-    businessId: number,
-    catalogItemId: number,
-    payload: { name: string; basePrice: number }
-) {
-    const res = await fetch(
-        `${API_URL}/businesses/${businessId}/catalog-items/${catalogItemId}`,
-        {
-            method: "PUT",
-            headers: authHeaders(),
-            body: JSON.stringify(payload),
-        }
-    );
+    const data: CatalogItem[] = await res.json();
 
-    if (!res.ok) throw new Error("Failed to update service");
-
-    return res.json();
-}
-
-export async function createService(
-    businessId: number,
-    payload: { name: string; basePrice: number }
-) {
-    const res = await fetch(
-        `${API_URL}/businesses/${businessId}/catalog-items`,
-        {
-            method: "POST",
-            headers: authHeaders(),
-            body: JSON.stringify({
-                ...payload,
-                type: "Service",
-                status: "Active",
-                code: payload.name.toUpperCase().replace(/\s+/g, "_"),
-                taxClass: "Service",
-                defaultDurationMin: 0,
-            }),
-        }
-    );
-
-    if (!res.ok) throw new Error("Failed to create service");
-
-    return res.json();
+    return data.filter((s) => s.status === "Active");
 }
