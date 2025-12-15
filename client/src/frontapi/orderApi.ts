@@ -214,3 +214,12 @@ export async function refundOrder(orderId: number, employeeId: number, reason?: 
     if (!res.ok) throw new Error(await readErrorMessage(res));
     return res.json();
 }
+
+export async function reopenOrder(orderId: number): Promise<OrderDetail> {
+    const res = await fetch(`${API_URL}/orders/${orderId}/reopen`, {
+        method: "POST",
+        headers: authHeaders(),
+    });
+    if (!res.ok) throw new Error(await readErrorMessage(res));
+    return res.json();
+}

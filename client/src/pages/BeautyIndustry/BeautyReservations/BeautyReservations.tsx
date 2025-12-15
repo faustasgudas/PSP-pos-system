@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import "./BeautyReservations.css";
 import {
     cancelReservation,
+    getReservation,
     listReservations,
     updateReservation,
     type ReservationSummary,
@@ -138,6 +139,15 @@ export default function BeautyReservations({
 
         setError(null);
         try {
+            // Bulletproof rule: if there's already an order, cancel from the Order screen instead.
+            const detail = await getReservation(businessId, reservationId);
+            if (detail.orderId) {
+                setError(
+                    `Reservation #${reservationId} already has order #${detail.orderId}. Cancel the order to auto-cancel the reservation.`
+                );
+                return;
+            }
+
             await cancelReservation(businessId, reservationId);
             await load(currentMonth);
         } catch (e: any) {

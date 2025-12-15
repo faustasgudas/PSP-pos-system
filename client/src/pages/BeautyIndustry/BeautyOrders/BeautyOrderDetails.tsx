@@ -5,6 +5,7 @@ import {
     closeOrder,
     getOrder,
     removeOrderLine,
+    reopenOrder,
     refundOrder,
     updateOrderLine,
     type OrderDetail,
@@ -13,6 +14,7 @@ import {
 import { getActiveServices, type CatalogItem } from "../../../frontapi/catalogApi";
 import { getUserFromToken } from "../../../utils/auth";
 import { logout } from "../../../frontapi/authApi";
+import { updateReservation } from "../../../frontapi/reservationsApi";
 
 import "../../../App.css";
 import "./BeautyOrderDetails.css";
@@ -103,6 +105,18 @@ export default function BeautyOrderDetails(props: {
     const canSplit = canEdit;
     const canPay = canEdit;
     const canRefund = (role === "Owner" || role === "Manager") && (order?.status ?? "") === "Closed";
+    const canReopen = (role === "Owner" || role === "Manager") && (order?.status ?? "") !== "Open";
+
+    const syncReservationStatus = async (reservationId: number, status: "Completed" | "Cancelled") => {
+        // Reservation update requires manager/owner in backend; don't break order flow if this fails.
+        if (!businessId) return;
+        try {
+            await updateReservation(businessId, reservationId, { status });
+        } catch (e: any) {
+            // Non-blocking warning
+            setError((prev) => prev ?? `Order updated, but reservation was not updated: ${e?.message || "forbidden"}`);
+        }
+    };
 
     const addService = async (service: CatalogItem) => {
         if (!canEdit || busyOrderAction) return;
@@ -212,6 +226,9 @@ export default function BeautyOrderDetails(props: {
         try {
             const updated = await closeOrder(props.orderId);
             setOrder(updated);
+            if (updated?.reservationId) {
+                await syncReservationStatus(updated.reservationId, "Completed");
+            }
         } catch (e: any) {
             setError(e?.message || "Failed to close order");
         } finally {
@@ -232,8 +249,25 @@ export default function BeautyOrderDetails(props: {
         try {
             const updated = await cancelOrder(props.orderId, employeeId, reason);
             setOrder(updated);
+            if (updated?.reservationId) {
+                await syncReservationStatus(updated.reservationId, "Cancelled");
+            }
         } catch (e: any) {
             setError(e?.message || "Failed to cancel order");
+        } finally {
+            setBusyOrderAction(false);
+        }
+    };
+
+    const doReopen = async () => {
+        if (!canReopen || busyOrderAction) return;
+        setError(null);
+        setBusyOrderAction(true);
+        try {
+            const updated = await reopenOrder(props.orderId);
+            setOrder(updated);
+        } catch (e: any) {
+            setError(e?.message || "Failed to reopen order");
         } finally {
             setBusyOrderAction(false);
         }
@@ -326,6 +360,15 @@ export default function BeautyOrderDetails(props: {
                         title={!canRefund ? "Refund is available only for Closed orders (Owner/Manager)" : ""}
                     >
                         Refund order
+                    </button>
+
+                    <button
+                        className="btn"
+                        onClick={doReopen}
+                        disabled={!canReopen || busyOrderAction}
+                        title={!canReopen ? "Reopen is available for Manager/Owner when order is not Open" : ""}
+                    >
+                        Reopen order
                     </button>
 
                     <button
