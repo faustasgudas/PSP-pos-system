@@ -34,7 +34,9 @@ public static class OrderMappings
                 TipAmount = o.TipAmount,
                 DiscountId = o.DiscountId,
                 OrderDiscountSnapshot = o.OrderDiscountSnapshot,
-                Lines = (o.Lines ?? Enumerable.Empty<OrderLine>()).Select(l => l.ToLineResponse()).ToList()
+                Lines = (lines ?? Enumerable.Empty<OrderLine>())
+                    .Select(l => l.ToLineResponse())
+                    .ToList()
             };
 
         public static OrderLineResponse ToLineResponse(this OrderLine l) =>

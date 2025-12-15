@@ -356,33 +356,35 @@ public class OrdersService : IOrdersService
 
         foreach (var line in lines)
         {
-            var stockItem = await _db.StockItems
-                                .FirstOrDefaultAsync(s => s.CatalogItemId == line.CatalogItemId, ct)
-                            ?? throw new InvalidOperationException("stock_item_not_found");
-
             var item = await _db.CatalogItems
                            .AsNoTracking()
                            .FirstOrDefaultAsync(
                                ci => ci.BusinessId == businessId && ci.CatalogItemId == line.CatalogItemId, ct)
                        ?? throw new InvalidOperationException("Catalog item not found in this business.");
             
-            if (string.Equals(item.Type, "product", StringComparison.OrdinalIgnoreCase))
+            // Only return stock for products, not services
+            if (string.Equals(item.Type, "Product", StringComparison.OrdinalIgnoreCase))
             {
-                await _stockMovement.CreateAsync(
-                    businessId,
-                    stockItem.StockItemId,
-                    callerEmployeeId,
-                    new CreateStockMovementRequest
-                    {
-                        Type = "Adjust",
-                        Delta = line.Qty,
-                        OrderLineId = line.OrderLineId
-                    },
-                    ct
-                );
+                var stockItem = await _db.StockItems
+                    .FirstOrDefaultAsync(s => s.CatalogItemId == line.CatalogItemId, ct);
+                
+                if (stockItem != null)
+                {
+                    await _stockMovement.CreateAsync(
+                        businessId,
+                        stockItem.StockItemId,
+                        callerEmployeeId,
+                        new CreateStockMovementRequest
+                        {
+                            Type = "Adjust",
+                            Delta = line.Qty,
+                            OrderLineId = line.OrderLineId
+                        },
+                        ct
+                    );
+                }
             }
         }
-        
         
         order.ApplyCancel();
         
@@ -422,33 +424,35 @@ public class OrdersService : IOrdersService
 
         foreach (var line in lines)
         {
-            var stockItem = await _db.StockItems
-                                .FirstOrDefaultAsync(s => s.CatalogItemId == line.CatalogItemId, ct)
-                            ?? throw new InvalidOperationException("stock_item_not_found");
-
             var item = await _db.CatalogItems
                            .AsNoTracking()
                            .FirstOrDefaultAsync(
                                ci => ci.BusinessId == businessId && ci.CatalogItemId == line.CatalogItemId, ct)
                        ?? throw new InvalidOperationException("Catalog item not found in this business.");
             
-            if (string.Equals(item.Type, "product", StringComparison.OrdinalIgnoreCase))
+            // Only return stock for products, not services
+            if (string.Equals(item.Type, "Product", StringComparison.OrdinalIgnoreCase))
             {
-                await _stockMovement.CreateAsync(
-                    businessId,
-                    stockItem.StockItemId,
-                    callerEmployeeId,
-                    new CreateStockMovementRequest
-                    {
-                        Type = "Adjust",
-                        Delta = line.Qty,
-                        OrderLineId = line.OrderLineId
-                    },
-                    ct
-                );
+                var stockItem = await _db.StockItems
+                    .FirstOrDefaultAsync(s => s.CatalogItemId == line.CatalogItemId, ct);
+                
+                if (stockItem != null)
+                {
+                    await _stockMovement.CreateAsync(
+                        businessId,
+                        stockItem.StockItemId,
+                        callerEmployeeId,
+                        new CreateStockMovementRequest
+                        {
+                            Type = "Adjust",
+                            Delta = line.Qty,
+                            OrderLineId = line.OrderLineId
+                        },
+                        ct
+                    );
+                }
             }
         }
-        
         
         order.ApplyRefund();
         
@@ -513,19 +517,18 @@ public class OrdersService : IOrdersService
             snapshot = _discounts.MakeLineDiscountSnapshot(discount, request.CatalogItemId, null);
         }
 
-        var stockItem = await _db.StockItems
-                            .FirstOrDefaultAsync(s => s.CatalogItemId == item.CatalogItemId, ct)
-                        ?? throw new InvalidOperationException("stock_item_not_found");
+        // Only check stock for products, not services
+        StockItem? stockItem = null;
+        if (string.Equals(item.Type, "Product", StringComparison.OrdinalIgnoreCase))
+        {
+            stockItem = await _db.StockItems
+                .FirstOrDefaultAsync(s => s.CatalogItemId == item.CatalogItemId, ct)
+                ?? throw new InvalidOperationException("stock_item_not_found");
 
-        if (stockItem.QtyOnHand < request.Qty)
-            throw new InvalidOperationException("not_enough_stock");
+            if (stockItem.QtyOnHand < request.Qty)
+                throw new InvalidOperationException("not_enough_stock");
+        }
 
-        
-        
-        
-        
-        
-        
         var line = request.ToNewLineEntity(
             businessId: businessId,
             orderId: orderId,
@@ -544,9 +547,10 @@ public class OrdersService : IOrdersService
        
         _db.OrderLines.Add(line);
         await _db.SaveChangesAsync(ct);
-        if (string.Equals(item.Type, "product", StringComparison.OrdinalIgnoreCase))
+        
+        // Only create stock movement for products (not services)
+        if (string.Equals(item.Type, "Product", StringComparison.OrdinalIgnoreCase) && stockItem != null)
         {
-            
             await _stockMovement.CreateAsync(
                 businessId: businessId,
                 stockItemId: stockItem.StockItemId,
@@ -559,7 +563,6 @@ public class OrdersService : IOrdersService
                 },
                 ct
             );
-           
         }
 
         return line.ToLineResponse();
@@ -606,25 +609,19 @@ public class OrdersService : IOrdersService
         
         if (diff != 0)
         {
-            
-            var stockItem = await _db.StockItems
-                                .FirstOrDefaultAsync(s => s.CatalogItemId == line.CatalogItemId, ct)
-                            ?? throw new InvalidOperationException("stock_item_not_found");
-            
-            
-            
             var item = await _db.CatalogItems
                            .AsNoTracking()
                            .FirstOrDefaultAsync(
                                ci => ci.BusinessId == businessId && ci.CatalogItemId == line.CatalogItemId, ct)
                        ?? throw new InvalidOperationException("Catalog item not found in this business.");
 
-            
-            
-            
-            
-            if (string.Equals(item.Type, "product", StringComparison.OrdinalIgnoreCase))
+            // Only check/update stock for products, not services
+            if (string.Equals(item.Type, "Product", StringComparison.OrdinalIgnoreCase))
             {
+                var stockItem = await _db.StockItems
+                    .FirstOrDefaultAsync(s => s.CatalogItemId == line.CatalogItemId, ct)
+                    ?? throw new InvalidOperationException("stock_item_not_found");
+                
                 if (diff > 0)
                 {
                     if (stockItem.QtyOnHand < diff)
@@ -659,9 +656,7 @@ public class OrdersService : IOrdersService
                         ct
                     );
                 }
-                
             }
-            
         }
         
        
