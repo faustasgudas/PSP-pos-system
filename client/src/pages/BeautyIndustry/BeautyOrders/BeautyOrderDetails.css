@@ -32,6 +32,52 @@
     gap: 14px;
 }
 
+.add-items__controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.add-items__tabs {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+/* These classes are used here but were previously only styled in BeautyOrderCreate.css */
+.service-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+}
+
+.service-card {
+    background: white;
+    border-radius: 10px;
+    padding: 12px;
+    border: 1px solid #eaeaea;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.service-card:hover {
+    border-color: #219ebc;
+}
+
+.service-name {
+    font-weight: 700;
+    color: #023047;
+}
+
+.service-price {
+    font-size: 13px;
+    color: #555;
+}
+
 .meta-card {
     background: white;
     border-radius: 14px;
@@ -177,6 +223,110 @@
         justify-content: space-between;
         flex-wrap: wrap;
     }
+}
+.order-table-wrap {
+    width: 100%;
+    overflow: auto;
+    border: 1px solid #eee;
+    border-radius: 14px;
+}
+
+.order-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: white;
+}
+
+.order-table thead th {
+    text-align: left;
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    color: #6b7280;
+    background: #fafafa;
+    border-bottom: 1px solid #eee;
+    padding: 12px 12px;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.order-table tbody td {
+    padding: 12px 12px;
+    border-bottom: 1px solid #f1f1f1;
+    vertical-align: middle;
+}
+
+.order-table tbody tr:hover {
+    background: #fcfcfc;
+}
+
+.order-table tbody tr.is-busy {
+    opacity: 0.6;
+}
+
+.col-item { width: 52%; }
+.col-price { width: 12%; white-space: nowrap; }
+.col-qty { width: 18%; }
+.col-total { width: 12%; text-align: right; white-space: nowrap; }
+.col-actions { width: 6%; text-align: right; }
+
+.cell-title .item-name {
+    font-weight: 700;
+    color: #023047;
+}
+
+.cell-title .item-sub {
+    margin-top: 2px;
+}
+
+.qty-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid #eee;
+    background: white;
+    border-radius: 12px;
+    padding: 4px;
+}
+
+.qty-value {
+    min-width: 36px;
+    text-align: center;
+    font-weight: 700;
+    color: #023047;
+}
+
+.btn.btn-ghost {
+    background: transparent;
+    border: 0;
+    padding: 6px 10px;
+}
+
+.btn.btn-icon {
+    padding: 6px 10px;
+}
+
+.money {
+    font-weight: 800;
+    color: #023047;
+}
+
+.order-table tfoot td {
+    padding: 12px 12px;
+    background: #fafafa;
+    border-top: 1px solid #eee;
+    font-weight: 800;
+}
+
+.tfoot-label {
+    text-align: right;
+    color: #023047;
+}
+
+.tfoot-total {
+    text-align: right;
+    color: #023047;
 }
 
 

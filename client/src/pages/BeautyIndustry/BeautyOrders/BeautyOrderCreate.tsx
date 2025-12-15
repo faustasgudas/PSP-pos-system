@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { getActiveServices, type CatalogItem } from "../../../frontapi/catalogApi";
+import { useEffect, useMemo, useState } from "react";
+import { getActiveServices, listCatalogItems, type CatalogItem } from "../../../frontapi/catalogApi";
 import { addOrderLine, createOrder } from "../../../frontapi/orderApi";
 import { listReservations, type ReservationSummary } from "../../../frontapi/reservationsApi";
 import { fetchEmployees } from "../../../frontapi/employeesApi";
@@ -27,10 +27,15 @@ export default function BeautyOrderCreate({
     const employeeId = Number(localStorage.getItem("employeeId"));
 
     const [services, setServices] = useState<CatalogItem[]>([]);
+    const [products, setProducts] = useState<CatalogItem[]>([]);
     const [lines, setLines] = useState<OrderLine[]>([]);
     const [loading, setLoading] = useState(true);
+    const [productsLoading, setProductsLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    const [addTab, setAddTab] = useState<"services" | "products">("services");
+    const [addQuery, setAddQuery] = useState("");
 
     const [reservationsLoading, setReservationsLoading] = useState(true);
     const [reservations, setReservations] = useState<ReservationSummary[]>([]);
@@ -48,6 +53,23 @@ export default function BeautyOrderCreate({
                 setError(e?.message || "Failed to load services");
             })
             .finally(() => setLoading(false));
+    }, [businessId]);
+
+    /* ---------------- LOAD PRODUCTS ---------------- */
+    useEffect(() => {
+        if (!businessId) return;
+
+        setProductsLoading(true);
+        listCatalogItems(businessId, { type: "Product" })
+            .then((data) => {
+                const list = Array.isArray(data) ? data : [];
+                setProducts(list.filter((p) => p.status === "Active"));
+            })
+            .catch((e) => {
+                console.error(e);
+                // non-blocking: allow services-only orders
+            })
+            .finally(() => setProductsLoading(false));
     }, [businessId]);
 
     useEffect(() => {
@@ -106,16 +128,16 @@ export default function BeautyOrderCreate({
         });
     }, [selectedReservationId, reservations, services]);
 
-    /* ---------------- ADD SERVICE ---------------- */
-    const addService = (service: CatalogItem) => {
+    /* ---------------- ADD ITEM ---------------- */
+    const addItem = (item: CatalogItem) => {
         setLines(prev => {
             const existing = prev.find(
-                l => l.serviceId === service.catalogItemId
+                l => l.serviceId === item.catalogItemId
             );
 
             if (existing) {
                 return prev.map(l =>
-                    l.serviceId === service.catalogItemId
+                    l.serviceId === item.catalogItemId
                         ? { ...l, quantity: l.quantity + 1 }
                         : l
                 );
@@ -124,14 +146,26 @@ export default function BeautyOrderCreate({
             return [
                 ...prev,
                 {
-                    serviceId: service.catalogItemId,
-                    name: service.name,
-                    price: service.basePrice,
+                    serviceId: item.catalogItemId,
+                    name: item.name,
+                    price: item.basePrice,
                     quantity: 1,
                 },
             ];
         });
     };
+
+    const filteredServices = useMemo(() => {
+        const q = addQuery.trim().toLowerCase();
+        if (!q) return services;
+        return services.filter((s) => s.name.toLowerCase().includes(q) || s.code.toLowerCase().includes(q));
+    }, [services, addQuery]);
+
+    const filteredProducts = useMemo(() => {
+        const q = addQuery.trim().toLowerCase();
+        if (!q) return products;
+        return products.filter((p) => p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q));
+    }, [products, addQuery]);
 
     /* ---------------- QUANTITY ---------------- */
     const increaseQty = (id: number) => {
@@ -189,9 +223,16 @@ export default function BeautyOrderCreate({
 
             const failed = results.filter((r) => r.status === "rejected");
             if (failed.length > 0) {
-                setError(
-                    `Order created, but ${failed.length} line(s) failed to add. Open the order to review and retry.`
-                );
+                const msg = String((failed[0] as any)?.reason?.message ?? "");
+                if (msg.includes("stock_item_not_found")) {
+                    setError("Order created, but some product lines failed: stock tracking is not enabled for one of the products.");
+                } else if (msg.includes("not_enough_stock")) {
+                    setError("Order created, but some product lines failed: not enough stock.");
+                } else {
+                    setError(
+                        `Order created, but ${failed.length} line(s) failed to add. Open the order to review and retry.`
+                    );
+                }
             }
 
             onCreated(orderId);
@@ -204,7 +245,7 @@ export default function BeautyOrderCreate({
     };
 
     if (loading) {
-        return <div className="page">Loading services…</div>;
+        return <div className="page">Loading…</div>;
     }
 
     return (
@@ -270,28 +311,79 @@ export default function BeautyOrderCreate({
                 </div>
             </div>
 
-            {/* SERVICES */}
-            <div className="service-grid">
-                {services.map(service => (
+            {/* ADD ITEMS */}
+            <div className="add-items__controls">
+                <div className="add-items__tabs">
                     <button
-                        key={service.catalogItemId}
-                        className="service-card"
-                        onClick={() => addService(service)}
+                        className={`btn ${addTab === "services" ? "btn-primary" : ""}`}
+                        onClick={() => setAddTab("services")}
+                        disabled={saving}
                     >
-                        <div className="service-name">{service.name}</div>
-                        <div className="service-price">
-                            €{service.basePrice.toFixed(2)}
-                        </div>
+                        Services
                     </button>
-                ))}
+                    <button
+                        className={`btn ${addTab === "products" ? "btn-primary" : ""}`}
+                        onClick={() => setAddTab("products")}
+                        disabled={saving}
+                    >
+                        Products
+                    </button>
+                </div>
+                <input
+                    className="dropdown"
+                    placeholder="Search…"
+                    value={addQuery}
+                    onChange={(e) => setAddQuery(e.target.value)}
+                    disabled={saving}
+                />
             </div>
+
+            {addTab === "services" ? (
+                <div className="service-grid">
+                    {filteredServices.map((service) => (
+                        <button
+                            key={service.catalogItemId}
+                            className="service-card"
+                            onClick={() => addItem(service)}
+                        >
+                            <div className="service-name">{service.name}</div>
+                            <div className="service-price">
+                                €{service.basePrice.toFixed(2)}
+                            </div>
+                        </button>
+                    ))}
+                    {filteredServices.length === 0 && (
+                        <div className="muted">No services found.</div>
+                    )}
+                </div>
+            ) : productsLoading ? (
+                <div className="muted">Loading products…</div>
+            ) : (
+                <div className="service-grid">
+                    {filteredProducts.map((product) => (
+                        <button
+                            key={product.catalogItemId}
+                            className="service-card"
+                            onClick={() => addItem(product)}
+                        >
+                            <div className="service-name">{product.name}</div>
+                            <div className="service-price">
+                                €{product.basePrice.toFixed(2)}
+                            </div>
+                        </button>
+                    ))}
+                    {filteredProducts.length === 0 && (
+                        <div className="muted">No products found.</div>
+                    )}
+                </div>
+            )}
 
             {/* ORDER SUMMARY */}
             <div className="order-summary">
                 <h3>Order</h3>
 
                 {lines.length === 0 && (
-                    <div className="muted">No services added</div>
+                    <div className="muted">No items added</div>
                 )}
 
                 {lines.map(line => (

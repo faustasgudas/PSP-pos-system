@@ -12,47 +12,166 @@
 }
 
 .giftcards-filter-input {
-    padding: 8px 10px;
-    border-radius: 8px;
+    padding: 10px 12px;
+    border-radius: 10px;
     border: 1px solid #ddd;
     min-width: 220px;
+    background: #fff;
 }
 
-.giftcards-list {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    margin-top: 20px;
-}
-
-.giftcard-card {
-    background: #ffffff;
+.giftcards-error {
+    margin-top: 10px;
+    color: #b01d1d;
+    background: rgba(214, 40, 40, 0.08);
+    border: 1px solid rgba(214, 40, 40, 0.2);
     border-radius: 12px;
-    padding: 18px;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+    padding: 12px;
+}
+
+.no-giftcards {
+    opacity: 0.7;
+    padding: 14px 0;
+}
+
+/* ========================= */
+/* ✅ Shared top bar          */
+/* ========================= */
+
+.action-bar {
     display: flex;
+    align-items: flex-end;
     justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.section-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.action-bar__right {
+    display: flex;
+    gap: 10px;
     align-items: center;
+    flex-wrap: wrap;
 }
 
+/* ========================= */
+/* ✅ Buttons                 */
+/* ========================= */
+
+.btn {
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    background: #fff;
+    padding: 10px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.btn:hover {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-primary {
+    background: #111827;
+    color: #fff;
+    border-color: #111827;
+}
+
+.btn-success {
+    background: #16a34a;
+    color: #fff;
+    border-color: #16a34a;
+}
+
+.btn-secondary {
+    background: #f3f4f6;
+    border-color: #e5e7eb;
+}
+
+.btn-danger {
+    background: #e63946;
+    color: #fff;
+    border-color: #e63946;
+}
+
+.btn-ghost {
+    background: transparent;
+    border-color: transparent;
+}
+
+.btn-ghost:hover {
+    background: rgba(0, 0, 0, 0.05);
+    border-color: transparent;
+}
+
+.muted {
+    opacity: 0.7;
+}
+
+.right {
+    text-align: right;
+}
+
+/* ========================= */
+/* ✅ Shopify-ish table       */
+/* ========================= */
+
+.inventory-table-wrap {
+    margin-top: 14px;
+    background: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.inventory-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.inventory-table thead th {
+    background: #f9fafb;
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: rgba(0, 0, 0, 0.65);
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.inventory-table tbody td {
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    vertical-align: middle;
+}
+
+.inventory-row:hover td {
+    background: rgba(0, 0, 0, 0.02);
+}
+
+/* Giftcard specifics */
 .giftcard-code {
-    font-family: monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
     font-size: 14px;
-    font-weight: 600;
-}
-
-.giftcard-balance {
-    font-size: 16px;
-    font-weight: 600;
-    margin-top: 4px;
+    font-weight: 700;
 }
 
 .giftcard-status {
     display: inline-block;
     font-size: 12px;
     padding: 4px 10px;
-    border-radius: 12px;
-    margin-top: 6px;
+    border-radius: 999px;
     background: #8ecae6;
 }
 
@@ -61,35 +180,8 @@
     color: white;
 }
 
-.giftcard-actions {
-    display: flex;
-    gap: 10px;
-}
-
-.btn-small {
-    background: #8ecae6;
-    border: none;
-    padding: 6px 10px;
-    border-radius: 6px;
-    cursor: pointer;
-}
-
-.btn-small:hover {
-    background: #58b4d1;
-}
-
-.btn-danger {
-    background: #e63946;
-    color: white;
-}
-
-.no-giftcards {
-    opacity: 0.7;
-    padding: 20px;
-}
-
 /* ========================= */
-/* ✅ MODAL STYLES */
+/* ✅ MODAL STYLES (tavo)     */
 /* ========================= */
 
 .modal-overlay {
@@ -99,6 +191,8 @@
     display: flex;
     justify-content: center;
     align-items: center;
+    overflow-y: auto;
+    padding: 16px;
     z-index: 999;
 }
 
@@ -109,6 +203,8 @@
     width: 100%;
     max-width: 520px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
 }
 
 .modal-title {
@@ -142,9 +238,4 @@
     font-size: 14px;
 }
 
-.modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    margin-top: 26px;
-}
+.modal-a

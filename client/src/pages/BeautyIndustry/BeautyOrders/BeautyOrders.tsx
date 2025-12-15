@@ -108,75 +108,46 @@ export default function BeautyOrders(props: {
                     </div>
                 </div>
 
-                <div className="beauty-orders__header-actions">
-                    <button className="btn" onClick={load} disabled={loading}>
-                        {loading ? "Refreshing…" : "Refresh"}
-                    </button>
-                    <button className="btn btn-primary" onClick={props.onNewOrder}>
-                        ➕ New Order
-                    </button>
-                </div>
+               
             </div>
 
-            <div className="beauty-orders__controls">
-                <div className="control-group">
-                    <label className="muted">Scope</label>
-                    <div className="control-row">
-                        <button
-                            className={`btn ${scope === "mine" ? "btn-primary" : ""}`}
-                            onClick={() => setScope("mine")}
-                            disabled={loading}
-                        >
+            <div className="orders-toolbar">
+                <div className="orders-toolbar__left">
+                    <div className="segmented">
+                        <button className={scope === "mine" ? "active" : ""} onClick={() => setScope("mine")}>
                             My orders
                         </button>
-                        <button
-                            className={`btn ${scope === "all" ? "btn-primary" : ""}`}
-                            onClick={() => setScope("all")}
-                            disabled={loading || !canListAll}
-                            title={!canListAll ? "Managers/Owners only" : ""}
-                        >
+                        <button className={scope === "all" ? "active" : ""} onClick={() => setScope("all")} disabled={!canListAll}>
                             All orders
                         </button>
                     </div>
-                </div>
 
-                <div className="control-group">
-                    <label className="muted">Status</label>
                     <select
-                        className="dropdown"
+                        className="dropdown dropdown-sm"
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
-                        disabled={loading}
                     >
-                        <option value="">All</option>
+                        <option value="">All statuses</option>
                         <option value="Open">Open</option>
                         <option value="Closed">Closed</option>
                         <option value="Cancelled">Cancelled</option>
                     </select>
-                    {scope === "mine" && !canListAll && (
-                        <div className="muted" style={{ marginTop: 6 }}>
-                            Note: “My orders” endpoint shows only <strong>Open</strong> orders for staff.
-                        </div>
-                    )}
+
+                    <input
+                        className="search-input"
+                        placeholder="Search by order ID"
+                        value={queryId}
+                        onChange={(e) => setQueryId(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && openById()}
+                    />
                 </div>
 
-                <div className="control-group">
-                    <label className="muted">Open by ID</label>
-                    <div className="control-row">
-                        <input
-                            className="dropdown"
-                            inputMode="numeric"
-                            placeholder="Order ID"
-                            value={queryId}
-                            onChange={(e) => setQueryId(e.target.value)}
-                            disabled={loading}
-                        />
-                        <button className="btn" onClick={openById} disabled={loading}>
-                            Open
-                        </button>
-                    </div>
+                <div className="orders-toolbar__right">
+                    <button className="btn btn-ghost" onClick={load}>Refresh</button>
+                    <button className="btn btn-primary" onClick={props.onNewOrder}>+ New order</button>
                 </div>
             </div>
+
 
             {error && (
                 <div className="beauty-orders__error">
@@ -204,34 +175,60 @@ export default function BeautyOrders(props: {
                     No orders found.
                 </div>
             ) : (
-                <div className="beauty-orders__list">
-                    {filtered.map((o) => (
-                        <button
-                            key={o.orderId}
-                            className="beauty-orders__card"
-                            onClick={() => props.onOpenOrder(o.orderId)}
-                        >
-                            <div className="beauty-orders__card-top">
-                                <div className="beauty-orders__card-title">
-                                    Order #{o.orderId}
-                                </div>
-                                <div className={`beauty-orders__status status-${String(o.status).toLowerCase()}`}>
-                                    {o.status}
-                                </div>
-                            </div>
+                <div className="orders-table-wrap">
+                    <table className="orders-table">
+                        <thead>
+                        <tr>
+                            <th>Order</th>
+                            <th>Date</th>
+                            <th>Employee</th>
+                            <th>Status</th>
+                            <th className="right">Actions</th>
+                        </tr>
+                        </thead>
 
-                            <div className="beauty-orders__card-meta">
-                                <div>
-                                    <span className="muted">Created:</span>{" "}
+                        <tbody>
+                        {filtered.map((o) => (
+                            <tr
+                                key={o.orderId}
+                                onClick={() => props.onOpenOrder(o.orderId)}
+                                className="orders-row"
+                            >
+                                <td className="order-id">
+                                    #{o.orderId}
+                                </td>
+
+                                <td>
                                     {new Date(o.createdAt).toLocaleString()}
-                                </div>
-                                <div>
-                                    <span className="muted">Employee:</span> {o.employeeId}
-                                </div>
-                            </div>
-                        </button>
-                    ))}
+                                </td>
+
+                                <td>
+                                    {o.employeeId}
+                                </td>
+
+                                <td>
+            <span className={`status-pill status-${String(o.status).toLowerCase()}`}>
+              {o.status}
+            </span>
+                                </td>
+
+                                <td className="right">
+                                    <button
+                                        className="btn btn-ghost"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            props.onOpenOrder(o.orderId);
+                                        }}
+                                    >
+                                        Open →
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                        </tbody>
+                    </table>
                 </div>
+
             )}
         </div>
     );

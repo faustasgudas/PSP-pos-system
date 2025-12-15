@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import "./BeautyGiftCards.css";
 
 import {
@@ -15,10 +15,7 @@ import {
 function formatMoneyFromMinorUnits(value: number, currency: string = "EUR") {
     const major = value / 100;
     try {
-        return new Intl.NumberFormat(undefined, {
-            style: "currency",
-            currency,
-        }).format(major);
+        return new Intl.NumberFormat(undefined, { style: "currency", currency }).format(major);
     } catch {
         return `${major.toFixed(2)} ${currency}`;
     }
@@ -26,8 +23,7 @@ function formatMoneyFromMinorUnits(value: number, currency: string = "EUR") {
 
 function parseMoneyToMinorUnits(input: string): number | null {
     const n = Number(input);
-    if (!Number.isFinite(n)) return null;
-    if (n < 0) return null;
+    if (!Number.isFinite(n) || n < 0) return null;
     return Math.round(n * 100);
 }
 
@@ -42,17 +38,20 @@ export default function BeautyGiftCards() {
     const [statusFilter, setStatusFilter] = useState<string>("");
     const [codeFilter, setCodeFilter] = useState<string>("");
 
+    // Create modal
     const [showCreate, setShowCreate] = useState(false);
     const [newCode, setNewCode] = useState("");
     const [newInitialAmount, setNewInitialAmount] = useState("");
     const [newExpiresAt, setNewExpiresAt] = useState<string>("");
     const [creating, setCreating] = useState(false);
 
+    // Manage modal
     const [selected, setSelected] = useState<GiftCardResponse | null>(null);
     const [manageTopUpAmount, setManageTopUpAmount] = useState("");
     const [manageRedeemAmount, setManageRedeemAmount] = useState("");
     const [managing, setManaging] = useState(false);
 
+    // Lookup
     const [lookupCode, setLookupCode] = useState("");
     const [lookupResult, setLookupResult] = useState<GiftCardResponse | null>(null);
     const [lookingUp, setLookingUp] = useState(false);
@@ -66,7 +65,7 @@ export default function BeautyGiftCards() {
                 status: statusFilter || undefined,
                 code: codeFilter || undefined,
             });
-            setGiftCards(data);
+            setGiftCards(Array.isArray(data) ? data : []);
         } catch (e: any) {
             setError(e?.message ?? "Failed to load gift cards");
         } finally {
@@ -90,22 +89,13 @@ export default function BeautyGiftCards() {
     };
 
     const handleCreate = async () => {
-        if (!isBusinessReady) {
-            setError("Missing businessId (re-login?)");
-            return;
-        }
+        if (!isBusinessReady) return setError("Missing businessId (re-login?)");
 
         const code = newCode.trim();
-        if (!code) {
-            setError("Code is required");
-            return;
-        }
+        if (!code) return setError("Code is required");
 
         const balance = parseMoneyToMinorUnits(newInitialAmount.trim());
-        if (balance === null) {
-            setError("Initial amount must be a valid number");
-            return;
-        }
+        if (balance === null) return setError("Initial amount must be a valid number");
 
         setCreating(true);
         setError(null);
@@ -141,10 +131,7 @@ export default function BeautyGiftCards() {
     const handleTopUp = async () => {
         if (!isBusinessReady || !selected) return;
         const amount = parseMoneyToMinorUnits(manageTopUpAmount.trim());
-        if (amount === null || amount <= 0) {
-            setError("Top-up amount must be greater than 0");
-            return;
-        }
+        if (amount === null || amount <= 0) return setError("Top-up amount must be greater than 0");
 
         setManaging(true);
         setError(null);
@@ -162,10 +149,7 @@ export default function BeautyGiftCards() {
     const handleRedeem = async () => {
         if (!isBusinessReady || !selected) return;
         const amount = parseMoneyToMinorUnits(manageRedeemAmount.trim());
-        if (amount === null || amount <= 0) {
-            setError("Redeem amount must be greater than 0");
-            return;
-        }
+        if (amount === null || amount <= 0) return setError("Redeem amount must be greater than 0");
 
         setManaging(true);
         setError(null);
@@ -218,12 +202,12 @@ export default function BeautyGiftCards() {
         <div className="giftcards-container">
             <div className="action-bar">
                 <h2 className="section-title">Gift Cards</h2>
-                <div className="giftcard-actions">
-                    <button className="btn btn-secondary" onClick={load} disabled={loading || !isBusinessReady}>
+                <div className="action-bar__right">
+                    <button className="btn btn-ghost" onClick={load} disabled={loading || !isBusinessReady}>
                         {loading ? "Refreshing…" : "Refresh"}
                     </button>
                     <button className="btn btn-primary" onClick={openCreate} disabled={!isBusinessReady}>
-                        ➕ New Gift Card
+                        + New Gift Card
                     </button>
                 </div>
             </div>
@@ -232,7 +216,7 @@ export default function BeautyGiftCards() {
                 <div className="no-giftcards">Missing business context (try logging in again).</div>
             )}
 
-            {error && <div className="no-giftcards">{error}</div>}
+            {error && <div className="giftcards-error">{error}</div>}
 
             <div className="giftcards-filters">
                 <input
@@ -272,47 +256,64 @@ export default function BeautyGiftCards() {
                 )}
             </div>
 
-            <div className="giftcards-list">
-                {visibleGiftCards.length > 0 ? (
-                    visibleGiftCards.map((card) => (
-                        <div
-                            key={card.giftCardId}
-                            className="giftcard-card"
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => openManage(card)}
-                            onKeyDown={(e) => (e.key === "Enter" ? openManage(card) : null)}
-                        >
-                            <div>
-                                <div className="giftcard-code">{card.code}</div>
-                                <div className="giftcard-balance">
-                                    {formatMoneyFromMinorUnits(card.balance, "EUR")}
-                                </div>
-                                <div className={`giftcard-status ${card.status === "Inactive" ? "blocked" : ""}`}>
-                                    {card.status}
-                                </div>
-                            </div>
-                            <div className="giftcard-actions">
-                                <button
-                                    className="btn-small"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        openManage(card);
-                                    }}
-                                >
-                                    Manage
-                                </button>
-                            </div>
-                        </div>
-                    ))
-                ) : (
-                    <div className="no-giftcards">{loading ? "Loading…" : "No gift cards found"}</div>
-                )}
+            {/* ✅ TABLE (vietoj card list) */}
+            <div className="inventory-table-wrap">
+                <table className="inventory-table">
+                    <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Status</th>
+                        <th className="right">Balance</th>
+                        <th>Expires</th>
+                        <th className="right">Actions</th>
+                    </tr>
+                    </thead>
+
+                    <tbody>
+                    {loading && (
+                        <tr>
+                            <td colSpan={5}>
+                                <span className="muted">Loading…</span>
+                            </td>
+                        </tr>
+                    )}
+
+                    {!loading && visibleGiftCards.length === 0 && (
+                        <tr>
+                            <td colSpan={5}>
+                                <span className="muted">No gift cards found</span>
+                            </td>
+                        </tr>
+                    )}
+
+                    {!loading &&
+                        visibleGiftCards.map((card) => (
+                            <tr key={card.giftCardId} className="inventory-row">
+                                <td className="giftcard-code">{card.code}</td>
+                                <td>
+                    <span className={`giftcard-status ${card.status === "Inactive" ? "blocked" : ""}`}>
+                      {card.status}
+                    </span>
+                                </td>
+                                <td className="right">{formatMoneyFromMinorUnits(card.balance, "EUR")}</td>
+                                <td className="muted">
+                                    {card.expiresAt ? new Date(card.expiresAt).toLocaleDateString() : "—"}
+                                </td>
+                                <td className="right">
+                                    <button className="btn btn-ghost" onClick={() => openManage(card)} disabled={managing}>
+                                        Manage
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
             </div>
 
+            {/* ✅ CREATE MODAL */}
             {showCreate && (
-                <div className="modal-overlay">
-                    <div className="modal-card">
+                <div className="modal-overlay" onClick={() => setShowCreate(false)}>
+                    <div className="modal-card" onClick={(e) => e.stopPropagation()}>
                         <h3 className="modal-title">New Gift Card</h3>
 
                         <div className="modal-form">
@@ -339,11 +340,7 @@ export default function BeautyGiftCards() {
 
                             <div className="modal-field">
                                 <label>Expires at (optional)</label>
-                                <input
-                                    type="date"
-                                    value={newExpiresAt}
-                                    onChange={(e) => setNewExpiresAt(e.target.value)}
-                                />
+                                <input type="date" value={newExpiresAt} onChange={(e) => setNewExpiresAt(e.target.value)} />
                             </div>
                         </div>
 
@@ -359,6 +356,7 @@ export default function BeautyGiftCards() {
                 </div>
             )}
 
+            {/* ✅ MANAGE MODAL (kaip buvo, tik iškviečiamas iš lentelės) */}
             {selected && (
                 <div className="modal-overlay" onClick={() => setSelected(null)}>
                     <div className="modal-card" onClick={(e) => e.stopPropagation()}>
@@ -369,13 +367,10 @@ export default function BeautyGiftCards() {
                                 <label>Code</label>
                                 <input type="text" value={selected.code} readOnly />
                             </div>
+
                             <div className="modal-field">
                                 <label>Balance</label>
-                                <input
-                                    type="text"
-                                    value={formatMoneyFromMinorUnits(selected.balance, "EUR")}
-                                    readOnly
-                                />
+                                <input type="text" value={formatMoneyFromMinorUnits(selected.balance, "EUR")} readOnly />
                             </div>
 
                             <div className="modal-field">
@@ -385,6 +380,7 @@ export default function BeautyGiftCards() {
                                     inputMode="decimal"
                                     value={manageTopUpAmount}
                                     onChange={(e) => setManageTopUpAmount(e.target.value)}
+                                    disabled={managing}
                                 />
                                 <button className="btn btn-success" onClick={handleTopUp} disabled={managing}>
                                     Top up
@@ -398,6 +394,7 @@ export default function BeautyGiftCards() {
                                     inputMode="decimal"
                                     value={manageRedeemAmount}
                                     onChange={(e) => setManageRedeemAmount(e.target.value)}
+                                    disabled={managing}
                                 />
                                 <button className="btn btn-primary" onClick={handleRedeem} disabled={managing}>
                                     Redeem

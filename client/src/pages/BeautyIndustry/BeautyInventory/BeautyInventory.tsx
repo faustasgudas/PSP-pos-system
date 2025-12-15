@@ -19,16 +19,12 @@ import { logout } from "../../../frontapi/authApi";
 function formatMoney(amount: number, currency: string = "EUR") {
     const n = Number(amount) || 0;
     try {
-        return new Intl.NumberFormat(undefined, {
-            style: "currency",
-            currency,
-        }).format(n);
+        return new Intl.NumberFormat(undefined, { style: "currency", currency }).format(n);
     } catch {
         return `${n.toFixed(2)} ${currency}`;
     }
 }
 
-// ✅ ONLY allowed units
 const UNITS = ["pcs", "ml", "g"] as const;
 
 function makeCodeFromName(name: string) {
@@ -56,6 +52,9 @@ export default function BeautyInventory() {
     const [saving, setSaving] = useState(false);
     const [query, setQuery] = useState("");
 
+    // ✅ POPUP Manage (vietoj expand)
+    const [selected, setSelected] = useState<CatalogItem | null>(null);
+
     // CREATE
     const [showCreate, setShowCreate] = useState(false);
     const [createName, setCreateName] = useState("");
@@ -65,17 +64,18 @@ export default function BeautyInventory() {
     const [createUnit, setCreateUnit] = useState<(typeof UNITS)[number]>("pcs");
     const [createInitialQty, setCreateInitialQty] = useState("0");
 
-    // EDIT
+    // EDIT (modal)
     const [editProductId, setEditProductId] = useState<number | null>(null);
     const [editName, setEditName] = useState("");
     const [editPrice, setEditPrice] = useState("");
     const [editTaxClass, setEditTaxClass] = useState("STANDARD");
     const [editUnit, setEditUnit] = useState<(typeof UNITS)[number]>("pcs");
 
-    // STOCK management inside edit
+    // enable stock if not tracked
     const [editEnableUnit, setEditEnableUnit] = useState<(typeof UNITS)[number]>("pcs");
     const [editEnableQty, setEditEnableQty] = useState("0");
 
+    // stock actions
     const [editSetToQty, setEditSetToQty] = useState("");
     const [editSetUnitCost, setEditSetUnitCost] = useState("");
 
@@ -99,7 +99,7 @@ export default function BeautyInventory() {
         [products]
     );
 
-    const cards = useMemo(() => {
+    const rows = useMemo(() => {
         const q = query.trim().toLowerCase();
         return activeProducts
             .map((p) => ({ product: p, stock: stockByCatalogId.get(p.catalogItemId) }))
@@ -138,7 +138,7 @@ export default function BeautyInventory() {
     };
 
     useEffect(() => {
-        load();
+        void load();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [businessId]);
 
@@ -177,10 +177,10 @@ export default function BeautyInventory() {
 
             const created = await createCatalogItem(businessId, {
                 name: createName.trim(),
-                code, // ✅ auto from name
+                code,
                 type: "Product",
                 basePrice: p,
-                taxClass: createTaxClass.trim() || "STANDARD", // ✅ taxes untouched
+                taxClass: createTaxClass.trim() || "STANDARD",
                 defaultDurationMin: 0,
                 status: "Active",
             });
@@ -190,7 +190,7 @@ export default function BeautyInventory() {
                     catalogItemId: created.catalogItemId,
                     unit: createUnit,
                     initialQtyOnHand: qty,
-                    initialAverageUnitCost: 0, // ✅ not collected anymore
+                    initialAverageUnitCost: 0,
                 });
             }
 
@@ -203,13 +203,15 @@ export default function BeautyInventory() {
         }
     };
 
-    const openEdit = (p: CatalogItem) => {
+    const openManage = (p: CatalogItem) => {
         const s = stockByCatalogId.get(p.catalogItemId);
+
+        setSelected(p);
         setEditProductId(p.catalogItemId);
         setEditName(p.name);
         setEditPrice(String(p.basePrice ?? 0));
         setEditTaxClass(p.taxClass || "STANDARD");
-        setEditUnit((s?.unit as any) ?? "pcs");
+        setEditUnit(((s?.unit as any) ?? "pcs") as any);
 
         setEditEnableUnit("pcs");
         setEditEnableQty("0");
@@ -219,10 +221,14 @@ export default function BeautyInventory() {
 
         setEditReceiveQty("");
         setEditReceiveUnitCost("");
+
         setError(null);
     };
 
-    const closeEdit = () => setEditProductId(null);
+    const closeManage = () => {
+        setSelected(null);
+        setEditProductId(null);
+    };
 
     const doSaveProduct = async () => {
         if (saving) return;
@@ -236,18 +242,22 @@ export default function BeautyInventory() {
             const price = Number(editPrice);
             if (!Number.isFinite(price) || price < 0) throw new Error("Invalid price");
 
-            const code = makeCodeFromName(editName); // ✅ auto from name
+            const code = makeCodeFromName(editName);
             if (!code) throw new Error("Invalid name (cannot generate code)");
 
             setSaving(true);
+
             await updateCatalogItem(businessId, editProductId, {
                 name: editName.trim(),
                 code,
                 basePrice: price,
-                taxClass: editTaxClass.trim() || "STANDARD", // ✅ taxes untouched
+                taxClass: editTaxClass.trim() || "STANDARD",
             });
 
             await load();
+            // atnaujinam selected reference (optional)
+            const fresh = products.find((x) => x.catalogItemId === editProductId) ?? null;
+            if (fresh) setSelected(fresh);
         } catch (e: any) {
             setError(e?.message || "Failed to save product");
         } finally {
@@ -268,11 +278,12 @@ export default function BeautyInventory() {
             if (!Number.isFinite(qty) || qty < 0) throw new Error("Invalid initial qty");
 
             setSaving(true);
+
             await createStockItem(businessId, {
                 catalogItemId: editProductId,
                 unit: editEnableUnit,
                 initialQtyOnHand: qty,
-                initialAverageUnitCost: 0, // ✅ removed
+                initialAverageUnitCost: 0,
             });
 
             await load();
@@ -285,6 +296,7 @@ export default function BeautyInventory() {
 
     const doUpdateUnitIfNeeded = async (stock: StockItemSummary) => {
         const nextUnit = editUnit.trim();
+        if (!businessId) return;
         if (nextUnit && nextUnit !== stock.unit) {
             await updateStockItemUnit(businessId, stock.stockItemId, nextUnit);
         }
@@ -311,12 +323,14 @@ export default function BeautyInventory() {
 
             setSaving(true);
             await doUpdateUnitIfNeeded(stock);
+
             await createStockMovement(businessId, stock.stockItemId, {
                 type: "Adjust",
                 delta,
                 unitCostSnapshot,
                 note: `Set stock to ${target}`,
             });
+
             await load();
         } catch (e: any) {
             setError(e?.message || "Failed to set stock");
@@ -339,12 +353,14 @@ export default function BeautyInventory() {
 
             setSaving(true);
             await doUpdateUnitIfNeeded(stock);
+
             await createStockMovement(businessId, stock.stockItemId, {
                 type: "Receive",
                 delta: qty,
                 unitCostSnapshot: cost,
                 note: "Receive stock",
             });
+
             await load();
         } catch (e: any) {
             setError(e?.message || "Failed to receive stock");
@@ -357,20 +373,21 @@ export default function BeautyInventory() {
         <div className="inventory-container">
             <div className="action-bar">
                 <h2 className="section-title">Products & Stock</h2>
-                <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+
+                <div className="action-bar__right">
                     <input
-                        className="dropdown"
+                        className="inventory-search"
                         placeholder="Search products…"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         disabled={loading}
                     />
-                    <button className="btn" onClick={load} disabled={loading}>
+                    <button className="btn btn-ghost" onClick={load} disabled={loading}>
                         {loading ? "Loading…" : "Refresh"}
                     </button>
                     {canManage && (
                         <button className="btn btn-primary" onClick={openCreate} disabled={loading}>
-                            ➕ New Product
+                            + New product
                         </button>
                     )}
                 </div>
@@ -395,55 +412,80 @@ export default function BeautyInventory() {
                 </div>
             )}
 
-            <div className="inventory-grid">
-                {loading ? (
-                    <div className="no-inventory">Loading inventory…</div>
-                ) : cards.length > 0 ? (
-                    cards.map(({ product, stock }) => (
-                        <div key={product.catalogItemId} className="inventory-product-card">
-                            <div className="inventory-product-top">
-                                <div className="inventory-name">{product.name}</div>
-                                <div className="inventory-meta">
-                                    <span className="muted">Code:</span> {product.code}
-                                </div>
-                                <div className="inventory-meta">
-                                    <span className="muted">Price:</span> {formatMoney(product.basePrice, "EUR")}
-                                </div>
-                                <div className="inventory-meta">
-                                    <span className="muted">Tax:</span> {product.taxClass}
-                                </div>
-                            </div>
+            <div className="inventory-table-wrap">
+                <table className="inventory-table">
+                    <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th className="right">Price</th>
+                        <th>Tax</th>
+                        <th className="right">Stock</th>
+                        <th className="right">Actions</th>
+                    </tr>
+                    </thead>
 
-                            <div className="inventory-stock">
-                                {stock ? (
-                                    <div className="inventory-qty">
-                                        <span className="muted">Stock:</span> {stock.qtyOnHand} {stock.unit}
-                                    </div>
-                                ) : (
-                                    <div className="inventory-qty">
-                                        <span className="muted">Stock:</span> Not tracked
-                                    </div>
-                                )}
-                            </div>
+                    <tbody>
+                    {loading && (
+                        <tr>
+                            <td colSpan={5}>
+                                <span className="muted">Loading inventory…</span>
+                            </td>
+                        </tr>
+                    )}
 
-                            {canManage && (
-                                <div className="inventory-card-actions">
-                                    <button className="btn" onClick={() => openEdit(product)} disabled={saving}>
-                                        Edit
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    ))
-                ) : (
-                    <div className="no-inventory">No products found</div>
-                )}
+                    {!loading && rows.length === 0 && (
+                        <tr>
+                            <td colSpan={5}>
+                                <span className="muted">No products found</span>
+                            </td>
+                        </tr>
+                    )}
+
+                    {!loading &&
+                        rows.map(({ product, stock }) => (
+                            <tr key={product.catalogItemId} className="inventory-row">
+                                <td>
+                                    <div className="cell-main">{product.name}</div>
+                                    <div className="muted" style={{ fontSize: 12 }}>
+                                        {product.code}
+                                    </div>
+                                </td>
+
+                                <td className="right">{formatMoney(product.basePrice, "EUR")}</td>
+                                <td className="muted">{product.taxClass}</td>
+
+                                <td className="right">
+                                    {stock ? (
+                                        <span className="stock-pill">
+                        {stock.qtyOnHand} {stock.unit}
+                      </span>
+                                    ) : (
+                                        <span className="muted">Not tracked</span>
+                                    )}
+                                </td>
+
+                                <td className="right">
+                                    {canManage && (
+                                        <button
+                                            className="btn btn-ghost"
+                                            type="button"
+                                            onClick={() => openManage(product)}
+                                            disabled={saving}
+                                        >
+                                            Manage
+                                        </button>
+                                    )}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
             </div>
 
             {/* ✅ CREATE PRODUCT MODAL */}
             {showCreate && canManage && (
-                <div className="modal-overlay">
-                    <div className="modal-card">
+                <div className="modal-overlay" onClick={() => setShowCreate(false)}>
+                    <div className="modal-card" onClick={(e) => e.stopPropagation()}>
                         <h3 className="modal-title">New Product</h3>
 
                         <div className="modal-form">
@@ -457,7 +499,6 @@ export default function BeautyInventory() {
                                 <input type="number" value={createPrice} onChange={(e) => setCreatePrice(e.target.value)} disabled={saving} />
                             </div>
 
-                            {/* ✅ taxes untouched */}
                             <div className="modal-field">
                                 <label>Tax class</label>
                                 <input value={createTaxClass} onChange={(e) => setCreateTaxClass(e.target.value)} disabled={saving} />
@@ -508,11 +549,11 @@ export default function BeautyInventory() {
                 </div>
             )}
 
-            {/* ✅ EDIT PRODUCT MODAL */}
-            {editProductId && (
-                <div className="modal-overlay" onClick={closeEdit}>
+            {/* ✅ MANAGE PRODUCT + STOCK MODAL */}
+            {selected && editProductId && (
+                <div className="modal-overlay" onClick={closeManage}>
                     <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-                        <h3 className="modal-title">Edit Product</h3>
+                        <h3 className="modal-title">Manage Product</h3>
 
                         <div className="modal-form">
                             <div className="modal-field">
@@ -520,27 +561,25 @@ export default function BeautyInventory() {
                                 <input value={editName} onChange={(e) => setEditName(e.target.value)} disabled={saving} />
                             </div>
 
-                            {/* ✅ no code input */}
-
                             <div className="modal-field">
                                 <label>Base price</label>
                                 <input type="number" value={editPrice} onChange={(e) => setEditPrice(e.target.value)} disabled={saving} />
                             </div>
 
-                            {/* ✅ taxes untouched */}
                             <div className="modal-field">
                                 <label>Tax class</label>
                                 <input value={editTaxClass} onChange={(e) => setEditTaxClass(e.target.value)} disabled={saving} />
                             </div>
 
                             <div className="modal-field">
-                                <button className="btn btn-success" onClick={doSaveProduct} disabled={saving}>
+                                <button className="btn btn-success" onClick={doSaveProduct} disabled={saving} type="button">
                                     {saving ? "Saving…" : "Save product"}
                                 </button>
                             </div>
 
                             {(() => {
                                 const stock = stockByCatalogId.get(editProductId);
+
                                 if (!stock) {
                                     return (
                                         <div className="modal-field">
@@ -548,6 +587,7 @@ export default function BeautyInventory() {
                                             <div className="no-inventory" style={{ padding: 0 }}>
                                                 This product is not tracked in stock yet.
                                             </div>
+
                                             <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
                                                 <div>
                                                     <label style={{ fontSize: 13, opacity: 0.8 }}>Unit</label>
@@ -572,9 +612,7 @@ export default function BeautyInventory() {
                                                     disabled={saving}
                                                 />
 
-                                                {/* ✅ no initial avg cost */}
-
-                                                <button className="btn btn-primary" onClick={doEnableStock} disabled={saving}>
+                                                <button className="btn btn-primary" onClick={doEnableStock} disabled={saving} type="button">
                                                     Enable stock tracking
                                                 </button>
                                             </div>
@@ -612,7 +650,7 @@ export default function BeautyInventory() {
                                                     onChange={(e) => setEditSetUnitCost(e.target.value)}
                                                     disabled={saving}
                                                 />
-                                                <button className="btn" onClick={() => doSetStockTo(stock)} disabled={saving}>
+                                                <button className="btn" onClick={() => doSetStockTo(stock)} disabled={saving} type="button">
                                                     Apply set-to
                                                 </button>
                                             </div>
@@ -635,7 +673,7 @@ export default function BeautyInventory() {
                                                     onChange={(e) => setEditReceiveUnitCost(e.target.value)}
                                                     disabled={saving}
                                                 />
-                                                <button className="btn" onClick={() => doReceive(stock)} disabled={saving}>
+                                                <button className="btn" onClick={() => doReceive(stock)} disabled={saving} type="button">
                                                     Receive
                                                 </button>
                                             </div>
@@ -646,7 +684,7 @@ export default function BeautyInventory() {
                         </div>
 
                         <div className="modal-actions">
-                            <button className="btn btn-secondary" onClick={closeEdit} disabled={saving}>
+                            <button className="btn btn-secondary" onClick={closeManage} disabled={saving}>
                                 Close
                             </button>
                         </div>

@@ -14,7 +14,9 @@ import { logout } from "../../../frontapi/authApi";
 
 function toLocalDateTimeInputValue(d: Date) {
     const pad = (n: number) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
+        d.getHours()
+    )}:${pad(d.getMinutes())}`;
 }
 
 export default function BeautyDiscounts() {
@@ -23,20 +25,27 @@ export default function BeautyDiscounts() {
     const canManage = role === "Owner" || role === "Manager";
 
     const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [items, setItems] = useState<DiscountSummary[]>([]);
 
     const [query, setQuery] = useState("");
     const [scopeFilter, setScopeFilter] = useState<string>("");
 
+    // Create modal
     const [showCreate, setShowCreate] = useState(false);
     const [code, setCode] = useState("");
     const [type, setType] = useState<DiscountType>("Percent");
     const [scope, setScope] = useState<DiscountScope>("Line");
     const [value, setValue] = useState("10");
     const [startsAt, setStartsAt] = useState(toLocalDateTimeInputValue(new Date()));
-    const [endsAt, setEndsAt] = useState(toLocalDateTimeInputValue(new Date(Date.now() + 1000 * 60 * 60 * 24 * 365)));
+    const [endsAt, setEndsAt] = useState(
+        toLocalDateTimeInputValue(new Date(Date.now() + 1000 * 60 * 60 * 24 * 365))
+    );
     const [status, setStatus] = useState("Active");
+
+    // Manage modal (selected item)
+    const [selected, setSelected] = useState<DiscountSummary | null>(null);
 
     const authProblem =
         (error ?? "").toLowerCase().includes("unauthorized") ||
@@ -83,11 +92,13 @@ export default function BeautyDiscounts() {
     };
 
     const doCreate = async () => {
-        if (!canManage) return;
+        if (!canManage || saving) return;
         setError(null);
+
         try {
             const c = code.trim();
             if (!c) throw new Error("Code is required");
+
             const v = Number(value);
             if (!Number.isFinite(v) || v <= 0) throw new Error("Value must be > 0");
 
@@ -95,6 +106,8 @@ export default function BeautyDiscounts() {
             const e = new Date(endsAt);
             if (isNaN(s.getTime()) || isNaN(e.getTime())) throw new Error("Invalid start/end date");
             if (e <= s) throw new Error("EndsAt must be after StartsAt");
+
+            setSaving(true);
 
             await createDiscount({
                 code: c,
@@ -110,20 +123,31 @@ export default function BeautyDiscounts() {
             await load();
         } catch (e: any) {
             setError(e?.message || "Create failed");
+        } finally {
+            setSaving(false);
         }
     };
 
+    const openManage = (d: DiscountSummary) => {
+        setSelected(d);
+        setError(null);
+    };
+
     const doDelete = async (d: DiscountSummary) => {
-        if (!canManage) return;
+        if (!canManage || saving) return;
         const ok = window.confirm(`Delete discount ${d.code}?`);
         if (!ok) return;
 
         setError(null);
         try {
+            setSaving(true);
             await deleteDiscount(d.discountId);
+            setSelected(null);
             await load();
         } catch (e: any) {
             setError(e?.message || "Delete failed");
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -131,30 +155,35 @@ export default function BeautyDiscounts() {
         <div className="page beauty-discounts">
             <div className="action-bar">
                 <h2 className="section-title">Discounts</h2>
-                <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+
+                <div className="action-bar__right">
                     <input
-                        className="dropdown"
+                        className="inventory-search"
                         placeholder="Search by code…"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         disabled={loading}
                     />
+
                     <select
-                        className="dropdown"
+                        className="inventory-search"
                         value={scopeFilter}
                         onChange={(e) => setScopeFilter(e.target.value)}
                         disabled={loading}
+                        style={{ minWidth: 180 }}
                     >
                         <option value="">All scopes</option>
                         <option value="Order">Order</option>
                         <option value="Line">Line</option>
                     </select>
-                    <button className="btn" onClick={load} disabled={loading}>
+
+                    <button className="btn btn-ghost" onClick={load} disabled={loading}>
                         {loading ? "Refreshing…" : "Refresh"}
                     </button>
+
                     {canManage && (
                         <button className="btn btn-primary" onClick={openCreate} disabled={loading}>
-                            ➕ New Discount
+                            + New Discount
                         </button>
                     )}
                 </div>
@@ -179,48 +208,78 @@ export default function BeautyDiscounts() {
                 </div>
             )}
 
-            {loading ? (
-                <div className="page">Loading discounts…</div>
-            ) : filtered.length === 0 ? (
-                <div className="beauty-discounts__empty">No discounts found.</div>
-            ) : (
-                <div className="beauty-discounts__list">
-                    {filtered.map((d) => (
-                        <div key={d.discountId} className="beauty-discounts__card">
-                            <div className="beauty-discounts__card-top">
-                                <div className="beauty-discounts__code">{d.code}</div>
-                                <div className={`beauty-discounts__status status-${String(d.status).toLowerCase()}`}>
-                                    {d.status}
-                                </div>
-                            </div>
-                            <div className="beauty-discounts__meta">
-                                <div>
-                                    <span className="muted">Type:</span> {d.type}
-                                </div>
-                                <div>
-                                    <span className="muted">Scope:</span> {d.scope}
-                                </div>
-                                <div>
-                                    <span className="muted">Value:</span> {d.value}
-                                </div>
-                                <div>
-                                    <span className="muted">Active:</span>{" "}
-                                    {new Date(d.startsAt).toLocaleDateString()} →{" "}
-                                    {new Date(d.endsAt).toLocaleDateString()}
-                                </div>
-                            </div>
-                            {canManage && (
-                                <div className="beauty-discounts__actions">
-                                    <button className="btn btn-danger" onClick={() => doDelete(d)}>
-                                        Delete
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    ))}
-                </div>
-            )}
+            {/* ✅ TABLE */}
+            <div className="inventory-table-wrap">
+                <table className="inventory-table">
+                    <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Status</th>
+                        <th>Type</th>
+                        <th>Scope</th>
+                        <th className="right">Value</th>
+                        <th>Active</th>
+                        <th className="right">Actions</th>
+                    </tr>
+                    </thead>
 
+                    <tbody>
+                    {loading && (
+                        <tr>
+                            <td colSpan={7}>
+                                <span className="muted">Loading discounts…</span>
+                            </td>
+                        </tr>
+                    )}
+
+                    {!loading && filtered.length === 0 && (
+                        <tr>
+                            <td colSpan={7}>
+                                <span className="muted">No discounts found</span>
+                            </td>
+                        </tr>
+                    )}
+
+                    {!loading &&
+                        filtered.map((d) => {
+                            const statusLower = String(d.status || "").toLowerCase();
+                            return (
+                                <tr key={d.discountId} className="inventory-row">
+                                    <td className="beauty-discounts__code">{d.code}</td>
+
+                                    <td>
+                      <span className={`beauty-discounts__status status-${statusLower}`}>
+                        {d.status}
+                      </span>
+                                    </td>
+
+                                    <td className="muted">{d.type}</td>
+                                    <td className="muted">{d.scope}</td>
+                                    <td className="right">{d.value}</td>
+
+                                    <td className="muted">
+                                        {new Date(d.startsAt).toLocaleDateString()} →{" "}
+                                        {new Date(d.endsAt).toLocaleDateString()}
+                                    </td>
+
+                                    <td className="right">
+                                        <button
+                                            className="btn btn-ghost"
+                                            type="button"
+                                            onClick={() => openManage(d)}
+                                            disabled={saving}
+                                        >
+                                            Manage
+                                        </button>
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            </div>
+
+            {/* ✅ CREATE MODAL */}
             {showCreate && (
                 <div className="modal-overlay" onClick={() => setShowCreate(false)}>
                     <div className="modal-card" onClick={(e) => e.stopPropagation()}>
@@ -258,12 +317,20 @@ export default function BeautyDiscounts() {
 
                             <div className="modal-field">
                                 <label>Starts at</label>
-                                <input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
+                                <input
+                                    type="datetime-local"
+                                    value={startsAt}
+                                    onChange={(e) => setStartsAt(e.target.value)}
+                                />
                             </div>
 
                             <div className="modal-field">
                                 <label>Ends at</label>
-                                <input type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} />
+                                <input
+                                    type="datetime-local"
+                                    value={endsAt}
+                                    onChange={(e) => setEndsAt(e.target.value)}
+                                />
                             </div>
 
                             <div className="modal-field">
@@ -279,9 +346,66 @@ export default function BeautyDiscounts() {
                             <button className="btn btn-secondary" onClick={() => setShowCreate(false)}>
                                 Cancel
                             </button>
-                            <button className="btn btn-success" onClick={doCreate}>
-                                Create
+                            <button className="btn btn-success" onClick={doCreate} disabled={saving}>
+                                {saving ? "Creating…" : "Create"}
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ✅ MANAGE MODAL (details + delete) */}
+            {selected && (
+                <div className="modal-overlay" onClick={() => setSelected(null)}>
+                    <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+                        <h3 className="modal-title">Discount details</h3>
+
+                        <div className="modal-form">
+                            <div className="modal-field">
+                                <label>Code</label>
+                                <input value={selected.code} readOnly />
+                            </div>
+
+                            <div className="modal-field">
+                                <label>Status</label>
+                                <input value={String(selected.status)} readOnly />
+                            </div>
+
+                            <div className="modal-field">
+                                <label>Type</label>
+                                <input value={String(selected.type)} readOnly />
+                            </div>
+
+                            <div className="modal-field">
+                                <label>Scope</label>
+                                <input value={String(selected.scope)} readOnly />
+                            </div>
+
+                            <div className="modal-field">
+                                <label>Value</label>
+                                <input value={String(selected.value)} readOnly />
+                            </div>
+
+                            <div className="modal-field">
+                                <label>Active window</label>
+                                <input
+                                    value={`${new Date(selected.startsAt).toLocaleString()} → ${new Date(
+                                        selected.endsAt
+                                    ).toLocaleString()}`}
+                                    readOnly
+                                />
+                            </div>
+                        </div>
+
+                        <div className="modal-actions">
+                            <button className="btn btn-secondary" onClick={() => setSelected(null)} disabled={saving}>
+                                Close
+                            </button>
+                            {canManage && (
+                                <button className="btn btn-danger" onClick={() => doDelete(selected)} disabled={saving}>
+                                    Delete
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -289,5 +413,3 @@ export default function BeautyDiscounts() {
         </div>
     );
 }
-
-

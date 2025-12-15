@@ -11,7 +11,7 @@ import {
     type OrderDetail,
     type OrderLine,
 } from "../../../frontapi/orderApi";
-import { getActiveServices, type CatalogItem } from "../../../frontapi/catalogApi";
+import { getActiveServices, listCatalogItems, type CatalogItem } from "../../../frontapi/catalogApi";
 import { getUserFromToken } from "../../../utils/auth";
 import { logout } from "../../../frontapi/authApi";
 import { updateReservation } from "../../../frontapi/reservationsApi";
@@ -42,6 +42,13 @@ export default function BeautyOrderDetails(props: {
     const [servicesLoading, setServicesLoading] = useState(true);
     const [services, setServices] = useState<CatalogItem[]>([]);
     const [serviceError, setServiceError] = useState<string | null>(null);
+
+    const [productsLoading, setProductsLoading] = useState(true);
+    const [products, setProducts] = useState<CatalogItem[]>([]);
+    const [productError, setProductError] = useState<string | null>(null);
+
+    const [addTab, setAddTab] = useState<"services" | "products">("services");
+    const [addQuery, setAddQuery] = useState("");
 
     const [busyLineIds, setBusyLineIds] = useState<Set<number>>(new Set());
     const [busyOrderAction, setBusyOrderAction] = useState(false);
@@ -88,6 +95,25 @@ export default function BeautyOrderDetails(props: {
             .finally(() => setServicesLoading(false));
     }, [businessId]);
 
+    useEffect(() => {
+        if (!businessId) {
+            setProductError("Missing businessId");
+            setProducts([]);
+            setProductsLoading(false);
+            return;
+        }
+
+        setProductsLoading(true);
+        setProductError(null);
+        listCatalogItems(businessId, { type: "Product" })
+            .then((data) => {
+                const list = Array.isArray(data) ? data : [];
+                setProducts(list.filter((p) => p.status === "Active"));
+            })
+            .catch((e: any) => setProductError(e?.message || "Failed to load products"))
+            .finally(() => setProductsLoading(false));
+    }, [businessId]);
+
     const total = useMemo(() => calcTotal(order?.lines ?? []), [order?.lines]);
 
     const markLineBusy = (lineId: number, busy: boolean) => {
@@ -118,18 +144,37 @@ export default function BeautyOrderDetails(props: {
         }
     };
 
-    const addService = async (service: CatalogItem) => {
+    const addCatalogItem = async (item: CatalogItem) => {
         if (!canEdit || busyOrderAction) return;
         setError(null);
         try {
-            const line = await addOrderLine(props.orderId, service.catalogItemId, 1);
+            const line = await addOrderLine(props.orderId, item.catalogItemId, 1);
             setOrder((prev) =>
                 prev ? { ...prev, lines: [...(prev.lines ?? []), line] } : prev
             );
         } catch (e: any) {
-            setError(e?.message || "Failed to add line");
+            const msg = e?.message || "Failed to add line";
+            if (String(msg).includes("stock_item_not_found")) {
+                setError("Cannot add product: stock tracking is not enabled for this product.");
+            } else if (String(msg).includes("not_enough_stock")) {
+                setError("Cannot add product: not enough stock.");
+            } else {
+                setError(msg);
+            }
         }
     };
+
+    const filteredServices = useMemo(() => {
+        const q = addQuery.trim().toLowerCase();
+        if (!q) return services;
+        return services.filter((s) => s.name.toLowerCase().includes(q) || s.code.toLowerCase().includes(q));
+    }, [services, addQuery]);
+
+    const filteredProducts = useMemo(() => {
+        const q = addQuery.trim().toLowerCase();
+        if (!q) return products;
+        return products.filter((p) => p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q));
+    }, [products, addQuery]);
 
     const inc = async (line: OrderLine) => {
         if (!canEdit) return;
@@ -429,6 +474,16 @@ export default function BeautyOrderDetails(props: {
                             <span>{new Date(order.closedAt).toLocaleString()}</span>
                         </div>
                     )}
+                    <div className="meta-row">
+                        <span className="muted">Order discount</span>
+                        <span>{order.orderDiscountSnapshot || order.discountId ? "Applied" : "—"}</span>
+                    </div>
+                    {order.orderDiscountSnapshot && (
+                        <div className="meta-row">
+                            <span className="muted">Discount snapshot</span>
+                            <span title={order.orderDiscountSnapshot}>{order.orderDiscountSnapshot}</span>
+                        </div>
+                    )}
                     <div className="meta-row total">
                         <span>Total</span>
                         <span>€{total.toFixed(2)}</span>
@@ -436,25 +491,80 @@ export default function BeautyOrderDetails(props: {
                 </div>
 
                 <div className="meta-card">
-                    <div className="meta-title">Add service</div>
-                    {serviceError && <div className="beauty-order-details__error">{serviceError}</div>}
-                    {servicesLoading ? (
-                        <div className="muted">Loading services…</div>
-                    ) : (
-                        <div className="service-grid">
-                            {services.map((s) => (
-                                <button
-                                    key={s.catalogItemId}
-                                    className="service-card"
-                                    onClick={() => addService(s)}
-                                    disabled={!canEdit || busyOrderAction}
-                                    title={!canEdit ? "Order is not open" : ""}
-                                >
-                                    <div className="service-name">{s.name}</div>
-                                    <div className="service-price">€{s.basePrice.toFixed(2)}</div>
-                                </button>
-                            ))}
+                    <div className="meta-title">Add items</div>
+
+                    <div className="add-items__controls">
+                        <div className="add-items__tabs">
+                            <button
+                                className={`btn ${addTab === "services" ? "btn-primary" : ""}`}
+                                onClick={() => setAddTab("services")}
+                                disabled={busyOrderAction}
+                            >
+                                Services
+                            </button>
+                            <button
+                                className={`btn ${addTab === "products" ? "btn-primary" : ""}`}
+                                onClick={() => setAddTab("products")}
+                                disabled={busyOrderAction}
+                            >
+                                Products
+                            </button>
                         </div>
+                        <input
+                            className="dropdown"
+                            placeholder="Search…"
+                            value={addQuery}
+                            onChange={(e) => setAddQuery(e.target.value)}
+                            disabled={busyOrderAction}
+                        />
+                    </div>
+
+                    {addTab === "services" ? (
+                        <>
+                            {serviceError && <div className="beauty-order-details__error">{serviceError}</div>}
+                            {servicesLoading ? (
+                                <div className="muted">Loading services…</div>
+                            ) : (
+                                <div className="service-grid">
+                                    {filteredServices.map((s) => (
+                                        <button
+                                            key={s.catalogItemId}
+                                            className="service-card"
+                                            onClick={() => addCatalogItem(s)}
+                                            disabled={!canEdit || busyOrderAction}
+                                            title={!canEdit ? "Order is not open" : ""}
+                                        >
+                                            <div className="service-name">{s.name}</div>
+                                            <div className="service-price">€{s.basePrice.toFixed(2)}</div>
+                                        </button>
+                                    ))}
+                                    {filteredServices.length === 0 && <div className="muted">No services found.</div>}
+                                </div>
+                            )}
+                        </>
+                    ) : (
+                        <>
+                            {productError && <div className="beauty-order-details__error">{productError}</div>}
+                            {productsLoading ? (
+                                <div className="muted">Loading products…</div>
+                            ) : (
+                                <div className="service-grid">
+                                    {filteredProducts.map((p) => (
+                                        <button
+                                            key={p.catalogItemId}
+                                            className="service-card"
+                                            onClick={() => addCatalogItem(p)}
+                                            disabled={!canEdit || busyOrderAction}
+                                            title={!canEdit ? "Order is not open" : ""}
+                                        >
+                                            <div className="service-name">{p.name}</div>
+                                            <div className="service-price">€{p.basePrice.toFixed(2)}</div>
+                                        </button>
+                                    ))}
+                                    {filteredProducts.length === 0 && <div className="muted">No products found.</div>}
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
             </div>
@@ -464,57 +574,108 @@ export default function BeautyOrderDetails(props: {
             <div className="beauty-order-details__lines">
                 <h3>Order lines</h3>
                 {order.lines.length === 0 ? (
-                    <div className="muted">No lines yet. Add a service to start.</div>
+                    <div className="muted">No lines yet. Add a service or product to start.</div>
                 ) : (
-                    <div className="lines-list">
-                        {order.lines
-                            .slice()
-                            .sort((a, b) => b.orderLineId - a.orderLineId)
-                            .map((l) => {
-                                const lineBusy = busyLineIds.has(l.orderLineId) || busyOrderAction;
-                                const lineTotal = Number(l.unitPriceSnapshot) * Number(l.qty);
-                                return (
-                                    <div key={l.orderLineId} className="line-card">
-                                        <div className="line-main">
-                                            <div className="line-title">
-                                                {l.itemNameSnapshot}
-                                                <span className="muted small">
-                                                    {" "}
-                                                    • Line #{l.orderLineId}
-                                                </span>
-                                            </div>
-                                            <div className="muted small">
-                                                €{Number(l.unitPriceSnapshot).toFixed(2)} each
-                                                {l.unitDiscountSnapshot ? " • Discount applied" : ""}
-                                            </div>
-                                        </div>
+                    <div className="order-table-wrap">
+                        <table className="order-table">
+                            <thead>
+                            <tr>
+                                <th className="col-item">Item</th>
+                                <th className="col-price">Price</th>
+                                <th className="col-qty">Qty</th>
+                                <th className="col-total">Line total</th>
+                                <th className="col-actions"></th>
+                            </tr>
+                            </thead>
 
-                                        <div className="line-actions">
-                                            <button className="btn" onClick={() => dec(l)} disabled={!canEdit || lineBusy}>
-                                                −
-                                            </button>
-                                            <div className="qty-pill">{l.qty}</div>
-                                            <button className="btn" onClick={() => inc(l)} disabled={!canEdit || lineBusy}>
-                                                +
-                                            </button>
+                            <tbody>
+                            {order.lines
+                                .slice()
+                                .sort((a, b) => b.orderLineId - a.orderLineId)
+                                .map((l) => {
+                                    const lineBusy = busyLineIds.has(l.orderLineId) || busyOrderAction;
+                                    const unit = Number(l.unitPriceSnapshot);
+                                    const lineTotal = unit * Number(l.qty);
 
-                                            <div className="line-total">
-                                                €{lineTotal.toFixed(2)}
-                                            </div>
+                                    return (
+                                        <tr key={l.orderLineId} className={lineBusy ? "is-busy" : ""}>
+                                            <td className="col-item">
+                                                <div className="cell-title">
+                                                    <div className="item-name">{l.itemNameSnapshot}</div>
+                                                    <div className="item-sub muted small">
+                                                        Line #{l.orderLineId}
+                                                        {l.unitDiscountSnapshot ? " • Discount applied" : ""}
+                                                        {(l.discountId || l.unitDiscountSnapshot) && (
+                                                            <>
+                                                                {" "}
+                                                                • Line discount:{" "}
+                                                                {l.unitDiscountSnapshot
+                                                                    ? l.unitDiscountSnapshot
+                                                                    : `#${l.discountId}`}
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </td>
 
-                                            <button
-                                                className="btn danger"
-                                                onClick={() => remove(l)}
-                                                disabled={!canEdit || lineBusy}
-                                                title={!canEdit ? "Order is not open" : "Remove line"}
-                                            >
-                                                ✕
-                                            </button>
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                                            <td className="col-price">
+                                                €{unit.toFixed(2)}
+                                            </td>
+
+                                            <td className="col-qty">
+                                                <div className="qty-control">
+                                                    <button
+                                                        className="btn btn-ghost"
+                                                        onClick={() => dec(l)}
+                                                        disabled={!canEdit || lineBusy}
+                                                        aria-label="Decrease quantity"
+                                                    >
+                                                        −
+                                                    </button>
+
+                                                    <div className="qty-value">{l.qty}</div>
+
+                                                    <button
+                                                        className="btn btn-ghost"
+                                                        onClick={() => inc(l)}
+                                                        disabled={!canEdit || lineBusy}
+                                                        aria-label="Increase quantity"
+                                                    >
+                                                        +
+                                                    </button>
+                                                </div>
+                                            </td>
+
+                                            <td className="col-total">
+                                                <span className="money">€{lineTotal.toFixed(2)}</span>
+                                            </td>
+
+                                            <td className="col-actions">
+                                                <button
+                                                    className="btn danger btn-icon"
+                                                    onClick={() => remove(l)}
+                                                    disabled={!canEdit || lineBusy}
+                                                    title={!canEdit ? "Order is not open" : "Remove line"}
+                                                    aria-label="Remove line"
+                                                >
+                                                    ✕
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+
+                            <tfoot>
+                            <tr>
+                                <td colSpan={3}></td>
+                                <td className="tfoot-label">Total</td>
+                                <td className="tfoot-total">€{total.toFixed(2)}</td>
+                            </tr>
+                            </tfoot>
+                        </table>
                     </div>
+
                 )}
             </div>
 
