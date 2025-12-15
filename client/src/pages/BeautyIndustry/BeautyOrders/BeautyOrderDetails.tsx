@@ -523,7 +523,7 @@ export default function BeautyOrderDetails(props: {
                     fromOrderId={order.orderId}
                     lines={order.lines}
                     onClose={() => setShowSplit(false)}
-                    onMoved={(targetId) => {
+                    onMoved={() => {
                         setShowSplit(false);
                         // Refresh source order after successful move
                         load();

@@ -1,39 +1,29 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from "react";
 import "./CateringReservations.css";
+import { getUserFromToken } from "../../../utils/auth";
+import {
+    cancelReservation,
+    getReservation,
+    listReservations,
+    updateReservation,
+    type ReservationSummary,
+} from "../../../frontapi/reservationsApi";
+import { listCatalogItems, type CatalogItem } from "../../../frontapi/catalogApi";
+import { fetchEmployees } from "../../../frontapi/employeesApi";
 
-interface Reservation {
-    id: number;
-    customerName: string;
-    customerPhone: string;
-    customerEmail: string;
-    reservationStart: string;
-    reservationEnd: string;
-    status: string;
-    employeeId: number;
-    notes?: string;
-}
+export default function CateringReservations(props: { goToNewReservation: () => void }) {
+    const user = getUserFromToken();
+    const role = user?.role ?? "";
+    const canManage = role === "Owner" || role === "Manager";
 
-interface Table {
-    id: number;
-    seats: number;
-    status: string;
-}
+    const businessId = Number(localStorage.getItem("businessId"));
 
-interface Employee {
-    id: number;
-    name: string;
-    role: string;
-    status: string;
-}
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [reservations, setReservations] = useState<ReservationSummary[]>([]);
+    const [services, setServices] = useState<CatalogItem[]>([]);
+    const [employees, setEmployees] = useState<any[]>([]);
 
-interface CateringReservationsProps {
-    reservations: Reservation[];
-    tables: Table[];
-    employees: Employee[];
-}
-
-{/* todo - finish this */}
-export default function CateringReservations({reservations, tables, employees}: CateringReservationsProps) {
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [currentMonth, setCurrentMonth] = useState(new Date());
 
@@ -51,10 +41,51 @@ export default function CateringReservations({reservations, tables, employees}: 
         year: "numeric",
     });
     
+    const load = async (monthDate: Date) => {
+        if (!businessId) {
+            setError("Missing businessId");
+            setReservations([]);
+            setLoading(false);
+            return;
+        }
+
+        setLoading(true);
+        setError(null);
+        try {
+            const from = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1, 0, 0, 0);
+            const to = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 1, 0, 0, 0);
+
+            const [resList, svcList, empList] = await Promise.all([
+                listReservations(businessId, { dateFrom: from.toISOString(), dateTo: to.toISOString() }),
+                listCatalogItems(businessId, { type: "Service" }).catch(() => []),
+                fetchEmployees(businessId).catch(() => []),
+            ]);
+
+            setReservations(Array.isArray(resList) ? resList : []);
+            setServices(Array.isArray(svcList) ? svcList : []);
+            setEmployees(Array.isArray(empList) ? empList : []);
+        } catch (e: any) {
+            setError(e?.message || "Failed to load reservations");
+            setReservations([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        load(currentMonth);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [businessId]);
+
+    useEffect(() => {
+        load(currentMonth);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentMonth]);
+
     const reservedDates = useMemo(() => {
         const days = new Set<number>();
         reservations.forEach(r => {
-            const d = new Date(r.reservationStart);
+            const d = new Date(r.appointmentStart);
             if (d.getFullYear() === year && d.getMonth() === month) {
                 days.add(d.getDate());
             }
@@ -64,22 +95,82 @@ export default function CateringReservations({reservations, tables, employees}: 
     
     const reservationsForSelectedDate = useMemo(() => {
         return reservations.filter(r =>
-            isSameDay(new Date(r.reservationStart), selectedDate)    
+            isSameDay(new Date(r.appointmentStart), selectedDate)
         );
     }, [reservations, selectedDate]);
+
+    const serviceNameById = useMemo(() => {
+        const m = new Map<number, string>();
+        services.forEach((s) => m.set(s.catalogItemId, s.name));
+        return m;
+    }, [services]);
+
+    const employeeNameById = useMemo(() => {
+        const m = new Map<number, string>();
+        employees.forEach((e: any) => {
+            const id = Number(e.employeeId ?? e.id);
+            if (id) m.set(id, e.name ?? `Employee ${id}`);
+        });
+        return m;
+    }, [employees]);
+
+    const doCancel = async (reservationId: number) => {
+        if (!businessId) return;
+        const ok = window.confirm(`Cancel reservation #${reservationId}?`);
+        if (!ok) return;
+
+        setError(null);
+        try {
+            const detail = await getReservation(businessId, reservationId);
+            if (detail.orderId) {
+                setError(
+                    `Reservation #${reservationId} already has order #${detail.orderId}. Cancel the order instead.`
+                );
+                return;
+            }
+            await cancelReservation(businessId, reservationId);
+            await load(currentMonth);
+        } catch (e: any) {
+            setError(e?.message || "Cancel failed");
+        }
+    };
+
+    const markCompleted = async (reservationId: number) => {
+        if (!businessId) return;
+        setError(null);
+        try {
+            await updateReservation(businessId, reservationId, { status: "Completed" });
+            await load(currentMonth);
+        } catch (e: any) {
+            setError(e?.message || "Update failed");
+        }
+    };
     
     return (
         <div className="reservations-container">
             <div className="action-bar">
                 <h2 className="section-title">Reservation Management</h2>
                 
-                {/* todo - add on click open new reservation modal */}
                 <button
                     className="btn btn-primary"
+                    onClick={props.goToNewReservation}
+                    disabled={!canManage}
+                    title={!canManage ? "Manager/Owner only" : ""}
                 >
                     <span>➕</span> New Reservation
                 </button>
             </div>
+
+            {error && (
+                <div className="reservation-item" style={{ border: "1px solid rgba(214,40,40,0.3)", background: "rgba(214,40,40,0.08)" }}>
+                    <div className="reservation-details">
+                        <div className="detail-value" style={{ color: "#b01d1d" }}>
+                            {error}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="calendar-wrapper">
                 <div className="calendar-header">
                     <button
@@ -126,14 +217,39 @@ export default function CateringReservations({reservations, tables, employees}: 
                 })}
             </h3>
             <div className="reservation-list">
-                {reservationsForSelectedDate.length > 0 ? (
+                {loading ? (
+                    <div className="reservation-item">
+                        <div className="reservation-details">
+                            <div className="detail-value">Loading…</div>
+                        </div>
+                    </div>
+                ) : reservationsForSelectedDate.length > 0 ? (
                     reservationsForSelectedDate.map(r => (
-                        <div key={r.id} className="reservation-item">
+                        <div key={r.reservationId} className="reservation-item">
                             <div className="reservation-details">
                                 <div className="detail-value">
-                                    {r.customerName}
+                                    {new Date(r.appointmentStart).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} —{" "}
+                                    {serviceNameById.get(r.catalogItemId) ?? `Service ${r.catalogItemId}`}
+                                </div>
+                                <div className="muted">
+                                    Employee: {employeeNameById.get(r.employeeId) ?? r.employeeId} • Status: {r.status}
                                 </div>
                             </div>
+
+                            {canManage && (
+                                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                                    {String(r.status) !== "Cancelled" && (
+                                        <button className="btn btn-danger" onClick={() => doCancel(r.reservationId)}>
+                                            Cancel
+                                        </button>
+                                    )}
+                                    {String(r.status) === "Booked" && (
+                                        <button className="btn" onClick={() => markCompleted(r.reservationId)}>
+                                            Mark completed
+                                        </button>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     ))
                 ) : (

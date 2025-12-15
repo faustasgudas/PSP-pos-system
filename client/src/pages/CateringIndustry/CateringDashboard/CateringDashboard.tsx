@@ -11,6 +11,11 @@ import CateringProducts from "../CateringProducts/CateringProducts";
 import CateringReservations from "../CateringReservations/CateringReservations";
 import CateringSettings from "../CateringSettings/CateringSettings";
 import CateringTables from "../CateringTables/CateringTables";
+import CateringOrders from "../CateringOrders/CateringOrders";
+import CateringOrderCreate from "../CateringOrders/CateringOrderCreate";
+import CateringOrderDetails from "../CateringOrders/CateringOrderDetails";
+import CateringNewReservation from "../CateringReservations/CateringNewReservation";
+import CateringCatalogItems from "../CateringCatalogItems/CateringCatalogItems";
 
 type Screen =
     | "dashboard"
@@ -18,7 +23,12 @@ type Screen =
     | "inventory"
     | "payments"
     | "products"
+    | "catalog"
     | "reservations"
+    | "reservation-create"
+    | "orders"
+    | "order-create"
+    | "order-detail"
     | "employees"
     | "settings"
     | "tables";
@@ -81,6 +91,7 @@ interface GiftCard {
 function CateringMain(){
     const [activeScreen, setActiveScreen] = useState<Screen>("dashboard");
     const [activeTab, setActiveTab] = useState<DashboardTab>("upcoming");
+    const [activeOrderId, setActiveOrderId] = useState<number | null>(null);
     
     // data arrays (empty)
     const [reservations] = useState<Reservation[]>([]);
@@ -93,7 +104,7 @@ function CateringMain(){
     
     // dashboard tabs
     const todayRevenue = payments.reduce((sum, p) => sum + p.amount.amount, 0);
-    const availableTables = tables.filter(table => table.status = "Available").length;
+    const availableTables = tables.filter(table => table.status === "Available").length;
     const activeEmployees = employees.filter(employee => employee.status = "Active").length;
     const lowStockItems = stockItems.filter(item => item.qtyOnHand < 5).length;
     
@@ -159,6 +170,20 @@ function CateringMain(){
                 </button>
 
                 <button
+                    className={`nav-btn ${activeScreen === "catalog" ? "active" : ""}`}
+                    onClick={() => setActiveScreen("catalog")}
+                >
+                    <span>🗂️</span> Catalog
+                </button>
+
+                <button
+                    className={`nav-btn ${activeScreen === "orders" ? "active" : ""}`}
+                    onClick={() => setActiveScreen("orders")}
+                >
+                    <span>🧾</span> Orders
+                </button>
+
+                <button
                     className={`nav-btn ${activeScreen === "inventory" ? "active" : ""}`}
                     onClick={() => setActiveScreen("inventory")}
                 >
@@ -190,15 +215,15 @@ function CateringMain(){
                             <div className="action-buttons">
                                 <button 
                                     className="btn btn-primary"
+                                    onClick={() => setActiveScreen("reservation-create")}
                                 >
                                     <span>➕</span> New Reservation
-                                    {/* todo - add modal */}
                                 </button>
                                 <button 
                                     className="btn btn-primary"
+                                    onClick={() => setActiveScreen("order-create")}
                                 >
                                     <span>⚡</span> Quick Order
-                                    {/* todo - add modal */}
                                 </button>
                             </div>
                         </div>
@@ -299,11 +324,42 @@ function CateringMain(){
                         
                 {activeScreen === "reservations" && (
                     <CateringReservations
-                        reservations={reservations}
-                        employees={employees}
-                        tables={tables}
+                        goToNewReservation={() => setActiveScreen("reservation-create")}
                     />
                 )}
+
+                {activeScreen === "reservation-create" && (
+                    <CateringNewReservation goBack={() => setActiveScreen("reservations")} />
+                )}
+
+                {activeScreen === "orders" && (
+                    <CateringOrders
+                        onNewOrder={() => setActiveScreen("order-create")}
+                        onOpenOrder={(orderId) => {
+                            setActiveOrderId(orderId);
+                            setActiveScreen("order-detail");
+                        }}
+                    />
+                )}
+
+                {activeScreen === "order-create" && (
+                    <CateringOrderCreate
+                        goBack={() => setActiveScreen("orders")}
+                        onCreated={(orderId) => {
+                            setActiveOrderId(orderId);
+                            setActiveScreen("order-detail");
+                        }}
+                    />
+                )}
+
+                {activeScreen === "order-detail" && activeOrderId && (
+                    <CateringOrderDetails
+                        orderId={activeOrderId}
+                        onBack={() => setActiveScreen("orders")}
+                    />
+                )}
+
+                {activeScreen === "catalog" && <CateringCatalogItems />}
                 {activeScreen === "employees" && (<CateringEmployees employees={employees}/>)}
                 {activeScreen === "tables" && (<CateringTables tables={tables} />)}
                 {activeScreen === "products" && (<CateringProducts products={products} />)}
