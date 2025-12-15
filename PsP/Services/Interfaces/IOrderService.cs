@@ -96,6 +96,12 @@ public interface IOrdersService
          int callerEmployeeId,
          CancellationToken ct = default);
 
+     Task<OrderDetailResponse> RefundOrderAsync(
+         int businessId,
+         int orderId,
+         int callerEmployeeId,
+         CancelOrderRequest request,
+         CancellationToken ct = default);
 
      Task MoveLinesAsync(
          int businessId,

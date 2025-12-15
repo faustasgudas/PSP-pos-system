@@ -396,6 +396,86 @@ public class OrdersService : IOrdersService
         return order.ToDetailResponse(lines_t);
     }
 
+    
+    public async Task<OrderDetailResponse> RefundOrderAsync(
+        int businessId,
+        int orderId,
+        int callerEmployeeId,
+        CancelOrderRequest request,
+        CancellationToken ct = default)
+    {
+        var caller = await GetCallerAsync(businessId, callerEmployeeId, ct);
+        var order = await GetOrderEntityAsync(businessId, orderId, ct);
+        EnsureCallerCanSeeOrder(caller, order);
+
+        if (!string.Equals(order.Status, "closed", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Order can only be refunded if it was closed");
+        
+        
+        //EnsureOpen(order);
+
+        
+        
+        var lines = await _db.OrderLines
+            .Where(l => l.OrderId == orderId && l.BusinessId == businessId)
+            .ToListAsync(ct);
+
+        foreach (var line in lines)
+        {
+            var stockItem = await _db.StockItems
+                                .FirstOrDefaultAsync(s => s.CatalogItemId == line.CatalogItemId, ct)
+                            ?? throw new InvalidOperationException("stock_item_not_found");
+
+            var item = await _db.CatalogItems
+                           .AsNoTracking()
+                           .FirstOrDefaultAsync(
+                               ci => ci.BusinessId == businessId && ci.CatalogItemId == line.CatalogItemId, ct)
+                       ?? throw new InvalidOperationException("Catalog item not found in this business.");
+            
+            if (string.Equals(item.Type, "product", StringComparison.OrdinalIgnoreCase))
+            {
+                await _stockMovement.CreateAsync(
+                    businessId,
+                    stockItem.StockItemId,
+                    callerEmployeeId,
+                    new CreateStockMovementRequest
+                    {
+                        Type = "Adjust",
+                        Delta = line.Qty,
+                        OrderLineId = line.OrderLineId
+                    },
+                    ct
+                );
+            }
+        }
+        
+        
+        order.ApplyRefund();
+        
+        await _db.SaveChangesAsync(ct);
+
+        var lines_t = await _db.OrderLines
+            .AsNoTracking()
+            .Where(l => l.BusinessId == businessId && l.OrderId == orderId)
+            .ToListAsync(ct);
+
+        return order.ToDetailResponse(lines_t);
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     public async Task<OrderLineResponse> AddLineAsync(
         int businessId,
         int orderId,
