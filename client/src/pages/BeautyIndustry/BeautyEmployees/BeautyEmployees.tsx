@@ -86,7 +86,7 @@ export default function BeautyEmployees() {
         if (!employeeToDeactivate) return;
 
         await fetch(
-            `https://localhost:44317/api/businesses/${businessId}/employees/${employeeToDeactivate.employeeId}/deactivate`,
+            `http://localhost:5269/api/businesses/${businessId}/employees/${employeeToDeactivate.employeeId}/deactivate`,
             {
                 method: "POST",
                 headers: {
