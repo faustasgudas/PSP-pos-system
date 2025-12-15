@@ -338,9 +338,8 @@ export default function BeautyDashboard() {
 
                 {activeScreen === "services" && <BeautyServices />}
 
-                {/* ✅ FIXED: Pass required props */}
-                {activeScreen === "inventory" && <BeautyInventory stockItems={stockItems} />}
-                {activeScreen === "payments" && <BeautyPayments payments={payments} />}
+                {activeScreen === "inventory" && <BeautyInventory />}
+                {activeScreen === "payments" && <BeautyPayments />}
                 {activeScreen === "giftcards" && <BeautyGiftCards giftCards={giftCards} />}
 
                 {activeScreen === "settings" && <BeautySettings />}
@@ -385,9 +384,6 @@ export default function BeautyDashboard() {
 
                 {activeScreen === "reservations" && (
                     <BeautyReservations
-                        reservations={reservations}
-                        services={services}
-                        employees={employees}
                         goToNewBooking={() =>
                             setActiveScreen("new-booking")
                         }

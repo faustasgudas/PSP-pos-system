@@ -1,46 +1,45 @@
 import { useEffect, useState } from "react";
 import "./BeautyServices.css";
 import { getUserFromToken } from "../../../utils/auth";
-
-interface Service {
-    catalogItemId: number;
-    name: string;
-    basePrice: number;
-    status: string;
-}
+import {
+    archiveCatalogItem,
+    createCatalogItem,
+    listCatalogItems,
+    updateCatalogItem,
+    type CatalogItem,
+} from "../../../frontapi/catalogApi";
+import { logout } from "../../../frontapi/authApi";
 
 export default function BeautyServices() {
     const user = getUserFromToken();
     const role = user?.role;
 
-    const token = localStorage.getItem("token");
-    const businessId = localStorage.getItem("businessId");
+    const businessId = Number(localStorage.getItem("businessId"));
 
-    const [services, setServices] = useState<Service[]>([]);
+    const [services, setServices] = useState<CatalogItem[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     const [showAddModal, setShowAddModal] = useState(false);
-    const [showEditModal, setShowEditModal] = useState<Service | null>(null);
+    const [showEditModal, setShowEditModal] = useState<CatalogItem | null>(null);
 
     const [name, setName] = useState("");
+    const [code, setCode] = useState("");
     const [price, setPrice] = useState("");
+    const [taxClass, setTaxClass] = useState("STANDARD");
+    const [durationMin, setDurationMin] = useState("30");
 
     const fetchServices = async () => {
         try {
-            const res = await fetch(
-                `http://localhost:5269/api/businesses/${businessId}/catalog-items?type=Service`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
+            setLoading(true);
+            setError(null);
+            if (!businessId) throw new Error("Missing businessId");
 
-            if (!res.ok) throw new Error();
-            const data = await res.json();
-            setServices(data);
-        } catch {
+            const data = await listCatalogItems(businessId, { type: "Service" });
+            setServices(Array.isArray(data) ? data : []);
+        } catch (e: any) {
             setServices([]);
+            setError(e?.message || "Failed to load services");
         } finally {
             setLoading(false);
         }
@@ -54,77 +53,102 @@ export default function BeautyServices() {
     const archivedServices = services.filter(s => s.status === "Archived");
 
     const handleAddService = async () => {
-        await fetch(
-            `http://localhost:5269/api/businesses/${businessId}/catalog-items`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                    name,
-                    code: name.toUpperCase().replace(/\s+/g, "_"),
-                    type: "Service",
-                    basePrice: Number(price),
-                    taxClass: "STANDARD",
-                    defaultDurationMin: 30,
-                }),
-            }
-        );
+        try {
+            setError(null);
+            if (!businessId) throw new Error("Missing businessId");
+            if (!name.trim()) throw new Error("Service name is required");
+            const p = Number(price);
+            if (!Number.isFinite(p) || p < 0) throw new Error("Invalid price");
 
-        setShowAddModal(false);
-        setName("");
-        setPrice("");
-        fetchServices();
+            const c = (code || name)
+                .trim()
+                .toUpperCase()
+                .replace(/\s+/g, "_")
+                .slice(0, 24);
+
+            const d = Number(durationMin);
+            if (!Number.isFinite(d) || d < 0) throw new Error("Invalid duration");
+
+            await createCatalogItem(businessId, {
+                name: name.trim(),
+                code: c,
+                type: "Service",
+                basePrice: p,
+                taxClass: taxClass.trim() || "STANDARD",
+                defaultDurationMin: d,
+                status: "Active",
+            });
+
+            setShowAddModal(false);
+            setName("");
+            setCode("");
+            setPrice("");
+            setTaxClass("STANDARD");
+            setDurationMin("30");
+            fetchServices();
+        } catch (e: any) {
+            setError(e?.message || "Failed to add service");
+        }
     };
 
     const handleDeactivate = async (id: number) => {
-        await fetch(
-            `http://localhost:5269//api/businesses/${businessId}/catalog-items/${id}/archive`,
-            {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            }
-        );
-        fetchServices();
+        try {
+            setError(null);
+            if (!businessId) throw new Error("Missing businessId");
+            await archiveCatalogItem(businessId, id);
+            fetchServices();
+        } catch (e: any) {
+            setError(e?.message || "Failed to deactivate service");
+        }
     };
 
     const handleReactivate = async (id: number) => {
-        await fetch(
-            `http://localhost:5269/api/businesses/${businessId}/catalog-items/${id}`,
-            {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ status: "Active" }),
-            }
-        );
-        fetchServices();
+        try {
+            setError(null);
+            if (!businessId) throw new Error("Missing businessId");
+            await updateCatalogItem(businessId, id, { status: "Active" });
+            fetchServices();
+        } catch (e: any) {
+            setError(e?.message || "Failed to reactivate service");
+        }
     };
 
     const handleEditPrice = async () => {
         if (!showEditModal) return;
 
-        await fetch(
-            `http://localhost:5269/api/businesses/${businessId}/catalog-items/${showEditModal.catalogItemId}`,
-            {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ basePrice: Number(price) }),
-            }
-        );
+        try {
+            setError(null);
+            if (!businessId) throw new Error("Missing businessId");
+            const p = Number(price);
+            if (!Number.isFinite(p) || p < 0) throw new Error("Invalid price");
 
-        setShowEditModal(null);
-        setPrice("");
-        fetchServices();
+            const d = Number(durationMin);
+            if (!Number.isFinite(d) || d < 0) throw new Error("Invalid duration");
+
+            const c = (code || showEditModal.code || showEditModal.name)
+                .trim()
+                .toUpperCase()
+                .replace(/\s+/g, "_")
+                .slice(0, 24);
+
+            await updateCatalogItem(businessId, showEditModal.catalogItemId, {
+                name: name.trim() || showEditModal.name,
+                code: c,
+                basePrice: p,
+                taxClass: taxClass.trim() || showEditModal.taxClass,
+                defaultDurationMin: d,
+            });
+
+            setShowEditModal(null);
+            setName("");
+            setCode("");
+            setPrice("");
+            setTaxClass("STANDARD");
+            setDurationMin("30");
+            fetchServices();
+        } catch (e: any) {
+            setError(e?.message || "Failed to update service");
+        }
     };
 
     if (loading) return <div>Loading services…</div>;
@@ -141,6 +165,26 @@ export default function BeautyServices() {
                 )}
             </div>
 
+            {error && (
+                <div style={{ margin: "10px 0" }} className="services-divider">
+                    <div style={{ color: "#b01d1d" }}>{error}</div>
+                    {String(error).toLowerCase().includes("forbid") ||
+                    String(error).includes("401") ||
+                    String(error).includes("403") ? (
+                        <button
+                            className="btn"
+                            style={{ marginTop: 10 }}
+                            onClick={() => {
+                                logout();
+                                window.location.reload();
+                            }}
+                        >
+                            Log out
+                        </button>
+                    ) : null}
+                </div>
+            )}
+
             {/* ACTIVE */}
             <h3>Active Services</h3>
             <div className="services-grid">
@@ -155,7 +199,11 @@ export default function BeautyServices() {
                                     className="btn"
                                     onClick={() => {
                                         setShowEditModal(service);
+                                        setName(service.name);
+                                        setCode(service.code);
                                         setPrice(String(service.basePrice));
+                                        setTaxClass(service.taxClass || "STANDARD");
+                                        setDurationMin(String(service.defaultDurationMin ?? 30));
                                     }}
                                 >
                                     ✏️ Edit
@@ -207,10 +255,29 @@ export default function BeautyServices() {
                         />
 
                         <input
+                            placeholder="Code (optional)"
+                            value={code}
+                            onChange={(e) => setCode(e.target.value)}
+                        />
+
+                        <input
                             placeholder="Price"
                             type="number"
                             value={price}
                             onChange={e => setPrice(e.target.value)}
+                        />
+
+                        <input
+                            placeholder="Tax class (e.g. STANDARD)"
+                            value={taxClass}
+                            onChange={(e) => setTaxClass(e.target.value)}
+                        />
+
+                        <input
+                            placeholder="Default duration (min)"
+                            type="number"
+                            value={durationMin}
+                            onChange={(e) => setDurationMin(e.target.value)}
                         />
 
                         <div className="modal-actions">
@@ -229,12 +296,37 @@ export default function BeautyServices() {
             {showEditModal && (
                 <div className="modal-backdrop">
                     <div className="modal">
-                        <h3>Edit Price</h3>
+                        <h3>Edit Service</h3>
+
+                        <input
+                            placeholder="Service name"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                        />
+
+                        <input
+                            placeholder="Code"
+                            value={code}
+                            onChange={(e) => setCode(e.target.value)}
+                        />
 
                         <input
                             type="number"
                             value={price}
                             onChange={e => setPrice(e.target.value)}
+                        />
+
+                        <input
+                            placeholder="Tax class"
+                            value={taxClass}
+                            onChange={(e) => setTaxClass(e.target.value)}
+                        />
+
+                        <input
+                            placeholder="Default duration (min)"
+                            type="number"
+                            value={durationMin}
+                            onChange={(e) => setDurationMin(e.target.value)}
                         />
 
                         <div className="modal-actions">
