@@ -1,0 +1,233 @@
+/* BeautyOrders.css */
+
+/* Page layout */
+.beauty-orders {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Header */
+.beauty-orders__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.beauty-orders__header-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+/*
+  Shopify-like approach:
+  Actions should preferably live in the toolbar.
+  If you keep header actions too, it can look "duplicated".
+*/
+
+/* Alerts */
+.beauty-orders__error {
+    background: rgba(214, 40, 40, 0.1);
+    border: 1px solid rgba(214, 40, 40, 0.3);
+    color: #b01d1d;
+    border-radius: 12px;
+    padding: 10px 12px;
+}
+
+.beauty-orders__empty {
+    background: white;
+    border-radius: 14px;
+    padding: 18px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    color: #555;
+}
+
+/* Hide old controls + card layout (legacy) */
+.beauty-orders__controls { display: none; }
+.beauty-orders__list { display: none; }
+.beauty-orders__card { display: none; }
+
+/* Toolbar (Shopify-ish) */
+.orders-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+
+    background: white;
+    border-radius: 14px;
+    padding: 12px 14px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.orders-toolbar__left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    flex: 1;
+    min-width: 0; /* important for flex children truncation */
+}
+
+.orders-toolbar__right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+}
+
+/* Segmented control */
+.segmented {
+    display: inline-flex;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    overflow: hidden;
+    flex: 0 0 auto;
+}
+
+.segmented button {
+    white-space: nowrap;
+    padding: 6px 12px;
+    font-size: 13px;
+    background: white;
+    border: 0;
+    cursor: pointer;
+}
+
+.segmented button.active {
+    background: rgba(33, 158, 188, 0.12);
+    font-weight: 700;
+    color: #023047;
+}
+
+/* Inputs */
+.dropdown-sm,
+.search-input,
+.btn {
+    height: 32px;
+    font-size: 13px;
+}
+
+.dropdown-sm {
+    padding: 4px 10px;
+    border-radius: 10px;
+}
+
+/* Search should expand like Shopify */
+.search-input {
+    flex: 1;
+    min-width: 240px;
+    max-width: 520px;
+
+    padding: 4px 10px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+}
+
+/* Table wrapper */
+.orders-table-wrap {
+    background: white;
+    border-radius: 14px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    overflow: auto;
+}
+
+/* Table */
+.orders-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.orders-table thead th {
+    text-align: left;
+    font-size: 12px;
+    letter-spacing: 0.03em;
+    color: #6b7280;
+    background: #fafafa;
+
+    padding: 10px 14px;
+    border-bottom: 1px solid #eee;
+
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.orders-table tbody td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #f1f1f1;
+    font-size: 13px;
+    color: #023047;
+}
+
+.orders-row {
+    cursor: pointer;
+}
+
+.orders-row:hover {
+    background: #f9fafb;
+}
+
+.order-id {
+    font-weight: 700;
+    color: #023047;
+}
+
+.right {
+    text-align: right;
+    white-space: nowrap;
+}
+
+/* Status pills (shared with other pages) */
+.status-pill {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid #ddd;
+    background: #f7f7f7;
+    color: #333;
+}
+
+.status-pill.status-open {
+    background: rgba(33, 158, 188, 0.12);
+    border-color: rgba(33, 158, 188, 0.3);
+    color: #167a90;
+}
+
+.status-pill.status-closed {
+    background: rgba(42, 157, 143, 0.12);
+    border-color: rgba(42, 157, 143, 0.3);
+    color: #1f7469;
+}
+
+.status-pill.status-cancelled {
+    background: rgba(214, 40, 40, 0.12);
+    border-color: rgba(214, 40, 40, 0.3);
+    color: #b01d1d;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .orders-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .orders-toolbar__left {
+        flex-wrap: wrap;
+    }
+
+    .search-input {
+        max-width: none;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .orders-toolbar__right {
+        justify-content: flex-end;
+    }
+}

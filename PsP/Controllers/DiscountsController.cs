@@ -31,7 +31,6 @@ public class DiscountsController : ControllerBase
         catch (InvalidOperationException ex) { return ForbidOrBadRequest(ex); }
     }
 
-    // GET /api/discounts/{discountId}
     [HttpGet("{discountId:int}")]
     public async Task<ActionResult<DiscountDetailResponse>> GetDiscount(int discountId)
     {
@@ -46,7 +45,6 @@ public class DiscountsController : ControllerBase
         catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
     }
 
-    // POST /api/discounts
     [HttpPost]
     public async Task<ActionResult<DiscountDetailResponse>> CreateDiscount([FromBody] CreateDiscountRequest body)
     {
@@ -66,7 +64,6 @@ public class DiscountsController : ControllerBase
         catch (InvalidOperationException ex) { return ForbidOrBadRequest(ex); }
     }
 
-    // PUT /api/discounts/{discountId}
     [HttpPut("{discountId:int}")]
     public async Task<ActionResult<DiscountDetailResponse>> UpdateDiscount(
         int discountId,
@@ -83,7 +80,6 @@ public class DiscountsController : ControllerBase
         catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
     }
 
-    // DELETE /api/discounts/{discountId}
     [HttpDelete("{discountId:int}")]
     public async Task<IActionResult> DeleteDiscount(int discountId)
     {
@@ -113,7 +109,6 @@ public class DiscountsController : ControllerBase
         catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
     }
 
-    // GET /api/discounts/{discountId}/eligible-items
     [HttpGet("{discountId:int}/eligible-items")]
     public async Task<ActionResult<IEnumerable<CatalogItemSummaryResponse>>> ListEligibleItems(int discountId)
     {
@@ -128,7 +123,6 @@ public class DiscountsController : ControllerBase
         catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
     }
 
-    // POST /api/discounts/{discountId}/eligibilities
     [HttpPost("{discountId:int}/eligibilities")]
     public async Task<ActionResult<DiscountEligibilityResponse>> AddEligibility(
         int discountId,

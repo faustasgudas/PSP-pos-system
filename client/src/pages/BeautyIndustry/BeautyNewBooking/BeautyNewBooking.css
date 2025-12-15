@@ -1,0 +1,49 @@
+.new-booking-container {
+    padding: 20px;
+}
+
+.new-booking-card {
+    margin-top: 20px;
+    background: white;
+    border-radius: 14px;
+    padding: 36px 48px;
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+.new-booking-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 22px 40px;
+}
+
+.nb-field {
+    display: flex;
+    flex-direction: column;
+}
+
+.nb-field.full {
+    grid-column: 1 / -1;
+}
+
+.nb-field label {
+    margin-bottom: 6px;
+    font-size: 14px;
+}
+
+.nb-field input,
+.nb-field select,
+.nb-field textarea {
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+}
+
+.new-booking-actions {
+    margin-top: 36px;
+    display: flex;
+    justify-content: flex-end;
+}

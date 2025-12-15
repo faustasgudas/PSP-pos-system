@@ -192,6 +192,26 @@ public class OrdersController : ControllerBase
         }
         catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
     }
+    
+    
+    [HttpPost("{orderId:int}/refund")]
+        [Authorize(Roles = "Owner,Manager")]
+        public async Task<ActionResult<OrderDetailResponse>> RefundOrder(
+            int orderId, [FromBody] CancelOrderRequest body)
+        {
+            var businessId = User.GetBusinessId();
+            var employeeId = User.GetEmployeeId();
+    
+            try
+            {
+                var dto = await _orders.RefundOrderAsync(
+                    businessId, orderId, employeeId, body, HttpContext.RequestAborted);
+                return Ok(dto);
+            }
+            catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
+        }
+    
+    
 
     // -------------------------------
     // POST /api/orders/{orderId}/lines
