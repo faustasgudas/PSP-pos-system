@@ -9,6 +9,7 @@ import BeautyServices from "../BeautyServices/BeautyServices";
 import BeautyInventory from "../BeautyInventory/BeautyInventory";
 import BeautyPayments from "../BeautyPayments/BeautyPayments";
 import BeautyGiftCards from "../BeautyGiftCards/BeautyGiftCards";
+import BeautyDiscounts from "../BeautyDiscounts/BeautyDiscounts";
 import BeautySettings from "../BeautySettings/BeautySettings";
 import BeautyNewBooking from "../BeautyNewBooking/BeautyNewBooking";
 import BeautyOrderCreate from "../BeautyOrders/BeautyOrderCreate";
@@ -24,6 +25,7 @@ type Screen =
     | "inventory"
     | "payments"
     | "giftcards"
+    | "discounts"
     | "settings"
     | "new-booking"
     | "orders"
@@ -199,6 +201,17 @@ export default function BeautyDashboard() {
                     🎁 Gift Cards
                 </button>
 
+                {role !== "Staff" && (
+                    <button
+                        className={`nav-btn ${
+                            activeScreen === "discounts" ? "active" : ""
+                        }`}
+                        onClick={() => setActiveScreen("discounts")}
+                    >
+                        🏷️ Discounts
+                    </button>
+                )}
+
                 <button
                     className={`nav-btn ${
                         activeScreen === "orders" ? "active" : ""
@@ -340,6 +353,7 @@ export default function BeautyDashboard() {
                 {activeScreen === "inventory" && <BeautyInventory />}
                 {activeScreen === "payments" && <BeautyPayments />}
                 {activeScreen === "giftcards" && <BeautyGiftCards />}
+                {activeScreen === "discounts" && role !== "Staff" && <BeautyDiscounts />}
 
                 {activeScreen === "settings" && <BeautySettings />}
 

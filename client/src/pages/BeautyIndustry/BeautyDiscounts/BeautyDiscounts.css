@@ -1,0 +1,68 @@
+.beauty-discounts__list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 14px;
+    margin-top: 16px;
+}
+
+.beauty-discounts__card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 14px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.beauty-discounts__card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.beauty-discounts__code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-weight: 700;
+}
+
+.beauty-discounts__meta {
+    font-size: 13px;
+    color: #444;
+    display: grid;
+    gap: 6px;
+}
+
+.beauty-discounts__actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.beauty-discounts__error {
+    margin-top: 10px;
+    color: #b01d1d;
+    background: rgba(214, 40, 40, 0.08);
+    border: 1px solid rgba(214, 40, 40, 0.2);
+    border-radius: 12px;
+    padding: 12px;
+}
+
+.beauty-discounts__empty {
+    margin-top: 16px;
+    opacity: 0.7;
+}
+
+.beauty-discounts__status {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #8ecae6;
+}
+
+.beauty-discounts__status.status-inactive {
+    background: #e63946;
+    color: #fff;
+}
+
+
