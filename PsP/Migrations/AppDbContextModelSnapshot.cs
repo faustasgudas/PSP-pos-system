@@ -425,11 +425,29 @@ namespace PsP.Migrations
                     b.Property<int?>("EmployeeId")
                         .HasColumnType("integer");
 
+                    b.Property<long>("GiftCardChargedCents")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(0L);
+
                     b.Property<int?>("GiftCardId")
                         .HasColumnType("integer");
 
                     b.Property<long>("GiftCardPlannedCents")
-                        .HasColumnType("bigint");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(0L);
+
+                    b.Property<bool>("InventoryApplied")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("InventoryAppliedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsOpen")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
 
                     b.Property<string>("Method")
                         .IsRequired()
@@ -438,6 +456,9 @@ namespace PsP.Migrations
 
                     b.Property<int>("OrderId")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime?>("RefundedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -460,6 +481,10 @@ namespace PsP.Migrations
                     b.HasIndex("GiftCardId");
 
                     b.HasIndex("OrderId");
+
+                    b.HasIndex("BusinessId", "OrderId")
+                        .IsUnique()
+                        .HasFilter("\"IsOpen\" = true");
 
                     b.HasIndex("BusinessId", "OrderId", "CreatedAt");
 
