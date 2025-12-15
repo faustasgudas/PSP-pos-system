@@ -2,6 +2,22 @@
     padding: 20px;
 }
 
+.giftcards-filters,
+.giftcards-lookup {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.giftcards-filter-input {
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    min-width: 220px;
+}
+
 .giftcards-list {
     display: flex;
     flex-direction: column;
@@ -70,4 +86,65 @@
 .no-giftcards {
     opacity: 0.7;
     padding: 20px;
+}
+
+/* ========================= */
+/* ✅ MODAL STYLES */
+/* ========================= */
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+}
+
+.modal-card {
+    background: white;
+    border-radius: 14px;
+    padding: 30px 36px;
+    width: 100%;
+    max-width: 520px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+.modal-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 24px;
+    text-align: center;
+}
+
+.modal-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.modal-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.modal-field label {
+    font-size: 14px;
+}
+
+.modal-field input,
+.modal-field select {
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 26px;
 }

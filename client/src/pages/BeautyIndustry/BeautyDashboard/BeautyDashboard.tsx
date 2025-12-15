@@ -48,7 +48,6 @@ export default function BeautyDashboard() {
     const services: any[] = [];
     const employees: any[] = [];
     const stockItems: any[] = [];
-    const giftCards: any[] = [];
 
     const todayBookings = reservations.length;
     const todayRevenue = payments.reduce(
@@ -340,7 +339,7 @@ export default function BeautyDashboard() {
 
                 {activeScreen === "inventory" && <BeautyInventory />}
                 {activeScreen === "payments" && <BeautyPayments />}
-                {activeScreen === "giftcards" && <BeautyGiftCards giftCards={giftCards} />}
+                {activeScreen === "giftcards" && <BeautyGiftCards />}
 
                 {activeScreen === "settings" && <BeautySettings />}
 
