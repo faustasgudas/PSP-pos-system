@@ -28,7 +28,7 @@ export default function BeautyServices() {
     const fetchServices = async () => {
         try {
             const res = await fetch(
-                `https://localhost:44317/api/businesses/${businessId}/catalog-items?type=Service`,
+                `http://localhost:5269/api/businesses/${businessId}/catalog-items?type=Service`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -81,7 +81,7 @@ export default function BeautyServices() {
 
     const handleDeactivate = async (id: number) => {
         await fetch(
-            `https://localhost:44317/api/businesses/${businessId}/catalog-items/${id}/archive`,
+            `http://localhost:5269//api/businesses/${businessId}/catalog-items/${id}/archive`,
             {
                 method: "POST",
                 headers: {
@@ -94,7 +94,7 @@ export default function BeautyServices() {
 
     const handleReactivate = async (id: number) => {
         await fetch(
-            `https://localhost:44317/api/businesses/${businessId}/catalog-items/${id}`,
+            `http://localhost:5269/api/businesses/${businessId}/catalog-items/${id}`,
             {
                 method: "PUT",
                 headers: {
@@ -111,7 +111,7 @@ export default function BeautyServices() {
         if (!showEditModal) return;
 
         await fetch(
-            `https://localhost:44317/api/businesses/${businessId}/catalog-items/${showEditModal.catalogItemId}`,
+            `http://localhost:5269/api/businesses/${businessId}/catalog-items/${showEditModal.catalogItemId}`,
             {
                 method: "PUT",
                 headers: {
