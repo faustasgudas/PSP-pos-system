@@ -34,7 +34,7 @@ export default function BeautyEmployees() {
     const fetchEmployees = async () => {
         try {
             const res = await fetch(
-                `https://localhost:44317/api/businesses/${businessId}/employees`,
+                `http://localhost:5269/api/businesses/${businessId}/employees`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -58,7 +58,7 @@ export default function BeautyEmployees() {
 
     const handleAddEmployee = async () => {
         await fetch(
-            `https://localhost:44317/api/businesses/${businessId}/employees`,
+            `http://localhost:5269/api/businesses/${businessId}/employees`,
             {
                 method: "POST",
                 headers: {
