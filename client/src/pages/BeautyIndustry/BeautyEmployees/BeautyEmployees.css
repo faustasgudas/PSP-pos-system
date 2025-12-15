@@ -1,0 +1,141 @@
+/* ===== Container ===== */
+.employees-container {
+    padding: 24px;
+}
+
+/* ===== Header ===== */
+.employees-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.employees-header h2 {
+    font-size: 28px;
+    font-weight: 600;
+}
+
+/* ===== Grid Layout ===== */
+.employee-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+/* ===== Employee Card ===== */
+.employee-card {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 170px;
+}
+
+/* ===== Card Content ===== */
+.employee-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.employee-name {
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.employee-email {
+    font-size: 14px;
+    color: #666;
+    word-break: break-all;
+}
+
+.employee-role {
+    display: inline-block;
+    align-self: flex-start;
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #e3f4f2;
+    color: #137a73;
+    font-weight: 500;
+}
+
+/* ===== Card Actions ===== */
+.employee-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
+}
+
+/* ===== Buttons ===== */
+.btn {
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.btn-primary {
+    background-color: #8ecae6;
+    color: #023047;
+}
+
+.btn-primary:hover {
+    background-color: #74bddb;
+}
+
+.btn-danger {
+    background-color: #ef4444;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #dc2626;
+}
+
+/* ===== Modal Backdrop ===== */
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+/* ===== Modal ===== */
+.modal {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    width: 360px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+}
+
+.modal h3 {
+    margin-bottom: 16px;
+}
+
+.modal input,
+.modal select {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 12px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    font-size: 14px;
+}
+
+/* ===== Modal Actions ===== */
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}

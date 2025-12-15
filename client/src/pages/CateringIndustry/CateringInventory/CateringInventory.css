@@ -1,0 +1,57 @@
+.inventory-container {
+    padding: 20px;
+}
+
+.inventory-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 20px;
+}
+
+.inventory-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.inventory-name {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.inventory-qty {
+    font-size: 14px;
+    color: #555;
+}
+
+.inventory-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-small {
+    background: #8ecae6;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.btn-small:hover {
+    background: #58b4d1;
+}
+
+.btn-danger {
+    background: #e63946;
+    color: white;
+}
+
+.no-inventory {
+    opacity: 0.7;
+    padding: 20px;
+}

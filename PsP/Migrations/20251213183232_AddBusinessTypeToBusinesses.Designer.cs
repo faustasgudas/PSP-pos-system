@@ -12,8 +12,8 @@ using PsP.Data;
 namespace PsP.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251210151611_AddBusinessTypeToBusiness")]
-    partial class AddBusinessTypeToBusiness
+    [Migration("20251213183232_AddBusinessTypeToBusinesses")]
+    partial class AddBusinessTypeToBusinesses
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -477,9 +477,6 @@ namespace PsP.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ReservationId"));
 
-                    b.Property<DateTime>("AppointmentEnd")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<DateTime>("AppointmentStart")
                         .HasColumnType("timestamp with time zone");
 
@@ -497,6 +494,9 @@ namespace PsP.Migrations
 
                     b.Property<string>("Notes")
                         .HasColumnType("text");
+
+                    b.Property<int?>("OrderId")
+                        .HasColumnType("integer");
 
                     b.Property<int>("PlannedDurationMin")
                         .HasColumnType("integer");

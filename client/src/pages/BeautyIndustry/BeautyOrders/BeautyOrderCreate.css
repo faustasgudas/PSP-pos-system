@@ -1,0 +1,123 @@
+.order-create {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 30px;
+    padding: 20px;
+}
+
+/* SERVICES */
+.order-services h2,
+.order-summary h2 {
+    margin-bottom: 16px;
+    color: #023047;
+}
+
+.service-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 14px;
+}
+
+.service-card {
+    background: white;
+    border-radius: 10px;
+    padding: 14px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+.service-card:hover {
+    border-color: #219ebc;
+}
+
+.service-name {
+    font-weight: 600;
+    color: #023047;
+}
+
+.service-price {
+    margin-top: 6px;
+    font-size: 14px;
+    color: #219ebc;
+}
+
+/* ORDER */
+.order-summary {
+    background: white;
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.empty-order {
+    color: #777;
+    font-style: italic;
+    margin-top: 20px;
+}
+
+.order-line {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.line-name {
+    font-weight: 600;
+}
+
+.line-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.line-controls button {
+    border: none;
+    background: #8ecae6;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.line-price {
+    font-weight: 600;
+}
+
+.remove-line {
+    border: none;
+    background: transparent;
+    color: #d62828;
+    cursor: pointer;
+}
+
+.order-total {
+    display: flex;
+    justify-content: space-between;
+    font-size: 18px;
+    font-weight: bold;
+    margin-top: 20px;
+}
+
+.proceed-btn {
+    width: 100%;
+    margin-top: 20px;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    background: #219ebc;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.proceed-btn:hover {
+    background: #023047;
+}
+
+.order-loading {
+    padding: 30px;
+}
