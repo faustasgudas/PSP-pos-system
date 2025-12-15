@@ -41,6 +41,7 @@ export default function BeautyDashboard() {
     const services: any[] = [];
     const employees: any[] = [];
     const stockItems: any[] = [];
+    const giftCards: any[] = [];
 
     const todayBookings = reservations.length;
     const todayRevenue = payments.reduce(
@@ -199,7 +200,7 @@ export default function BeautyDashboard() {
                     <>
                         <div className="action-bar">
                             <h2 className="section-title">
-                                Today’s Overview
+                                Today's Overview
                             </h2>
                             <button
                                 className="btn btn-primary"
@@ -222,7 +223,7 @@ export default function BeautyDashboard() {
                                     {todayBookings}
                                 </div>
                                 <div className="stat-label">
-                                    Today’s Reservations
+                                    Today's Reservations
                                 </div>
                             </div>
 
@@ -236,7 +237,7 @@ export default function BeautyDashboard() {
                                     €{todayRevenue}
                                 </div>
                                 <div className="stat-label">
-                                    Today’s Revenue
+                                    Today's Revenue
                                 </div>
                             </div>
 
@@ -320,12 +321,17 @@ export default function BeautyDashboard() {
                     role !== "Staff" && <BeautyEmployees />}
 
                 {activeScreen === "services" && <BeautyServices />}
-                {activeScreen === "inventory" && <BeautyInventory />}
-                {activeScreen === "payments" && <BeautyPayments />}
-                {activeScreen === "giftcards" && <BeautyGiftCards />}
+
+                {/* ✅ FIXED: Pass required props */}
+                {activeScreen === "inventory" && <BeautyInventory stockItems={stockItems} />}
+                {activeScreen === "payments" && <BeautyPayments payments={payments} />}
+                {activeScreen === "giftcards" && <BeautyGiftCards giftCards={giftCards} />}
+
                 {activeScreen === "settings" && <BeautySettings />}
 
-                {activeScreen === "order-create" && <BeautyOrderCreate />}
+                {activeScreen === "order-create" && (
+                    <BeautyOrderCreate goBack={() => setActiveScreen("dashboard")} />
+                )}
 
                 {activeScreen === "reservations" && (
                     <BeautyReservations
