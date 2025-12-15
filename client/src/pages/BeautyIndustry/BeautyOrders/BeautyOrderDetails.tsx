@@ -5,6 +5,7 @@ import {
     closeOrder,
     getOrder,
     removeOrderLine,
+    refundOrder,
     updateOrderLine,
     type OrderDetail,
     type OrderLine,
@@ -101,6 +102,7 @@ export default function BeautyOrderDetails(props: {
     const canClose = canEdit;
     const canSplit = canEdit;
     const canPay = canEdit;
+    const canRefund = (role === "Owner" || role === "Manager") && (order?.status ?? "") === "Closed";
 
     const addService = async (service: CatalogItem) => {
         if (!canEdit || busyOrderAction) return;
@@ -237,6 +239,30 @@ export default function BeautyOrderDetails(props: {
         }
     };
 
+    const doRefund = async () => {
+        if (!canRefund || busyOrderAction) return;
+        if (!employeeId) {
+            setError("Missing employeeId");
+            return;
+        }
+
+        const ok = window.confirm(`Refund order #${props.orderId}? This will adjust stock back for product lines.`);
+        if (!ok) return;
+
+        const reason = window.prompt("Refund reason (optional):") ?? undefined;
+
+        setError(null);
+        setBusyOrderAction(true);
+        try {
+            const updated = await refundOrder(props.orderId, employeeId, reason);
+            setOrder(updated);
+        } catch (e: any) {
+            setError(e?.message || "Failed to refund order");
+        } finally {
+            setBusyOrderAction(false);
+        }
+    };
+
     if (loading) return <div className="page">Loading order…</div>;
     if (error && !order) {
         return (
@@ -295,6 +321,15 @@ export default function BeautyOrderDetails(props: {
 
                     <button
                         className="btn"
+                        onClick={doRefund}
+                        disabled={!canRefund || busyOrderAction}
+                        title={!canRefund ? "Refund is available only for Closed orders (Owner/Manager)" : ""}
+                    >
+                        Refund order
+                    </button>
+
+                    <button
+                        className="btn"
                         onClick={doClose}
                         disabled={!canClose || busyOrderAction}
                         title={!canClose ? "Only open orders can be closed" : ""}
@@ -331,6 +366,12 @@ export default function BeautyOrderDetails(props: {
                             {order.status}
                         </span>
                     </div>
+                    {order.reservationId && (
+                        <div className="meta-row">
+                            <span className="muted">Reservation</span>
+                            <span>#{order.reservationId}</span>
+                        </div>
+                    )}
                     <div className="meta-row">
                         <span className="muted">Created</span>
                         <span>{new Date(order.createdAt).toLocaleString()}</span>

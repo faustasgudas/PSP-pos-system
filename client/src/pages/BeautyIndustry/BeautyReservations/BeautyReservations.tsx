@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import "./BeautyReservations.css";
-import { listReservations, updateReservation, cancelReservation, type ReservationSummary } from "../../../frontapi/reservationsApi";
+import {
+    cancelReservation,
+    listReservations,
+    updateReservation,
+    type ReservationSummary,
+} from "../../../frontapi/reservationsApi";
 import { getActiveServices, type CatalogItem } from "../../../frontapi/catalogApi";
 import { fetchEmployees } from "../../../frontapi/employeesApi";
 import { getUserFromToken } from "../../../utils/auth";
@@ -150,6 +155,7 @@ export default function BeautyReservations({
             setError(e?.message || "Update failed");
         }
     };
+
 
     return (
         <div className="reservations-container">

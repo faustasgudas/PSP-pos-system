@@ -95,14 +95,17 @@ export type MoveOrderLinesRequest = {
  * Creates an empty order.
  * Backend requires employeeId in body.
  */
-export async function createOrder(employeeId: number) {
+export async function createOrder(
+    employeeId: number,
+    opts?: { reservationId?: number | null; tableOrArea?: string | null }
+): Promise<OrderDetail> {
     const res = await fetch(`${API_URL}/orders`, {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({
             employeeId,
-            reservationId: null,
-            tableOrArea: null,
+            reservationId: opts?.reservationId ?? null,
+            tableOrArea: opts?.tableOrArea ?? null,
         }),
     });
 
@@ -194,6 +197,16 @@ export async function closeOrder(orderId: number): Promise<OrderDetail> {
 
 export async function cancelOrder(orderId: number, employeeId: number, reason?: string): Promise<OrderDetail> {
     const res = await fetch(`${API_URL}/orders/${orderId}/cancel`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ employeeId, reason: reason ?? null }),
+    });
+    if (!res.ok) throw new Error(await readErrorMessage(res));
+    return res.json();
+}
+
+export async function refundOrder(orderId: number, employeeId: number, reason?: string): Promise<OrderDetail> {
+    const res = await fetch(`${API_URL}/orders/${orderId}/refund`, {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({ employeeId, reason: reason ?? null }),

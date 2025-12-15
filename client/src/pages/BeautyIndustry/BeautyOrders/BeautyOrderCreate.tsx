@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { getActiveServices, type CatalogItem } from "../../../frontapi/catalogApi";
 import { addOrderLine, createOrder } from "../../../frontapi/orderApi";
+import { listReservations, type ReservationSummary } from "../../../frontapi/reservationsApi";
+import { fetchEmployees } from "../../../frontapi/employeesApi";
 
 import "../../../App.css";
 import "./BeautyOrderCreate.css";
@@ -30,6 +32,11 @@ export default function BeautyOrderCreate({
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    const [reservationsLoading, setReservationsLoading] = useState(true);
+    const [reservations, setReservations] = useState<ReservationSummary[]>([]);
+    const [employees, setEmployees] = useState<any[]>([]);
+    const [selectedReservationId, setSelectedReservationId] = useState<string>("");
+
     /* ---------------- LOAD SERVICES ---------------- */
     useEffect(() => {
         if (!businessId) return;
@@ -42,6 +49,62 @@ export default function BeautyOrderCreate({
             })
             .finally(() => setLoading(false));
     }, [businessId]);
+
+    useEffect(() => {
+        if (!businessId) return;
+
+        setReservationsLoading(true);
+        setError(null);
+
+        const now = new Date();
+        const from = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        const to = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+        Promise.all([
+            listReservations(businessId, {
+                status: "Booked",
+                dateFrom: from.toISOString(),
+                dateTo: to.toISOString(),
+            }),
+            fetchEmployees(businessId),
+        ])
+            .then(([resList, empList]) => {
+                setReservations(Array.isArray(resList) ? resList : []);
+                setEmployees(Array.isArray(empList) ? empList : []);
+            })
+            .catch((e) => {
+                console.error(e);
+                setReservations([]);
+                // keep UI usable for walk-in orders even if reservations fail
+            })
+            .finally(() => setReservationsLoading(false));
+    }, [businessId]);
+
+    // If user picks a reservation, prefill its service line (qty=1) if not present yet.
+    useEffect(() => {
+        const rid = selectedReservationId ? Number(selectedReservationId) : null;
+        if (!rid) return;
+
+        const r = reservations.find((x) => x.reservationId === rid);
+        if (!r) return;
+
+        const svc = services.find((s) => s.catalogItemId === r.catalogItemId);
+        if (!svc) return;
+
+        setLines((prev) => {
+            const existing = prev.find((l) => l.serviceId === svc.catalogItemId);
+            if (existing) return prev;
+            return [
+                {
+                    serviceId: svc.catalogItemId,
+                    name: svc.name,
+                    price: svc.basePrice,
+                    quantity: 1,
+                },
+                ...prev,
+            ];
+        });
+    }, [selectedReservationId, reservations, services]);
 
     /* ---------------- ADD SERVICE ---------------- */
     const addService = (service: CatalogItem) => {
@@ -111,7 +174,12 @@ export default function BeautyOrderCreate({
             setSaving(true);
             setError(null);
 
-            const order = await createOrder(employeeId);
+            const rid = selectedReservationId ? Number(selectedReservationId) : null;
+            if (selectedReservationId && (!Number.isFinite(rid) || !rid || rid <= 0)) {
+                throw new Error("Invalid reservation selection");
+            }
+
+            const order = await createOrder(employeeId, { reservationId: rid });
             const orderId = Number(order?.orderId);
             if (!orderId) throw new Error("Backend returned invalid orderId");
 
@@ -142,7 +210,7 @@ export default function BeautyOrderCreate({
     return (
         <div className="page order-create">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-                <h2 style={{ margin: 0 }}>New Walk-in Order</h2>
+                <h2 style={{ margin: 0 }}>New Order</h2>
                 <button className="btn" onClick={goBack} disabled={saving}>
                     ← Back
                 </button>
@@ -161,6 +229,46 @@ export default function BeautyOrderCreate({
                     {error}
                 </div>
             )}
+
+            <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                <select
+                    className="dropdown"
+                    value={selectedReservationId}
+                    onChange={(e) => setSelectedReservationId(e.target.value)}
+                    disabled={saving || reservationsLoading}
+                    style={{ maxWidth: 420 }}
+                    title="Optional: link order to an existing reservation"
+                >
+                    <option value="">No reservation (walk-in)</option>
+                    {reservationsLoading && <option value="">Loading reservations…</option>}
+                    {!reservationsLoading &&
+                        reservations
+                            .slice()
+                            .sort(
+                                (a, b) =>
+                                    new Date(a.appointmentStart).getTime() -
+                                    new Date(b.appointmentStart).getTime()
+                            )
+                            .map((r) => {
+                                const svcName =
+                                    services.find((s) => s.catalogItemId === r.catalogItemId)?.name ??
+                                    `Service ${r.catalogItemId}`;
+                                const empName =
+                                    employees.find((e: any) => Number(e.employeeId ?? e.id) === r.employeeId)?.name ??
+                                    `Employee ${r.employeeId}`;
+
+                                return (
+                                    <option key={r.reservationId} value={r.reservationId}>
+                                        {new Date(r.appointmentStart).toLocaleString()} — {svcName} ({empName})
+                                    </option>
+                                );
+                            })}
+                </select>
+
+                <div className="muted">
+                    Pick a reservation to link it; we’ll auto-add the reserved service (qty 1).
+                </div>
+            </div>
 
             {/* SERVICES */}
             <div className="service-grid">

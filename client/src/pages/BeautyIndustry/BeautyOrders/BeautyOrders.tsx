@@ -18,9 +18,10 @@ export default function BeautyOrders(props: {
 }) {
     const user = getUserFromToken();
     const role = user?.role ?? "";
+    const employeeId = Number(localStorage.getItem("employeeId"));
 
     const [scope, setScope] = useState<OrdersScope>("mine");
-    const [statusFilter, setStatusFilter] = useState<string>("Open");
+    const [statusFilter, setStatusFilter] = useState<string>("");
     const [queryId, setQueryId] = useState<string>("");
 
     const [loading, setLoading] = useState(true);
@@ -38,10 +39,21 @@ export default function BeautyOrders(props: {
         setLoading(true);
         setError(null);
         try {
-            const data =
-                scope === "all"
-                    ? await listAllOrders({ status: statusFilter || undefined })
-                    : await listMyOrders();
+            let data: OrderSummary[] = [];
+
+            if (scope === "all") {
+                data = await listAllOrders({ status: statusFilter || undefined });
+            } else {
+                // Backend /orders/mine intentionally returns only OPEN orders.
+                // For managers/owners, emulate "mine" for other statuses using listAllOrders + filter by employeeId.
+                if (canListAll && employeeId) {
+                    const all = await listAllOrders({ status: statusFilter || undefined });
+                    data = (Array.isArray(all) ? all : []).filter((o) => o.employeeId === employeeId);
+                } else {
+                    data = await listMyOrders();
+                }
+            }
+
             setOrders(Array.isArray(data) ? data : []);
         } catch (e: any) {
             setError(e?.message || "Failed to load orders");
@@ -65,9 +77,11 @@ export default function BeautyOrders(props: {
     const filtered = useMemo(() => {
         let data = orders;
 
-        // For "mine" view, offer lightweight client filter by status.
-        if (scope === "mine" && statusFilter) {
-            data = data.filter((o) => o.status === statusFilter);
+        // Client-side filter (case-insensitive). For managers/owners scope=mine this is redundant,
+        // but helpful for staff (mine endpoint is Open-only anyway).
+        if (statusFilter) {
+            const sf = statusFilter.toLowerCase();
+            data = data.filter((o) => String(o.status).toLowerCase() === sf);
         }
 
         return [...data].sort(
@@ -139,6 +153,11 @@ export default function BeautyOrders(props: {
                         <option value="Closed">Closed</option>
                         <option value="Cancelled">Cancelled</option>
                     </select>
+                    {scope === "mine" && !canListAll && (
+                        <div className="muted" style={{ marginTop: 6 }}>
+                            Note: “My orders” endpoint shows only <strong>Open</strong> orders for staff.
+                        </div>
+                    )}
                 </div>
 
                 <div className="control-group">
