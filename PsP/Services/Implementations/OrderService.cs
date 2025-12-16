@@ -740,14 +740,55 @@ public class OrdersService : IOrdersService
         order.Status = "Open";
         order.ClosedAt = null;
 
-        await _db.SaveChangesAsync(ct);
+       
 
         var lines = await _db.OrderLines
+            .Where(l => l.OrderId == orderId && l.BusinessId == businessId)
+            .ToListAsync(ct);
+
+        foreach (var line in lines)
+        {
+            var item = await _db.CatalogItems
+                           .AsNoTracking()
+                           .FirstOrDefaultAsync(
+                               ci => ci.BusinessId == businessId && ci.CatalogItemId == line.CatalogItemId, ct)
+                       ?? throw new InvalidOperationException("Catalog item not found in this business.");
+            
+            // Only return stock for products, not services
+            if (string.Equals(item.Type, "Product", StringComparison.OrdinalIgnoreCase))
+            {
+                var stockItem = await _db.StockItems
+                    .FirstOrDefaultAsync(s => s.CatalogItemId == line.CatalogItemId, ct);
+                
+                if (stockItem != null)
+                {
+                    await _stockMovement.CreateAsync(
+                        businessId,
+                        stockItem.StockItemId,
+                        callerEmployeeId,
+                        new CreateStockMovementRequest
+                        {
+                            Type = "Sale",
+                            Delta = line.Qty,
+                            OrderLineId = line.OrderLineId
+                        },
+                        ct
+                    );
+                }
+            }
+        }
+        
+        order.ApplyRefund();
+        
+        await _db.SaveChangesAsync(ct);
+
+        var lines_t = await _db.OrderLines
             .AsNoTracking()
             .Where(l => l.BusinessId == businessId && l.OrderId == orderId)
             .ToListAsync(ct);
-
-        return order.ToDetailResponse(lines);
+        
+        
+        return order.ToDetailResponse(lines_t);
     }
 
     

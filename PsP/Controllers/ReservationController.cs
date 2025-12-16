@@ -8,7 +8,7 @@ namespace PsP.Controllers;
 
 [ApiController]
 [Route("api/businesses/{businessId:int}/reservations")]
-[Authorize]
+[Authorize(Roles = "Owner,Manager,Staff")]
 public class ReservationsController : ControllerBase
 {
     private readonly IReservationService _reservations;
