@@ -110,4 +110,13 @@ export async function deleteDiscount(discountId: number): Promise<void> {
     if (!res.ok) throw new Error(await readErrorMessage(res));
 }
 
+export async function addEligibility(discountId: number, catalogItemId: number) {
+    const res = await fetch(`${API_URL}/discounts/${discountId}/eligibilities`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ catalogItemId }),
+    });
+    if (!res.ok) throw new Error(await readErrorMessage(res));
+    return res.json();
+}
 
