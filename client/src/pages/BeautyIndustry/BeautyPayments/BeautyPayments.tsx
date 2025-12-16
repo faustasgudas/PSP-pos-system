@@ -116,49 +116,72 @@ export default function BeautyPayments() {
                 </div>
             )}
 
-            <div className="payments-list">
-                {loading ? (
+            <div className="payments-table-wrap">
+                <table className="payments-table">
+                    <thead>
+                        <tr>
+                            <th>Payment</th>
+                            <th>Order</th>
+                            <th>Method</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Completed</th>
+                            <th className="right">Amount</th>
+                            <th className="right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {loading && (
+                            <tr>
+                                <td colSpan={8}>
                     <div className="no-payments">Loading payments…</div>
-                ) : filtered.length > 0 ? (
-                    filtered.map((p) => (
-                        <div key={p.paymentId} className="payment-card">
-                            <div className="payment-main">
-                                <div className="payment-amount">
-                                    {formatMoney(p.amountCents, p.currency)}
-                                </div>
-                                <div className="payment-status">{p.status}</div>
-                            </div>
+                                </td>
+                            </tr>
+                        )}
 
-                            <div className="payment-details">
-                                <div>Order #{p.orderId}</div>
-                                <div>Method: {p.method}</div>
-                                <div className="muted">
-                                    Created: {new Date(p.createdAt).toLocaleString()}
-                                </div>
-                                {p.completedAt && (
-                                    <div className="muted">
-                                        Completed: {new Date(p.completedAt).toLocaleString()}
-                                    </div>
-                                )}
-                            </div>
+                        {!loading && filtered.length === 0 && (
+                            <tr>
+                                <td colSpan={8}>
+                                    <div className="no-payments">No payments found</div>
+                                </td>
+                            </tr>
+                        )}
 
-                            {canRefund && (
-                                <div style={{ marginTop: 10 }}>
+                        {!loading &&
+                            filtered.map((p) => {
+                                const statusLower = String(p.status || "").toLowerCase();
+                                return (
+                                    <tr key={p.paymentId} className="payments-row">
+                                        <td className="name-cell">#{p.paymentId}</td>
+                                        <td className="muted">#{p.orderId}</td>
+                                        <td className="muted">{p.method}</td>
+                                        <td>
+                                            <span className={`payment-status-badge status-${statusLower}`}>{p.status}</span>
+                                        </td>
+                                        <td className="muted">{new Date(p.createdAt).toLocaleString()}</td>
+                                        <td className="muted">{p.completedAt ? new Date(p.completedAt).toLocaleString() : "—"}</td>
+                                        <td className="right" style={{ fontWeight: 700 }}>
+                                            {formatMoney(p.amountCents, p.currency)}
+                                        </td>
+                                        <td className="right">
+                                            {canRefund ? (
                                     <button
-                                        className="btn"
+                                                    className="btn btn-sm"
                                         disabled={busyRefundId === p.paymentId || p.status !== "Success"}
                                         onClick={() => doRefund(p)}
                                         title={p.status !== "Success" ? "Only Success payments can be refunded" : ""}
                                     >
                                         {busyRefundId === p.paymentId ? "Refunding…" : "Refund"}
                                     </button>
-                                </div>
-                            )}
-                        </div>
-                    ))
                 ) : (
-                    <div className="no-payments">No payments found</div>
+                                                <span className="muted">—</span>
                 )}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                    </tbody>
+                </table>
             </div>
         </div>
     );

@@ -187,59 +187,113 @@ export default function BeautyServices() {
 
             {/* ACTIVE */}
             <h3>Active Services</h3>
-            <div className="services-grid">
-                {activeServices.map(service => (
-                    <div key={service.catalogItemId} className="service-card">
-                        <div className="service-name">{service.name}</div>
-                        <div className="service-price">€{service.basePrice}</div>
-
-                        {(role === "Owner" || role === "Manager") && (
-                            <div className="card-actions">
-                                <button
-                                    className="btn"
-                                    onClick={() => {
-                                        setShowEditModal(service);
-                                        setName(service.name);
-                                        setCode(service.code);
-                                        setPrice(String(service.basePrice));
-                                        setTaxClass(service.taxClass || "STANDARD");
-                                        setDurationMin(String(service.defaultDurationMin ?? 30));
-                                    }}
-                                >
-                                    ✏️ Edit
-                                </button>
-                                <button
-                                    className="btn btn-danger"
-                                    onClick={() => handleDeactivate(service.catalogItemId)}
-                                >
-                                    Deactivate
-                                </button>
-                            </div>
+            <div className="services-table-wrap">
+                <table className="services-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Code</th>
+                            <th className="right">Price</th>
+                            <th>Tax Class</th>
+                            <th className="right">Duration</th>
+                            <th className="right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {activeServices.length === 0 ? (
+                            <tr>
+                                <td colSpan={6}>
+                                    <span className="muted">No active services</span>
+                                </td>
+                            </tr>
+                        ) : (
+                            activeServices.map((service) => (
+                                <tr key={service.catalogItemId} className="services-row">
+                                    <td style={{ fontWeight: 700 }}>{service.name}</td>
+                                    <td className="muted" style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace" }}>
+                                        {service.code}
+                                    </td>
+                                    <td className="right">€{service.basePrice}</td>
+                                    <td className="muted">{service.taxClass || "STANDARD"}</td>
+                                    <td className="right">{service.defaultDurationMin ?? 30} min</td>
+                                    <td className="right">
+                                        {(role === "Owner" || role === "Manager") ? (
+                                            <div className="actions-cell" style={{ justifyContent: "flex-end" }}>
+                                                <button
+                                                    className="btn btn-sm"
+                                                    onClick={() => {
+                                                        setShowEditModal(service);
+                                                        setName(service.name);
+                                                        setCode(service.code);
+                                                        setPrice(String(service.basePrice));
+                                                        setTaxClass(service.taxClass || "STANDARD");
+                                                        setDurationMin(String(service.defaultDurationMin ?? 30));
+                                                    }}
+                                                >
+                                                    ✏️ Edit
+                                                </button>
+                                                <button className="btn btn-sm btn-danger" onClick={() => handleDeactivate(service.catalogItemId)}>
+                                                    Deactivate
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <span className="muted">—</span>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))
                         )}
-                    </div>
-                ))}
+                    </tbody>
+                </table>
             </div>
 
             <hr className="services-divider" />
 
             {/* ARCHIVED */}
             <h3 className="muted">Deactivated Services</h3>
-            <div className="services-grid archived">
-                {archivedServices.map(service => (
-                    <div key={service.catalogItemId} className="service-card archived">
-                        <div className="service-name">{service.name}</div>
-                        <div className="service-price">€{service.basePrice}</div>
-
-                        {(role === "Owner" || role === "Manager") && (
-                            <button
-                                className="btn btn-success"
-                                onClick={() => handleReactivate(service.catalogItemId)}
-                            >
-                                ♻️ Reactivate
-                            </button>
+            <div className="services-table-wrap">
+                <table className="services-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Code</th>
+                            <th className="right">Price</th>
+                            <th>Tax Class</th>
+                            <th className="right">Duration</th>
+                            <th className="right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {archivedServices.length === 0 ? (
+                            <tr>
+                                <td colSpan={6}>
+                                    <span className="muted">No deactivated services</span>
+                                </td>
+                            </tr>
+                        ) : (
+                            archivedServices.map((service) => (
+                                <tr key={service.catalogItemId} className="services-row">
+                                    <td style={{ fontWeight: 700 }}>{service.name}</td>
+                                    <td className="muted" style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace" }}>
+                                        {service.code}
+                                    </td>
+                                    <td className="right">€{service.basePrice}</td>
+                                    <td className="muted">{service.taxClass || "STANDARD"}</td>
+                                    <td className="right">{service.defaultDurationMin ?? 30} min</td>
+                                    <td className="right">
+                                        {(role === "Owner" || role === "Manager") ? (
+                                            <button className="btn btn-sm btn-success" onClick={() => handleReactivate(service.catalogItemId)}>
+                                                ♻️ Reactivate
+                                            </button>
+                                        ) : (
+                                            <span className="muted">—</span>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))
                         )}
-                    </div>
-                ))}
+                    </tbody>
+                </table>
             </div>
 
             {/* ADD MODAL */}

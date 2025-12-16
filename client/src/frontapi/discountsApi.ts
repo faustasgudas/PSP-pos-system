@@ -54,6 +54,16 @@ export type DiscountEligibility = {
     catalogItemId: number;
 };
 
+export type CatalogItemSummary = {
+    catalogItemId: number;
+    name: string;
+    code: string;
+    type: string;
+    status: string;
+    basePrice: number;
+    taxClass: string;
+};
+
 export type DiscountDetail = DiscountSummary & {
     eligibilities: DiscountEligibility[];
 };
@@ -116,6 +126,26 @@ export async function addEligibility(discountId: number, catalogItemId: number) 
         headers: authHeaders(),
         body: JSON.stringify({ catalogItemId }),
     });
+    if (!res.ok) throw new Error(await readErrorMessage(res));
+    return res.json();
+}
+
+export async function removeEligibility(discountId: number, catalogItemId: number): Promise<void> {
+    const res = await fetch(`${API_URL}/discounts/${discountId}/eligibilities/${catalogItemId}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+    });
+    if (!res.ok) throw new Error(await readErrorMessage(res));
+}
+
+export async function listEligibilities(discountId: number): Promise<DiscountEligibility[]> {
+    const res = await fetch(`${API_URL}/discounts/${discountId}/eligibilities`, { headers: authHeaders() });
+    if (!res.ok) throw new Error(await readErrorMessage(res));
+    return res.json();
+}
+
+export async function listEligibleItems(discountId: number): Promise<CatalogItemSummary[]> {
+    const res = await fetch(`${API_URL}/discounts/${discountId}/eligible-items`, { headers: authHeaders() });
     if (!res.ok) throw new Error(await readErrorMessage(res));
     return res.json();
 }

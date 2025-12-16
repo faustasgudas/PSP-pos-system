@@ -303,3 +303,43 @@
 .modal-actions .btn-success {
     padding: 12px 28px;
 }
+
+/* ========================= */
+/* ✅ Discount eligibilities  */
+/* ========================= */
+
+.elig-list {
+    margin-top: 8px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    background: #fff;
+    max-height: 320px;
+    overflow: auto;
+    padding: 8px;
+    display: grid;
+    gap: 6px;
+}
+
+.elig-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.elig-item:hover {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.elig-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+}
+
+.elig-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1f2937;
+}

@@ -67,6 +67,7 @@
     align-items: center;
     z-index: 1000;
     padding: 24px;
+    overflow: auto; /* allow wheel scroll when modal is taller than viewport */
     animation: modalOverlayFade 200ms ease-out;
 }
 
@@ -89,6 +90,54 @@
         0 16px 48px rgba(2, 48, 71, 0.15),
         0 0 0 1px rgba(2, 48, 71, 0.08);
     animation: modalCardSlide 250ms ease-out;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+}
+
+/* ===== Table (Employees-style) ===== */
+.services-table-wrap {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 12px;
+}
+
+.services-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.services-table thead th {
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6b7280;
+    background: #f9fafb;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.services-table tbody td {
+    padding: 14px 16px;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 14px;
+    color: #1f2937;
+    vertical-align: middle;
+}
+
+.services-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.services-row:hover td {
+    background: #f9fafb;
+}
+
+.right {
+    text-align: right;
 }
 
 @keyframes modalCardSlide {

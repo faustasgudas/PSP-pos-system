@@ -3,49 +3,37 @@ import "../../../App.css";
 import "./CateringDashboard.css";
 import { getUserFromToken } from "../../../utils/auth"
 
-import CateringEmployees from "../CateringEmployees/CateringEmployees";
-import CateringGiftCards from "../CateringGiftCards/CateringGiftCards";
-import CateringInventory from "../CateringInventory/CateringInventory";
-import CateringPayments from "../CateringPayments/CateringPayments";
-import CateringProducts from "../CateringProducts/CateringProducts";
-import CateringReservations from "../CateringReservations/CateringReservations";
+import BeautyEmployees from "../../BeautyIndustry/BeautyEmployees/BeautyEmployees";
+import BeautyInventory from "../../BeautyIndustry/BeautyInventory/BeautyInventory";
+import BeautyPayments from "../../BeautyIndustry/BeautyPayments/BeautyPayments";
+import BeautyGiftCards from "../../BeautyIndustry/BeautyGiftCards/BeautyGiftCards";
+import BeautyDiscounts from "../../BeautyIndustry/BeautyDiscounts/BeautyDiscounts";
 import CateringSettings from "../CateringSettings/CateringSettings";
 import CateringTables from "../CateringTables/CateringTables";
 import CateringOrders from "../CateringOrders/CateringOrders";
 import CateringOrderCreate from "../CateringOrders/CateringOrderCreate";
 import CateringOrderDetails from "../CateringOrders/CateringOrderDetails";
-import CateringNewReservation from "../CateringReservations/CateringNewReservation";
-import CateringCatalogItems from "../CateringCatalogItems/CateringCatalogItems";
+import CateringProducts from "../CateringProducts/CateringProducts";
+import CateringStockMovements from "../CateringStockMovements/CateringStockMovements";
+import BeautyOrderPayment from "../../BeautyIndustry/BeautyOrders/BeautyOrderPayment";
 
 type Screen =
     | "dashboard"
-    | "gift-cards"
     | "inventory"
     | "payments"
+    | "gift-cards"
+    | "discounts"
     | "products"
-    | "catalog"
-    | "reservations"
-    | "reservation-create"
+    | "stock-movements"
     | "orders"
     | "order-create"
     | "order-detail"
+    | "order-payment"
     | "employees"
     | "settings"
     | "tables";
 
-type DashboardTab = "upcoming" | "payments";
-
-interface Reservation {
-    id: number;
-    customerName: string;
-    customerPhone: string;
-    customerEmail: string;
-    reservationStart: string;
-    reservationEnd: string;
-    status: string;
-    employeeId: number;
-    notes?: string;
-}
+type DashboardTab = "payments";
 
 interface Payment {
     id: number;
@@ -90,11 +78,10 @@ interface GiftCard {
 
 function CateringMain(){
     const [activeScreen, setActiveScreen] = useState<Screen>("dashboard");
-    const [activeTab, setActiveTab] = useState<DashboardTab>("upcoming");
+    const [activeTab, setActiveTab] = useState<DashboardTab>("payments");
     const [activeOrderId, setActiveOrderId] = useState<number | null>(null);
     
     // data arrays (empty)
-    const [reservations] = useState<Reservation[]>([]);
     const [payments] = useState<Payment[]>([]);
     const [products] = useState<Product[]>([]);
     const [tables] = useState<Table[]>([]);
@@ -108,26 +95,31 @@ function CateringMain(){
     const activeEmployees = employees.filter(employee => employee.status = "Active").length;
     const lowStockItems = stockItems.filter(item => item.qtyOnHand < 5).length;
     
-    const upcomingReservations = reservations
-        .filter(r => new Date(r.reservationStart) > new Date())
-        .slice(0, 5);
-    
     const recentPayments = payments.slice(0, 5);
     
     const user = getUserFromToken();
+    const role = user?.role ?? "";
+
+    const handleLogout = () => {
+        localStorage.clear();
+        window.location.reload();
+    };
     
     return(
-        <div className="content-box">
+        <div className="content-box beauty-shell">
             {/* Top Bar */}
             <div className="top-bar">
-                <h1 className="title">SuperApp</h1>
+                <div className="top-left">
+                    <h1 className="title">SuperApp</h1>
+                    <button className="logout-btn" onClick={handleLogout}>
+                        🚪 Log out
+                    </button>
+                </div>
+
                 <div className="user-info">
                     {user ? `${user.email} (${user.role})` : ""}
-                    <button 
-                        className="nav-btn"
-                        onClick={() => setActiveScreen("settings")}
-                    >
-                        <span>⚙️</span> Settings
+                    <button className="nav-btn" onClick={() => setActiveScreen("settings")}>
+                        ⚙️ Settings
                     </button>
                 </div>
             </div>
@@ -141,19 +133,14 @@ function CateringMain(){
                     <span>📊</span> Dashboard
                 </button>
                 
-                <button
-                    className={`nav-btn ${activeScreen === "reservations" ? "active" : ""}`}
-                    onClick={() => setActiveScreen("reservations")}
-                >
-                    <span>📅</span> Reservations
-                </button>
-
-                <button
-                    className={`nav-btn ${activeScreen === "employees" ? "active" : ""}`}
-                    onClick={() => setActiveScreen("employees")}
-                >
-                    <span>👥</span> Employees
-                </button>
+                {role !== "Staff" && (
+                    <button
+                        className={`nav-btn ${activeScreen === "employees" ? "active" : ""}`}
+                        onClick={() => setActiveScreen("employees")}
+                    >
+                        <span>👥</span> Employees
+                    </button>
+                )}
 
                 <button
                     className={`nav-btn ${activeScreen === "tables" ? "active" : ""}`}
@@ -167,13 +154,6 @@ function CateringMain(){
                     onClick={() => setActiveScreen("products")}
                 >
                     <span>📋</span> Products
-                </button>
-
-                <button
-                    className={`nav-btn ${activeScreen === "catalog" ? "active" : ""}`}
-                    onClick={() => setActiveScreen("catalog")}
-                >
-                    <span>🗂️</span> Catalog
                 </button>
 
                 <button
@@ -203,6 +183,22 @@ function CateringMain(){
                 >
                     <span>🎁</span> Gift Cards
                 </button>
+
+                <button
+                    className={`nav-btn ${activeScreen === "stock-movements" ? "active" : ""}`}
+                    onClick={() => setActiveScreen("stock-movements")}
+                >
+                    <span>📈</span> Stock Movements
+                </button>
+
+                {role !== "Staff" && (
+                    <button
+                        className={`nav-btn ${activeScreen === "discounts" ? "active" : ""}`}
+                        onClick={() => setActiveScreen("discounts")}
+                    >
+                        <span>🏷️</span> Discounts
+                    </button>
+                )}
             </div>
 
             {/* Screen Switch */}
@@ -213,12 +209,6 @@ function CateringMain(){
                         <div className="action-bar">
                             <h2 className="section-title">Today's Overview</h2>
                             <div className="action-buttons">
-                                <button 
-                                    className="btn btn-primary"
-                                    onClick={() => setActiveScreen("reservation-create")}
-                                >
-                                    <span>➕</span> New Reservation
-                                </button>
                                 <button 
                                     className="btn btn-primary"
                                     onClick={() => setActiveScreen("order-create")}
@@ -245,7 +235,7 @@ function CateringMain(){
                             </div>
                             <div 
                                 className="stat-card"
-                                onClick={() => setActiveScreen("employees")}
+                                onClick={() => (role !== "Staff" ? setActiveScreen("employees") : setActiveScreen("dashboard"))}
                             >
                                 <div className="stat-number" id="active-employees">{activeEmployees}</div>
                                 <div className="stat-label">Active Employees</div>
@@ -260,42 +250,10 @@ function CateringMain(){
                         </div>
                         
                         <div className="tabs">
-                            <button
-                                className={`tab ${activeTab === "upcoming" ? "active" : ""}`}
-                                onClick={() => setActiveTab("upcoming")}
-                            >
-                                Upcoming Reservations
-                            </button>
-                            <button
-                                className={`tab ${activeTab === "payments" ? "active" : ""}`}
-                                onClick={() => setActiveTab("payments")}
-                            >
+                            <button className="tab active" onClick={() => setActiveTab("payments")}>
                                 Recent Payments
                             </button>
                         </div>
-                        {activeTab === "upcoming" && (
-                            <div className="reservation-list">
-                                {upcomingReservations.length > 0 ? (
-                                    upcomingReservations.map(b => (
-                                        <div key={b.id} className="reservation-item">
-                                            <div className="reservation-details">
-                                                <div className="detail-value">
-                                                    {b.customerName}
-                                                </div>
-                                            </div>
-                                        </div>    
-                                    ))
-                                ) : (
-                                    <div className="reservation-item">
-                                        <div className="reservation-details">
-                                            <div className="detail-value">
-                                                No upcoming reservations
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
                         {activeTab === "payments" && (
                             <div className="reservation-list">
                                 {recentPayments.length > 0 ? (
@@ -321,16 +279,6 @@ function CateringMain(){
                         )}
                     </>
                 )}    
-                        
-                {activeScreen === "reservations" && (
-                    <CateringReservations
-                        goToNewReservation={() => setActiveScreen("reservation-create")}
-                    />
-                )}
-
-                {activeScreen === "reservation-create" && (
-                    <CateringNewReservation goBack={() => setActiveScreen("reservations")} />
-                )}
 
                 {activeScreen === "orders" && (
                     <CateringOrders
@@ -356,16 +304,25 @@ function CateringMain(){
                     <CateringOrderDetails
                         orderId={activeOrderId}
                         onBack={() => setActiveScreen("orders")}
+                        onPay={(orderId) => {
+                            setActiveOrderId(orderId);
+                            setActiveScreen("order-payment");
+                        }}
                     />
                 )}
 
-                {activeScreen === "catalog" && <CateringCatalogItems />}
-                {activeScreen === "employees" && (<CateringEmployees employees={employees}/>)}
-                {activeScreen === "tables" && (<CateringTables tables={tables} />)}
-                {activeScreen === "products" && (<CateringProducts products={products} />)}
-                {activeScreen === "inventory" && (<CateringInventory stockItems={stockItems} />)}
-                {activeScreen === "payments" && (<CateringPayments payments={payments} />)}
-                {activeScreen === "gift-cards" && (<CateringGiftCards giftCards={giftCards} />)}
+                {activeScreen === "order-payment" && activeOrderId && (
+                    <BeautyOrderPayment orderId={activeOrderId} onBack={() => setActiveScreen("order-detail")} />
+                )}
+
+                {activeScreen === "employees" && role !== "Staff" && <BeautyEmployees />}
+                {activeScreen === "tables" && <CateringTables />}
+                {activeScreen === "products" && <CateringProducts products={products} />}
+                {activeScreen === "inventory" && <BeautyInventory />}
+                {activeScreen === "payments" && <BeautyPayments />}
+                {activeScreen === "gift-cards" && <BeautyGiftCards />}
+                {activeScreen === "stock-movements" && <CateringStockMovements />}
+                {activeScreen === "discounts" && role !== "Staff" && <BeautyDiscounts />}
                 {activeScreen === "settings" && <CateringSettings />}
             </div>
         </div>

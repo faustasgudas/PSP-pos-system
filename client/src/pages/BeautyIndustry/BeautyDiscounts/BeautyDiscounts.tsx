@@ -6,12 +6,15 @@ import {
     createDiscount,
     deleteDiscount,
     listDiscounts,
+    listEligibilities,
+    removeEligibility,
     type DiscountScope,
     type DiscountSummary,
     type DiscountType,
 } from "../../../frontapi/discountsApi";
 import { getUserFromToken } from "../../../utils/auth";
 import { logout } from "../../../frontapi/authApi";
+import { listCatalogItems, type CatalogItem } from "../../../frontapi/catalogApi";
 
 function toLocalDateTimeInputValue(d: Date) {
     const pad = (n: number) => String(n).padStart(2, "0");
@@ -24,6 +27,7 @@ export default function BeautyDiscounts() {
     const user = getUserFromToken();
     const role = user?.role ?? "";
     const canManage = role === "Owner" || role === "Manager";
+    const businessId = Number(localStorage.getItem("businessId") || 0);
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -45,11 +49,17 @@ export default function BeautyDiscounts() {
     );
     const [status, setStatus] = useState("Active");
 
-    // NEW: eligibility input (only for Line discounts)
-    const [eligCatalogItemId, setEligCatalogItemId] = useState<string>("");
+    // Eligible items (Line discounts)
+    const [catalog, setCatalog] = useState<CatalogItem[]>([]);
+    const [catalogLoading, setCatalogLoading] = useState(false);
+    const [catalogQuery, setCatalogQuery] = useState("");
+    const [createEligibleIds, setCreateEligibleIds] = useState<number[]>([]);
 
     // Manage modal (selected item)
     const [selected, setSelected] = useState<DiscountSummary | null>(null);
+    const [manageEligibleIds, setManageEligibleIds] = useState<Set<number>>(new Set());
+    const [manageQuery, setManageQuery] = useState("");
+    const [manageLoading, setManageLoading] = useState(false);
 
     const authProblem =
         (error ?? "").toLowerCase().includes("unauthorized") ||
@@ -91,9 +101,22 @@ export default function BeautyDiscounts() {
         setStartsAt(toLocalDateTimeInputValue(new Date()));
         setEndsAt(toLocalDateTimeInputValue(new Date(Date.now() + 1000 * 60 * 60 * 24 * 365)));
         setStatus("Active");
-        setEligCatalogItemId("");
+        setCatalogQuery("");
+        setCreateEligibleIds([]);
         setError(null);
         setShowCreate(true);
+    };
+
+    const ensureCatalogLoaded = async () => {
+        if (!businessId) throw new Error("Missing business context (businessId).");
+        if (catalog.length > 0) return;
+        setCatalogLoading(true);
+        try {
+            const data = await listCatalogItems(businessId, { status: "Active" });
+            setCatalog(Array.isArray(data) ? data : []);
+        } finally {
+            setCatalogLoading(false);
+        }
     };
 
     const doCreate = async () => {
@@ -112,12 +135,10 @@ export default function BeautyDiscounts() {
             if (isNaN(s.getTime()) || isNaN(e.getTime())) throw new Error("Invalid start/end date");
             if (e <= s) throw new Error("EndsAt must be after StartsAt");
 
-            // If Line -> eligibility is required
-            let catalogItemIdNum: number | null = null;
+            // If Line -> at least 1 eligible item is required
             if (scope === "Line") {
-                catalogItemIdNum = Number(eligCatalogItemId);
-                if (!catalogItemIdNum || catalogItemIdNum <= 0) {
-                    throw new Error("For Line discount you must provide Eligible Catalog Item ID");
+                if (!createEligibleIds.length) {
+                    throw new Error("For Line discount you must select at least 1 eligible item");
                 }
             }
 
@@ -134,8 +155,10 @@ export default function BeautyDiscounts() {
             });
 
             // 🔥 Create eligibility right after discount creation (only for Line)
-            if (scope === "Line" && catalogItemIdNum) {
-                await addEligibility(created.discountId, catalogItemIdNum);
+            if (scope === "Line" && createEligibleIds.length) {
+                for (const id of createEligibleIds) {
+                    await addEligibility(created.discountId, id);
+                }
             }
 
             setShowCreate(false);
@@ -150,6 +173,45 @@ export default function BeautyDiscounts() {
     const openManage = (d: DiscountSummary) => {
         setSelected(d);
         setError(null);
+        setManageQuery("");
+
+        if (String(d.scope) === "Line") {
+            (async () => {
+                try {
+                    setManageLoading(true);
+                    await ensureCatalogLoaded();
+                    const list = await listEligibilities(d.discountId);
+                    setManageEligibleIds(new Set((list ?? []).map((x) => x.catalogItemId)));
+                } catch (e: any) {
+                    setError(e?.message || "Failed to load eligibilities");
+                } finally {
+                    setManageLoading(false);
+                }
+            })();
+        }
+    };
+
+    const toggleManageEligibility = async (discountId: number, catalogItemId: number, checked: boolean) => {
+        if (!canManage || saving) return;
+        setError(null);
+        try {
+            setSaving(true);
+            if (checked) {
+                await addEligibility(discountId, catalogItemId);
+                setManageEligibleIds((prev) => new Set([...Array.from(prev), catalogItemId]));
+            } else {
+                await removeEligibility(discountId, catalogItemId);
+                setManageEligibleIds((prev) => {
+                    const next = new Set(prev);
+                    next.delete(catalogItemId);
+                    return next;
+                });
+            }
+        } catch (e: any) {
+            setError(e?.message || "Failed to update eligibility");
+        } finally {
+            setSaving(false);
+        }
     };
 
     const doDelete = async (d: DiscountSummary) => {
@@ -319,7 +381,12 @@ export default function BeautyDiscounts() {
                                     onChange={(e) => {
                                         const next = e.target.value as any;
                                         setScope(next);
-                                        if (next !== "Line") setEligCatalogItemId("");
+                                        if (next !== "Line") {
+                                            setCreateEligibleIds([]);
+                                            setCatalogQuery("");
+                                        } else {
+                                            void ensureCatalogLoaded();
+                                        }
                                     }}
                                 >
                                     <option value="Order">Order</option>
@@ -327,16 +394,66 @@ export default function BeautyDiscounts() {
                                 </select>
                             </div>
 
-                            {/* NEW: eligibility only for Line */}
+                            {/* Eligible items only for Line */}
                             {scope === "Line" && (
                                 <div className="modal-field">
-                                    <label>Eligible Catalog Item ID</label>
+                                    <label>Eligible items</label>
+
+                                    <div className="muted" style={{ fontSize: 12 }}>
+                                        Choose which catalog items this Line discount applies to.
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        className="btn btn-secondary"
+                                        onClick={ensureCatalogLoaded}
+                                        disabled={catalogLoading}
+                                        style={{ width: "fit-content" }}
+                                    >
+                                        {catalogLoading ? "Loading items…" : "Load items"}
+                                    </button>
+
                                     <input
-                                        inputMode="numeric"
-                                        value={eligCatalogItemId}
-                                        onChange={(e) => setEligCatalogItemId(e.target.value)}
-                                        placeholder="e.g. 123"
+                                        value={catalogQuery}
+                                        onChange={(e) => setCatalogQuery(e.target.value)}
+                                        placeholder="Search items by name/code…"
                                     />
+
+                                    <div className="elig-list">
+                                        {(catalogQuery.trim()
+                                            ? catalog.filter((c) => {
+                                                  const q = catalogQuery.trim().toLowerCase();
+                                                  return (
+                                                      String(c.status).toLowerCase() === "active" &&
+                                                      (c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q))
+                                                  );
+                                              })
+                                            : catalog.filter((c) => String(c.status).toLowerCase() === "active")
+                                        )
+                                            .slice(0, 120)
+                                            .map((c) => {
+                                                const checked = createEligibleIds.includes(c.catalogItemId);
+                                                return (
+                                                    <label key={c.catalogItemId} className="elig-item">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={checked}
+                                                            onChange={(e) => {
+                                                                const next = e.target.checked;
+                                                                setCreateEligibleIds((prev) =>
+                                                                    next
+                                                                        ? Array.from(new Set([...prev, c.catalogItemId]))
+                                                                        : prev.filter((id) => id !== c.catalogItemId)
+                                                                );
+                                                            }}
+                                                        />
+                                                        <span className="elig-name">
+                                                            {c.name} <span className="muted">({c.type} • {c.code})</span>
+                                                        </span>
+                                                    </label>
+                                                );
+                                            })}
+                                    </div>
                                     <div className="muted" style={{ fontSize: 12 }}>
                                         Line discounts work only for eligible items.
                                     </div>
@@ -430,6 +547,63 @@ export default function BeautyDiscounts() {
                                     readOnly
                                 />
                             </div>
+
+                            {String(selected.scope) === "Line" && (
+                                <div className="modal-field">
+                                    <label>Eligible items</label>
+                                    <div className="muted" style={{ fontSize: 12 }}>
+                                        {canManage
+                                            ? "Select eligible catalog items for this discount."
+                                            : "You can view eligible items, but only managers/owners can edit."}
+                                    </div>
+
+                                    <input
+                                        value={manageQuery}
+                                        onChange={(e) => setManageQuery(e.target.value)}
+                                        placeholder="Search items…"
+                                    />
+
+                                    {manageLoading ? (
+                                        <div className="muted">Loading eligibilities…</div>
+                                    ) : (
+                                        <div className="elig-list">
+                                            {(manageQuery.trim()
+                                                ? catalog.filter((c) => {
+                                                      const q = manageQuery.trim().toLowerCase();
+                                                      return (
+                                                          String(c.status).toLowerCase() === "active" &&
+                                                          (c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q))
+                                                      );
+                                                  })
+                                                : catalog.filter((c) => String(c.status).toLowerCase() === "active")
+                                            )
+                                                .slice(0, 200)
+                                                .map((c) => {
+                                                    const checked = manageEligibleIds.has(c.catalogItemId);
+                                                    return (
+                                                        <label key={c.catalogItemId} className="elig-item">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={checked}
+                                                                disabled={!canManage || saving}
+                                                                onChange={(e) =>
+                                                                    toggleManageEligibility(
+                                                                        selected.discountId,
+                                                                        c.catalogItemId,
+                                                                        e.target.checked
+                                                                    )
+                                                                }
+                                                            />
+                                                            <span className="elig-name">
+                                                                {c.name} <span className="muted">({c.type} • {c.code})</span>
+                                                            </span>
+                                                        </label>
+                                                    );
+                                                })}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         <div className="modal-actions">
