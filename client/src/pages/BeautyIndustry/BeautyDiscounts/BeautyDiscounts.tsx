@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import "../../../App.css";
 import "./BeautyDiscounts.css";
-import { BeautySelect } from "../../../components/ui/BeautySelect";
 import {
+    addEligibility,
     createDiscount,
     deleteDiscount,
     listDiscounts,
@@ -44,6 +44,9 @@ export default function BeautyDiscounts() {
         toLocalDateTimeInputValue(new Date(Date.now() + 1000 * 60 * 60 * 24 * 365))
     );
     const [status, setStatus] = useState("Active");
+
+    // NEW: eligibility input (only for Line discounts)
+    const [eligCatalogItemId, setEligCatalogItemId] = useState<string>("");
 
     // Manage modal (selected item)
     const [selected, setSelected] = useState<DiscountSummary | null>(null);
@@ -88,6 +91,7 @@ export default function BeautyDiscounts() {
         setStartsAt(toLocalDateTimeInputValue(new Date()));
         setEndsAt(toLocalDateTimeInputValue(new Date(Date.now() + 1000 * 60 * 60 * 24 * 365)));
         setStatus("Active");
+        setEligCatalogItemId("");
         setError(null);
         setShowCreate(true);
     };
@@ -108,9 +112,18 @@ export default function BeautyDiscounts() {
             if (isNaN(s.getTime()) || isNaN(e.getTime())) throw new Error("Invalid start/end date");
             if (e <= s) throw new Error("EndsAt must be after StartsAt");
 
+            // If Line -> eligibility is required
+            let catalogItemIdNum: number | null = null;
+            if (scope === "Line") {
+                catalogItemIdNum = Number(eligCatalogItemId);
+                if (!catalogItemIdNum || catalogItemIdNum <= 0) {
+                    throw new Error("For Line discount you must provide Eligible Catalog Item ID");
+                }
+            }
+
             setSaving(true);
 
-            await createDiscount({
+            const created = await createDiscount({
                 code: c,
                 type: type as any,
                 scope: scope as any,
@@ -119,6 +132,11 @@ export default function BeautyDiscounts() {
                 endsAt: e.toISOString(),
                 status: status.trim() || "Active",
             });
+
+            // 🔥 Create eligibility right after discount creation (only for Line)
+            if (scope === "Line" && catalogItemIdNum) {
+                await addEligibility(created.discountId, catalogItemIdNum);
+            }
 
             setShowCreate(false);
             await load();
@@ -166,19 +184,17 @@ export default function BeautyDiscounts() {
                         disabled={loading}
                     />
 
-                    <div style={{ minWidth: 180 }}>
-                        <BeautySelect
-                            value={scopeFilter}
-                            onChange={setScopeFilter}
-                            disabled={loading}
-                            placeholder="All scopes"
-                            options={[
-                                { value: "", label: "All scopes" },
-                                { value: "Order", label: "Order" },
-                                { value: "Line", label: "Line" },
-                            ]}
-                        />
-                    </div>
+                    <select
+                        className="inventory-search"
+                        value={scopeFilter}
+                        onChange={(e) => setScopeFilter(e.target.value)}
+                        disabled={loading}
+                        style={{ minWidth: 180 }}
+                    >
+                        <option value="">All scopes</option>
+                        <option value="Order">Order</option>
+                        <option value="Line">Line</option>
+                    </select>
 
                     <button className="btn btn-ghost" onClick={load} disabled={loading}>
                         {loading ? "Refreshing…" : "Refresh"}
@@ -211,7 +227,6 @@ export default function BeautyDiscounts() {
                 </div>
             )}
 
-            {/* ✅ TABLE */}
             <div className="inventory-table-wrap">
                 <table className="inventory-table">
                     <thead>
@@ -249,22 +264,18 @@ export default function BeautyDiscounts() {
                             return (
                                 <tr key={d.discountId} className="inventory-row">
                                     <td className="beauty-discounts__code">{d.code}</td>
-
                                     <td>
                       <span className={`beauty-discounts__status status-${statusLower}`}>
                         {d.status}
                       </span>
                                     </td>
-
                                     <td className="muted">{d.type}</td>
                                     <td className="muted">{d.scope}</td>
                                     <td className="right">{d.value}</td>
-
                                     <td className="muted">
                                         {new Date(d.startsAt).toLocaleDateString()} →{" "}
                                         {new Date(d.endsAt).toLocaleDateString()}
                                     </td>
-
                                     <td className="right">
                                         <button
                                             className="btn btn-ghost"
@@ -282,7 +293,6 @@ export default function BeautyDiscounts() {
                 </table>
             </div>
 
-            {/* ✅ CREATE MODAL */}
             {showCreate && (
                 <div className="modal-overlay" onClick={() => setShowCreate(false)}>
                     <div className="modal-card" onClick={(e) => e.stopPropagation()}>
@@ -296,27 +306,42 @@ export default function BeautyDiscounts() {
 
                             <div className="modal-field">
                                 <label>Type</label>
-                                <BeautySelect
-                                    value={type}
-                                    onChange={(v) => setType(v as any)}
-                                    options={[
-                                        { value: "Percent", label: "Percent" },
-                                        { value: "Amount", label: "Amount" },
-                                    ]}
-                                />
+                                <select value={type} onChange={(e) => setType(e.target.value as any)}>
+                                    <option value="Percent">Percent</option>
+                                    <option value="Amount">Amount</option>
+                                </select>
                             </div>
 
                             <div className="modal-field">
                                 <label>Scope</label>
-                                <BeautySelect
+                                <select
                                     value={scope}
-                                    onChange={(v) => setScope(v as any)}
-                                    options={[
-                                        { value: "Order", label: "Order" },
-                                        { value: "Line", label: "Line" },
-                                    ]}
-                                />
+                                    onChange={(e) => {
+                                        const next = e.target.value as any;
+                                        setScope(next);
+                                        if (next !== "Line") setEligCatalogItemId("");
+                                    }}
+                                >
+                                    <option value="Order">Order</option>
+                                    <option value="Line">Line</option>
+                                </select>
                             </div>
+
+                            {/* NEW: eligibility only for Line */}
+                            {scope === "Line" && (
+                                <div className="modal-field">
+                                    <label>Eligible Catalog Item ID</label>
+                                    <input
+                                        inputMode="numeric"
+                                        value={eligCatalogItemId}
+                                        onChange={(e) => setEligCatalogItemId(e.target.value)}
+                                        placeholder="e.g. 123"
+                                    />
+                                    <div className="muted" style={{ fontSize: 12 }}>
+                                        Line discounts work only for eligible items.
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="modal-field">
                                 <label>Value</label>
@@ -346,14 +371,10 @@ export default function BeautyDiscounts() {
 
                             <div className="modal-field">
                                 <label>Status</label>
-                                <BeautySelect
-                                    value={status}
-                                    onChange={setStatus}
-                                    options={[
-                                        { value: "Active", label: "Active" },
-                                        { value: "Inactive", label: "Inactive" },
-                                    ]}
-                                />
+                                <select value={status} onChange={(e) => setStatus(e.target.value)}>
+                                    <option value="Active">Active</option>
+                                    <option value="Inactive">Inactive</option>
+                                </select>
                             </div>
                         </div>
 
@@ -369,7 +390,6 @@ export default function BeautyDiscounts() {
                 </div>
             )}
 
-            {/* ✅ MANAGE MODAL (details + delete) */}
             {selected && (
                 <div className="modal-overlay" onClick={() => setSelected(null)}>
                     <div className="modal-card" onClick={(e) => e.stopPropagation()}>
