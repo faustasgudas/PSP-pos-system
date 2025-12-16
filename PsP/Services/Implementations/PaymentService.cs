@@ -1,8 +1,8 @@
+using System.Globalization;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using PsP.Contracts.Payments;
-using PsP.Contracts.Snapshots;
 using PsP.Data;
 using PsP.Models;
 using PsP.Services.Interfaces;
@@ -14,10 +14,8 @@ public class PaymentService : IPaymentService
     private readonly AppDbContext _db;
     private readonly IGiftCardService _giftCards;
     private readonly IStripePaymentService _stripe;
-    public PaymentService(
-        AppDbContext db,
-        IGiftCardService giftCards,
-        IStripePaymentService stripe)
+
+    public PaymentService(AppDbContext db, IGiftCardService giftCards, IStripePaymentService stripe)
     {
         _db = db;
         _giftCards = giftCards;
@@ -34,7 +32,7 @@ public class PaymentService : IPaymentService
         string baseUrl,
         CancellationToken ct = default)
     {
-        // 1) Order + lines (source of truth)
+        // Load order with lines & snapshots
         var order = await _db.Orders
             .Include(o => o.Lines)
                 .ThenInclude(l => l.CatalogItem)
@@ -43,12 +41,10 @@ public class PaymentService : IPaymentService
 
         if (order is null) throw new InvalidOperationException("order_not_found");
         if (order.BusinessId != businessId) throw new InvalidOperationException("wrong_business");
-
         if (!string.Equals(order.Status, "Open", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("order_not_open");
 
-        // 2) totals (server-side)
-        var amountCents = CalculateOrderTotal(order);
+        var amountCents = CalculateOrderTotalCents(order);
         if (amountCents <= 0) throw new InvalidOperationException("invalid_order_total");
 
         var tip = tipCents.GetValueOrDefault(0);
@@ -56,7 +52,6 @@ public class PaymentService : IPaymentService
 
         var totalCents = checked(amountCents + tip);
 
-        // 3) gift card part
         GiftCard? card = null;
         long plannedFromGiftCard = 0;
         long remainingForStripe = totalCents;
@@ -74,17 +69,9 @@ public class PaymentService : IPaymentService
 
             var maxFromCard = Math.Min(card.Balance, totalCents);
 
-            if (giftCardAmountCents.HasValue)
-            {
-                if (giftCardAmountCents.Value <= 0)
-                    throw new ArgumentOutOfRangeException(nameof(giftCardAmountCents));
-
-                plannedFromGiftCard = Math.Min(giftCardAmountCents.Value, maxFromCard);
-            }
-            else
-            {
-                plannedFromGiftCard = maxFromCard;
-            }
+            plannedFromGiftCard = giftCardAmountCents.HasValue
+                ? Math.Min(Math.Max(0, giftCardAmountCents.Value), maxFromCard)
+                : maxFromCard;
 
             remainingForStripe = totalCents - plannedFromGiftCard;
         }
@@ -94,8 +81,7 @@ public class PaymentService : IPaymentService
             plannedFromGiftCard > 0 && remainingForStripe == 0 ? "GiftCard" :
             "GiftCard+Stripe";
 
-        // 4) create Payment row (IsOpen=true => partial unique index enforces one open payment)
-        var p = new Payment
+        var payment = new Payment
         {
             BusinessId = businessId,
             OrderId = orderId,
@@ -113,15 +99,12 @@ public class PaymentService : IPaymentService
             GiftCardPlannedCents = plannedFromGiftCard,
             GiftCardChargedCents = 0,
 
-            InventoryApplied = false,
-            InventoryAppliedAt = null,
-
             CreatedAt = DateTime.UtcNow
         };
 
         try
         {
-            _db.Payments.Add(p);
+            _db.Payments.Add(payment);
             await _db.SaveChangesAsync(ct);
         }
         catch (DbUpdateException ex) when (IsUniqueViolation(ex))
@@ -129,25 +112,28 @@ public class PaymentService : IPaymentService
             throw new InvalidOperationException("payment_already_pending_for_order");
         }
 
-        // 5) Stripe session if needed
+        // If Stripe portion exists -> create checkout session
         if (remainingForStripe > 0)
         {
-            var successUrl = $"{baseUrl}/api/payments/success?sessionId={{CHECKOUT_SESSION_ID}}";
-            var cancelUrl = $"{baseUrl}/api/payments/cancel?sessionId={{CHECKOUT_SESSION_ID}}";
+            // NOTE: rekomenduoju iš config/appsettings (frontend url), bet palieku tavo logiką
+            var clientUrl = "http://localhost:5173";
+
+            var successUrl = $"{clientUrl}/payments/success?sessionId={{CHECKOUT_SESSION_ID}}";
+            var cancelUrl  = $"{clientUrl}/payments/cancel?sessionId={{CHECKOUT_SESSION_ID}}";
 
             var session = _stripe.CreateCheckoutSession(
                 amountCents: remainingForStripe,
-                currency: p.Currency,
+                currency: payment.Currency,
                 successUrl: successUrl,
                 cancelUrl: cancelUrl,
-                paymentId: p.PaymentId
+                paymentId: payment.PaymentId
             );
 
-            p.StripeSessionId = session.Id;
+            payment.StripeSessionId = session.Id;
             await _db.SaveChangesAsync(ct);
 
             return new PaymentResponse(
-                p.PaymentId,
+                payment.PaymentId,
                 plannedFromGiftCard,
                 remainingForStripe,
                 session.Url,
@@ -155,23 +141,22 @@ public class PaymentService : IPaymentService
             );
         }
 
-        // 6) GiftCard only => confirm now
-        await ConfirmGiftCardOnlyAsync(p.PaymentId, ct);
-
-        return new PaymentResponse(p.PaymentId, plannedFromGiftCard, 0, null, null);
+        // GiftCard-only: confirm immediately
+        await ConfirmGiftCardOnlyAsync(payment.PaymentId, ct);
+        return new PaymentResponse(payment.PaymentId, plannedFromGiftCard, 0, null, null);
     }
 
     public async Task ConfirmStripeSuccessAsync(string sessionId, CancellationToken ct = default)
     {
         await using var tx = await _db.Database.BeginTransactionAsync(ct);
 
-        var p = await _db.Payments
-            .FirstOrDefaultAsync(x => x.StripeSessionId == sessionId, ct);
-
+        var p = await _db.Payments.FirstOrDefaultAsync(x => x.StripeSessionId == sessionId, ct);
         if (p is null)
+        {
+            await tx.CommitAsync(ct);
             return;
+        }
 
-        // idempotent
         if (p.Status == "Success")
         {
             await tx.CommitAsync(ct);
@@ -181,7 +166,7 @@ public class PaymentService : IPaymentService
         if (p.Status is "Refunded" or "Cancelled")
             throw new InvalidOperationException("payment_not_confirmable");
 
-        // redeem giftcard inside tx (only once)
+        // Redeem gift card if planned and not yet charged
         if (p.GiftCardId.HasValue && p.GiftCardPlannedCents > 0 && p.GiftCardChargedCents == 0)
         {
             var (charged, _) = await _giftCards.RedeemAsync(
@@ -195,8 +180,6 @@ public class PaymentService : IPaymentService
         p.Status = "Success";
         p.CompletedAt = DateTime.UtcNow;
         p.IsOpen = false;
-
-        await ApplySaleInventoryAsync(p, ct);
 
         var order = await _db.Orders.FirstAsync(o => o.OrderId == p.OrderId, ct);
         order.Status = "Closed";
@@ -225,7 +208,6 @@ public class PaymentService : IPaymentService
         p.Status = "Cancelled";
         p.IsOpen = false;
 
-        // order stays open (no stock changes!)
         var order = await _db.Orders.FirstAsync(o => o.OrderId == p.OrderId, ct);
         order.Status = "Open";
 
@@ -235,8 +217,7 @@ public class PaymentService : IPaymentService
 
     public async Task RefundFullAsync(int paymentId, CancellationToken ct = default)
     {
-        var p = await _db.Payments
-            .FirstOrDefaultAsync(x => x.PaymentId == paymentId, ct)
+        var p = await _db.Payments.FirstOrDefaultAsync(x => x.PaymentId == paymentId, ct)
             ?? throw new InvalidOperationException("payment_not_found");
 
         if (p.Status == "Refunded")
@@ -249,7 +230,7 @@ public class PaymentService : IPaymentService
         if (totalCents <= 0)
             throw new InvalidOperationException("nothing_to_refund");
 
-        // Stripe first (refund only Stripe portion)
+        // Stripe refund first (outside DB tx)
         if (!string.IsNullOrEmpty(p.StripeSessionId))
         {
             var stripePortion = Math.Max(0, totalCents - p.GiftCardChargedCents);
@@ -259,14 +240,12 @@ public class PaymentService : IPaymentService
 
         await using var tx = await _db.Database.BeginTransactionAsync(ct);
 
-        // GiftCard refund for ACTUAL charged
+        // Refund gift card portion
         if (p.GiftCardId.HasValue && p.GiftCardChargedCents > 0)
         {
             var ok = await _giftCards.TopUpAsync(p.GiftCardId.Value, p.GiftCardChargedCents);
             if (!ok) throw new InvalidOperationException("gift_card_refund_failed");
         }
-
-        await ApplyRefundInventoryAsync(p, ct);
 
         p.Status = "Refunded";
         p.RefundedAt = DateTime.UtcNow;
@@ -290,6 +269,8 @@ public class PaymentService : IPaymentService
             .Where(p => p.BusinessId == businessId)
             .OrderByDescending(p => p.CreatedAt)
             .ToListAsync();
+
+    // -------------------- Internals --------------------
 
     private async Task ConfirmGiftCardOnlyAsync(int paymentId, CancellationToken ct)
     {
@@ -321,8 +302,6 @@ public class PaymentService : IPaymentService
         p.CompletedAt = DateTime.UtcNow;
         p.IsOpen = false;
 
-        await ApplySaleInventoryAsync(p, ct);
-
         var order = await _db.Orders.FirstAsync(o => o.OrderId == p.OrderId, ct);
         order.Status = "Closed";
 
@@ -330,7 +309,15 @@ public class PaymentService : IPaymentService
         await tx.CommitAsync(ct);
     }
 
-    private static long CalculateOrderTotal(Order order)
+    private static bool IsUniqueViolation(DbUpdateException ex)
+        => ex.InnerException is PostgresException pg
+           && pg.SqlState == PostgresErrorCodes.UniqueViolation;
+
+    /// <summary>
+    /// Calculates order total in cents. Uses snapshots (unit price + line discount snapshot + order discount snapshot).
+    /// IMPORTANT: line.UnitPriceSnapshot and discount "Amount" must be in same money unit (e.g. EUR).
+    /// </summary>
+    private static long CalculateOrderTotalCents(Order order)
     {
         decimal subtotal = 0m;
 
@@ -340,130 +327,98 @@ public class PaymentService : IPaymentService
                 throw new InvalidOperationException("missing_price_snapshot");
 
             var lineGross = line.UnitPriceSnapshot * line.Qty;
-            var lineNet = ApplyLineDiscount(lineGross, line.UnitDiscountSnapshot);
 
-            if (lineNet < 0)
-                lineNet = 0;
+            var lineNet = ApplyDiscountFromSnapshotJson(
+                amount: lineGross,
+                discountSnapshotJson: line.UnitDiscountSnapshot);
 
+            if (lineNet < 0) lineNet = 0;
             subtotal += lineNet;
         }
 
-        var totalAfterOrderDiscount =
-            ApplyOrderDiscount(subtotal, order.OrderDiscountSnapshot);
+        var total = ApplyDiscountFromSnapshotJson(
+            amount: subtotal,
+            discountSnapshotJson: order.OrderDiscountSnapshot);
 
-        if (totalAfterOrderDiscount < 0)
-            totalAfterOrderDiscount = 0;
+        if (total < 0) total = 0;
 
-        // EUR -> cents
-        return (long)Math.Round(
-            totalAfterOrderDiscount * 100m,
-            MidpointRounding.AwayFromZero);
+        // Convert EUR -> cents
+        return (long)Math.Round(total * 100m, MidpointRounding.AwayFromZero);
     }
 
-
-    private static bool IsUniqueViolation(DbUpdateException ex)
-        => ex.InnerException is PostgresException pg
-           && pg.SqlState == PostgresErrorCodes.UniqueViolation;
-
-    private async Task ApplySaleInventoryAsync(Payment p, CancellationToken ct)
-    {
-        if (p.InventoryApplied)
-            return;
-
-        var order = await _db.Orders
-            .Include(o => o.Lines)
-                .ThenInclude(l => l.CatalogItem)
-            .FirstAsync(o => o.OrderId == p.OrderId, ct);
-
-        foreach (var line in order.Lines)
-        {
-            var item = line.CatalogItem;
-            if (item is null) continue;
-
-            if (!string.Equals(item.Type, "product", StringComparison.OrdinalIgnoreCase))
-                continue;
-
-            var stockItem = await _db.StockItems
-                .FirstOrDefaultAsync(s => s.CatalogItemId == item.CatalogItemId, ct)
-                ?? throw new InvalidOperationException("stock_item_missing");
-
-            
-        }
-
-        p.InventoryApplied = true;
-        p.InventoryAppliedAt = DateTime.UtcNow;
-    }
-
-    private async Task ApplyRefundInventoryAsync(Payment p, CancellationToken ct)
-    {
-        var order = await _db.Orders
-            .Include(o => o.Lines)
-                .ThenInclude(l => l.CatalogItem)
-            .FirstAsync(o => o.OrderId == p.OrderId, ct);
-
-        foreach (var line in order.Lines)
-        {
-            var item = line.CatalogItem;
-            if (item is null) continue;
-
-            if (!string.Equals(item.Type, "product", StringComparison.OrdinalIgnoreCase))
-                continue;
-
-            var stockItem = await _db.StockItems
-                .FirstOrDefaultAsync(s => s.CatalogItemId == item.CatalogItemId, ct)
-                ?? throw new InvalidOperationException("stock_item_missing");
-
-            
-        }
-    }
-    
-    private static decimal ApplyLineDiscount(
-        decimal lineGross,
-        string? discountSnapshotJson)
+    /// <summary>
+    /// Applies discount using snapshot JSON WITHOUT DTO deserialization.
+    /// Handles camelCase/PascalCase by case-insensitive property matching.
+    /// Expected JSON fields: type, value (string/number). type: "Percent"|"Amount".
+    /// </summary>
+    private static decimal ApplyDiscountFromSnapshotJson(decimal amount, string? discountSnapshotJson)
     {
         if (string.IsNullOrWhiteSpace(discountSnapshotJson))
-            return lineGross;
+            return amount;
 
-        var snap = ParseDiscountSnapshot(discountSnapshotJson);
-        if (snap is null)
-            return lineGross;
-
-        return snap.Type switch
-        {
-            "Percent" => lineGross * (1m - snap.Value / 100m),
-            "Amount"  => lineGross - snap.Value,
-            _         => lineGross
-        };
-    }
-
-    private static decimal ApplyOrderDiscount(
-        decimal subtotal,
-        string? discountSnapshotJson)
-    {
-        if (string.IsNullOrWhiteSpace(discountSnapshotJson))
-            return subtotal;
-
-        var snap = ParseDiscountSnapshot(discountSnapshotJson);
-        if (snap is null)
-            return subtotal;
-
-        return snap.Type switch
-        {
-            "Percent" => subtotal * (1m - snap.Value / 100m),
-            "Amount"  => subtotal - snap.Value,
-            _         => subtotal
-        };
-    }
-    private static DiscountSnapshot? ParseDiscountSnapshot(string json)
-    {
         try
         {
-            return JsonSerializer.Deserialize<DiscountSnapshot>(json);
+            using var doc = JsonDocument.Parse(discountSnapshotJson);
+            var root = doc.RootElement;
+
+            var type = GetStringCI(root, "type");
+            var value = GetDecimalCI(root, "value");
+
+            if (string.IsNullOrWhiteSpace(type) || value <= 0m)
+                return amount;
+
+            // normalize type (optional)
+            type = type.Trim();
+
+            return type switch
+            {
+                "Percent" => amount * (1m - (value / 100m)),
+                "Amount"  => amount - value,
+                _         => amount
+            };
         }
         catch
         {
-            return null;
+            // If snapshot is garbage -> ignore discount (fail-safe)
+            return amount;
         }
     }
 
+    private static string? GetStringCI(JsonElement root, string name)
+    {
+        foreach (var p in root.EnumerateObject())
+        {
+            if (string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase))
+            {
+                if (p.Value.ValueKind == JsonValueKind.String)
+                    return p.Value.GetString();
+                return p.Value.ToString();
+            }
+        }
+        return null;
+    }
+
+    private static decimal GetDecimalCI(JsonElement root, string name)
+    {
+        foreach (var p in root.EnumerateObject())
+        {
+            if (!string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            return p.Value.ValueKind switch
+            {
+                JsonValueKind.Number => p.Value.GetDecimal(),
+                JsonValueKind.String => decimal.TryParse(
+                        p.Value.GetString(),
+                        NumberStyles.Any,
+                        CultureInfo.InvariantCulture,
+                        out var d)
+                    ? d
+                    : 0m,
+                _ => 0m
+            };
+        }
+
+        return 0m;
+    }
 }

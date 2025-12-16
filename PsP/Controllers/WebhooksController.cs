@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using PsP.Services.Interfaces;
@@ -24,7 +25,8 @@ public class WebhooksController : ControllerBase
         _stripe = stripe.Value;
         _logger = logger;
     }
-
+    
+    [AllowAnonymous]
     [HttpPost("stripe")]
     public async Task<IActionResult> StripeWebhook()
     {

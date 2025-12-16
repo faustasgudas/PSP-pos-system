@@ -36,7 +36,6 @@ public class PaymentController : ControllerBase
     [HttpPost]
     [ProducesResponseType(typeof(PaymentResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
-    [HttpPost]
     public async Task<ActionResult<PaymentResponse>> Create([FromBody] CreatePaymentRequest request)
     {
         var businessId = GetBusinessIdFromToken();
