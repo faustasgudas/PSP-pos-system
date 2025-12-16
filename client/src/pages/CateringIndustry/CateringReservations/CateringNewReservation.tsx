@@ -3,6 +3,7 @@ import "../../../App.css";
 import { createReservation } from "../../../frontapi/reservationsApi";
 import { listCatalogItems, type CatalogItem } from "../../../frontapi/catalogApi";
 import { fetchEmployees } from "../../../frontapi/employeesApi";
+import { BeautySelect } from "../../../components/ui/BeautySelect";
 
 export default function CateringNewReservation(props: { goBack: () => void }) {
     const businessId = Number(localStorage.getItem("businessId"));
@@ -94,14 +95,20 @@ export default function CateringNewReservation(props: { goBack: () => void }) {
 
             <div className="card" style={{ textAlign: "left" }}>
                 <div className="muted">Service</div>
-                <select className="dropdown" value={serviceId} onChange={(e) => setServiceId(e.target.value)} disabled={loading || saving}>
-                    <option value="">Select service</option>
-                    {services.map((s) => (
-                        <option key={s.catalogItemId} value={s.catalogItemId}>
-                            {s.name} — €{Number(s.basePrice).toFixed(2)}
-                        </option>
-                    ))}
-                </select>
+                <BeautySelect
+                    value={serviceId}
+                    onChange={setServiceId}
+                    disabled={loading || saving}
+                    placeholder="Select service"
+                    options={[
+                        { value: "", label: "Select service" },
+                        ...services.map((s) => ({
+                            value: String(s.catalogItemId),
+                            label: s.name,
+                            subLabel: `€${Number(s.basePrice).toFixed(2)}`,
+                        })),
+                    ]}
+                />
                 {selectedService && (
                     <div className="muted" style={{ marginBottom: 10 }}>
                         Default duration: {selectedService.defaultDurationMin ?? 0} min
@@ -109,14 +116,19 @@ export default function CateringNewReservation(props: { goBack: () => void }) {
                 )}
 
                 <div className="muted">Employee (optional)</div>
-                <select className="dropdown" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} disabled={loading || saving}>
-                    <option value="">Select employee</option>
-                    {employees.map((e: any) => (
-                        <option key={e.employeeId ?? e.id} value={e.employeeId ?? e.id}>
-                            {e.name}
-                        </option>
-                    ))}
-                </select>
+                <BeautySelect
+                    value={employeeId}
+                    onChange={setEmployeeId}
+                    disabled={loading || saving}
+                    placeholder="Select employee"
+                    options={[
+                        { value: "", label: "Select employee" },
+                        ...employees.map((e: any) => ({
+                            value: String(e.employeeId ?? e.id),
+                            label: String(e.name ?? "Employee"),
+                        })),
+                    ]}
+                />
 
                 <div className="muted">Table / Area (optional)</div>
                 <input className="dropdown" value={tableOrArea} onChange={(e) => setTableOrArea(e.target.value)} disabled={saving} placeholder="e.g. T12 / Patio" />

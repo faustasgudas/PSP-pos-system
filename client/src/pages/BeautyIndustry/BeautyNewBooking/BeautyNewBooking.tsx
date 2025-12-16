@@ -3,6 +3,9 @@ import { useEffect, useMemo, useState } from "react";
 import { createReservation } from "../../../frontapi/reservationsApi";
 import { getActiveServices, type CatalogItem } from "../../../frontapi/catalogApi";
 import { fetchEmployees } from "../../../frontapi/employeesApi";
+import { BeautySelect } from "../../../components/ui/BeautySelect";
+import { BeautyDatePicker } from "../../../components/ui/BeautyDatePicker";
+import { BeautyTimePicker } from "../../../components/ui/BeautyTimePicker";
 
 export default function BeautyNewBooking({
                                              goBack,
@@ -32,6 +35,13 @@ export default function BeautyNewBooking({
         const id = Number(serviceId);
         return services.find((s) => s.catalogItemId === id) ?? null;
     }, [services, serviceId]);
+
+    const quickDateLabel = useMemo(() => {
+        if (!date) return "";
+        const d = new Date(`${date}T00:00:00`);
+        if (Number.isNaN(d.getTime())) return "";
+        return d.toLocaleDateString([], { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+    }, [date]);
 
     useEffect(() => {
         const load = async () => {
@@ -126,100 +136,150 @@ export default function BeautyNewBooking({
                 </div>
             )}
 
-            <div className="new-booking-card">
-                <div className="new-booking-grid">
-                    <div className="nb-field">
-                        <label>Client Name</label>
-                        <input
-                            type="text"
-                            value={clientName}
-                            onChange={(e) => setClientName(e.target.value)}
-                            disabled={loading || saving}
-                        />
-                    </div>
+            <div className="new-booking-layout">
+                {/* LEFT: details */}
+                <div className="new-booking-card">
+                    <div className="new-booking-grid">
+                        <div className="nb-field">
+                            <label>Client Name</label>
+                            <input
+                                type="text"
+                                value={clientName}
+                                onChange={(e) => setClientName(e.target.value)}
+                                disabled={loading || saving}
+                                placeholder="e.g. Ema Petrauskaitė"
+                            />
+                        </div>
 
-                    <div className="nb-field">
-                        <label>Phone</label>
-                        <input
-                            type="text"
-                            value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
-                            disabled={loading || saving}
-                        />
-                    </div>
+                        <div className="nb-field">
+                            <label>Phone</label>
+                            <input
+                                type="text"
+                                value={phone}
+                                onChange={(e) => setPhone(e.target.value)}
+                                disabled={loading || saving}
+                                placeholder="e.g. +370..."
+                            />
+                        </div>
 
-                    <div className="nb-field">
-                        <label>Service</label>
-                        <select
-                            value={serviceId}
-                            onChange={(e) => setServiceId(e.target.value)}
-                            disabled={loading || saving}
-                        >
-                            <option value="">Select service</option>
-                            {services.map((s) => (
-                                <option key={s.catalogItemId} value={s.catalogItemId}>
-                                    {s.name} — €{s.basePrice.toFixed(2)}
-                                </option>
-                            ))}
-                        </select>
-                        {selectedService && (
-                            <div className="muted" style={{ marginTop: 6 }}>
-                                Default duration: {selectedService.defaultDurationMin ?? 0} min
-                            </div>
-                        )}
-                    </div>
+                        <div className="nb-field full">
+                            <BeautySelect
+                                label="Service"
+                                value={serviceId}
+                                onChange={setServiceId}
+                                disabled={loading || saving}
+                                placeholder="Select service"
+                                options={[
+                                    { value: "", label: "Select service", subLabel: "Choose what to book" },
+                                    ...services.map((s) => ({
+                                        value: String(s.catalogItemId),
+                                        label: s.name,
+                                        subLabel: `€${s.basePrice.toFixed(2)} • ${s.defaultDurationMin ?? 0} min`,
+                                    })),
+                                ]}
+                            />
+                            {selectedService && (
+                                <div className="muted" style={{ marginTop: 8 }}>
+                                    Default duration: {selectedService.defaultDurationMin ?? 0} min
+                                </div>
+                            )}
+                        </div>
 
-                    <div className="nb-field">
-                        <label>Employee</label>
-                        <select
-                            value={employeeId}
-                            onChange={(e) => setEmployeeId(e.target.value)}
-                            disabled={loading || saving}
-                        >
-                            <option value="">Select employee (optional)</option>
-                            {employees.map((emp: any) => (
-                                <option key={emp.employeeId ?? emp.id} value={emp.employeeId ?? emp.id}>
-                                    {emp.name}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+                        <div className="nb-field full">
+                            <BeautySelect
+                                label="Employee (optional)"
+                                value={employeeId}
+                                onChange={setEmployeeId}
+                                disabled={loading || saving}
+                                placeholder="Select employee"
+                                options={[
+                                    { value: "", label: "Any employee", subLabel: "Auto-assign / optional" },
+                                    ...employees.map((emp: any) => ({
+                                        value: String(emp.employeeId ?? emp.id),
+                                        label: String(emp.name ?? "Employee"),
+                                        subLabel: "",
+                                    })),
+                                ]}
+                            />
+                        </div>
 
-                    <div className="nb-field">
-                        <label>Date</label>
-                        <input
-                            type="date"
-                            value={date}
-                            onChange={(e) => setDate(e.target.value)}
-                            disabled={loading || saving}
-                        />
-                    </div>
-
-                    <div className="nb-field">
-                        <label>Time</label>
-                        <input
-                            type="time"
-                            value={time}
-                            onChange={(e) => setTime(e.target.value)}
-                            disabled={loading || saving}
-                        />
-                    </div>
-
-                    <div className="nb-field full">
-                        <label>Notes</label>
-                        <textarea
-                            rows={3}
-                            value={notes}
-                            onChange={(e) => setNotes(e.target.value)}
-                            disabled={loading || saving}
-                        />
+                        <div className="nb-field full">
+                            <label>Notes</label>
+                            <textarea
+                                rows={3}
+                                value={notes}
+                                onChange={(e) => setNotes(e.target.value)}
+                                disabled={loading || saving}
+                                placeholder="Optional notes…"
+                            />
+                        </div>
                     </div>
                 </div>
 
-                <div className="new-booking-actions">
-                    <button className="btn btn-primary" onClick={save} disabled={loading || saving}>
-                        {saving ? "Saving…" : "Save Booking"}
-                    </button>
+                {/* RIGHT: schedule */}
+                <div className="new-booking-card schedule-card">
+                    <div className="schedule-header">
+                        <div>
+                            <div className="schedule-title">Schedule</div>
+                            <div className="muted">
+                                {quickDateLabel ? quickDateLabel : "Pick date and time"}
+                                {time ? ` • ${time}` : ""}
+                            </div>
+                        </div>
+                        <div className="schedule-quick">
+                            <button
+                                className="btn btn-ghost"
+                                disabled={loading || saving}
+                                onClick={() => {
+                                    const d = new Date();
+                                    const yyyy = d.getFullYear();
+                                    const mm = String(d.getMonth() + 1).padStart(2, "0");
+                                    const dd = String(d.getDate()).padStart(2, "0");
+                                    setDate(`${yyyy}-${mm}-${dd}`);
+                                }}
+                            >
+                                Today
+                            </button>
+                            <button
+                                className="btn btn-ghost"
+                                disabled={loading || saving}
+                                onClick={() => {
+                                    const d = new Date();
+                                    d.setDate(d.getDate() + 1);
+                                    const yyyy = d.getFullYear();
+                                    const mm = String(d.getMonth() + 1).padStart(2, "0");
+                                    const dd = String(d.getDate()).padStart(2, "0");
+                                    setDate(`${yyyy}-${mm}-${dd}`);
+                                }}
+                            >
+                                Tomorrow
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="schedule-grid">
+                        <BeautyDatePicker
+                            label="Date"
+                            value={date}
+                            onChange={setDate}
+                            disabled={loading || saving}
+                            placeholder="Pick a date"
+                        />
+
+                        <BeautyTimePicker
+                            label="Time"
+                            value={time}
+                            onChange={setTime}
+                            disabled={loading || saving}
+                            placeholder="Pick a time"
+                        />
+                    </div>
+
+                    <div className="new-booking-actions">
+                        <button className="btn btn-primary" onClick={save} disabled={loading || saving}>
+                            {saving ? "Saving…" : "Save Booking"}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

@@ -175,74 +175,131 @@
 }
 
 /* ========================= */
-/* ✅ MODAL                  */
+/* ✅ MODAL - Premium Styling */
 /* ========================= */
 
 .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.45);
+    background: rgba(2, 48, 71, 0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     display: flex;
     justify-content: center;
     align-items: center;
     overflow-y: auto;
-    padding: 16px;
+    padding: 24px;
     z-index: 999;
+    animation: modalOverlayFade 200ms ease-out;
+}
+
+@keyframes modalOverlayFade {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 .modal-card {
-    background: white;
-    border-radius: 14px;
-    padding: 24px 24px;
+    background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+    border-radius: 20px;
+    padding: 32px;
     width: 100%;
     max-width: 520px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-    max-height: calc(100vh - 32px);
+    box-shadow: 
+        0 4px 6px rgba(2, 48, 71, 0.07),
+        0 16px 48px rgba(2, 48, 71, 0.15),
+        0 0 0 1px rgba(2, 48, 71, 0.08);
+    max-height: calc(100vh - 48px);
     overflow-y: auto;
+    animation: modalCardSlide 250ms ease-out;
+}
+
+@keyframes modalCardSlide {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 @media (max-width: 480px) {
+    .modal-overlay {
+        padding: 16px;
+    }
+    
     .modal-card {
         max-width: 100%;
-        padding: 18px 16px;
-        border-radius: 12px;
+        padding: 24px 20px;
+        border-radius: 16px;
     }
 }
 
 .modal-title {
-    font-size: 20px;
-    font-weight: 700;
-    margin-bottom: 24px;
+    font-size: 22px;
+    font-weight: 800;
+    margin-bottom: 28px;
     text-align: center;
+    color: #023047;
+    letter-spacing: -0.3px;
 }
 
 .modal-form {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 20px;
 }
 
 .modal-field {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
 }
 
 .modal-field label {
-    font-size: 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(2, 48, 71, 0.7);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
+/* Inputs inherit from App.css .beauty-shell styles */
 .modal-field input,
 .modal-field select {
-    padding: 8px 10px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    font-size: 14px;
+    width: 100%;
+    font-size: 15px;
+}
+
+/* Field groups for related inputs */
+.modal-field-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+@media (max-width: 480px) {
+    .modal-field-group {
+        grid-template-columns: 1fr;
+    }
 }
 
 .modal-actions {
     display: flex;
     justify-content: flex-end;
     gap: 12px;
-    margin-top: 26px;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(2, 48, 71, 0.08);
+}
+
+.modal-actions .btn {
+    padding: 12px 20px;
+    font-weight: 700;
+}
+
+.modal-actions .btn-primary,
+.modal-actions .btn-success {
+    padding: 12px 28px;
 }

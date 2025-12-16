@@ -4,6 +4,7 @@ import { addOrderLine, createOrder } from "../../../frontapi/orderApi";
 import { listCatalogItems, type CatalogItem } from "../../../frontapi/catalogApi";
 import { listReservations, type ReservationSummary } from "../../../frontapi/reservationsApi";
 import { fetchEmployees } from "../../../frontapi/employeesApi";
+import { BeautySelect } from "../../../components/ui/BeautySelect";
 
 type DraftLine = {
     catalogItemId: number;
@@ -177,14 +178,19 @@ export default function CateringOrderCreate(props: {
 
             <div className="card" style={{ marginBottom: 12 }}>
                 <div className="muted" style={{ marginBottom: 6 }}>Reservation (optional)</div>
-                <select className="dropdown" value={selectedReservationId} onChange={(e) => setSelectedReservationId(e.target.value)} disabled={saving}>
-                    <option value="">No reservation (walk-in)</option>
-                    {reservationOptions.map((o) => (
-                        <option key={o.id} value={o.id}>
-                            {o.label}
-                        </option>
-                    ))}
-                </select>
+                <BeautySelect
+                    value={selectedReservationId}
+                    onChange={setSelectedReservationId}
+                    disabled={saving}
+                    placeholder="No reservation (walk-in)"
+                    options={[
+                        { value: "", label: "No reservation (walk-in)" },
+                        ...reservationOptions.map((o) => ({
+                            value: String(o.id),
+                            label: o.label,
+                        })),
+                    ]}
+                />
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12 }}>

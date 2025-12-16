@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import "../../../App.css";
 import "./BeautyDiscounts.css";
+import { BeautySelect } from "../../../components/ui/BeautySelect";
 import {
     createDiscount,
     deleteDiscount,
@@ -165,17 +166,19 @@ export default function BeautyDiscounts() {
                         disabled={loading}
                     />
 
-                    <select
-                        className="inventory-search"
-                        value={scopeFilter}
-                        onChange={(e) => setScopeFilter(e.target.value)}
-                        disabled={loading}
-                        style={{ minWidth: 180 }}
-                    >
-                        <option value="">All scopes</option>
-                        <option value="Order">Order</option>
-                        <option value="Line">Line</option>
-                    </select>
+                    <div style={{ minWidth: 180 }}>
+                        <BeautySelect
+                            value={scopeFilter}
+                            onChange={setScopeFilter}
+                            disabled={loading}
+                            placeholder="All scopes"
+                            options={[
+                                { value: "", label: "All scopes" },
+                                { value: "Order", label: "Order" },
+                                { value: "Line", label: "Line" },
+                            ]}
+                        />
+                    </div>
 
                     <button className="btn btn-ghost" onClick={load} disabled={loading}>
                         {loading ? "Refreshing…" : "Refresh"}
@@ -293,18 +296,26 @@ export default function BeautyDiscounts() {
 
                             <div className="modal-field">
                                 <label>Type</label>
-                                <select value={type} onChange={(e) => setType(e.target.value as any)}>
-                                    <option value="Percent">Percent</option>
-                                    <option value="Amount">Amount</option>
-                                </select>
+                                <BeautySelect
+                                    value={type}
+                                    onChange={(v) => setType(v as any)}
+                                    options={[
+                                        { value: "Percent", label: "Percent" },
+                                        { value: "Amount", label: "Amount" },
+                                    ]}
+                                />
                             </div>
 
                             <div className="modal-field">
                                 <label>Scope</label>
-                                <select value={scope} onChange={(e) => setScope(e.target.value as any)}>
-                                    <option value="Order">Order</option>
-                                    <option value="Line">Line</option>
-                                </select>
+                                <BeautySelect
+                                    value={scope}
+                                    onChange={(v) => setScope(v as any)}
+                                    options={[
+                                        { value: "Order", label: "Order" },
+                                        { value: "Line", label: "Line" },
+                                    ]}
+                                />
                             </div>
 
                             <div className="modal-field">
@@ -335,10 +346,14 @@ export default function BeautyDiscounts() {
 
                             <div className="modal-field">
                                 <label>Status</label>
-                                <select value={status} onChange={(e) => setStatus(e.target.value)}>
-                                    <option value="Active">Active</option>
-                                    <option value="Inactive">Inactive</option>
-                                </select>
+                                <BeautySelect
+                                    value={status}
+                                    onChange={setStatus}
+                                    options={[
+                                        { value: "Active", label: "Active" },
+                                        { value: "Inactive", label: "Inactive" },
+                                    ]}
+                                />
                             </div>
                         </div>
 
