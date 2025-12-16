@@ -196,7 +196,7 @@ export default function BeautyDashboard() {
     }, [payments]);
 
     return (
-        <div className="content-box">
+        <div className="content-box beauty-shell">
             {/* TOP BAR */}
             <div className="top-bar">
                 <div className="top-left">

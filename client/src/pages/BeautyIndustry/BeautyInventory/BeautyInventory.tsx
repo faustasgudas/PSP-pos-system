@@ -15,6 +15,7 @@ import {
 } from "../../../frontapi/stockApi";
 import { getUserFromToken } from "../../../utils/auth";
 import { logout } from "../../../frontapi/authApi";
+import { BeautySelect } from "../../../components/ui/BeautySelect";
 
 function formatMoney(amount: number, currency: string = "EUR") {
     const n = Number(amount) || 0;
@@ -520,13 +521,12 @@ export default function BeautyInventory() {
                                 <>
                                     <div className="modal-field">
                                         <label>Unit</label>
-                                        <select value={createUnit} onChange={(e) => setCreateUnit(e.target.value as any)} disabled={saving}>
-                                            {UNITS.map((u) => (
-                                                <option key={u} value={u}>
-                                                    {u}
-                                                </option>
-                                            ))}
-                                        </select>
+                                        <BeautySelect
+                                            value={createUnit}
+                                            onChange={(v) => setCreateUnit(v as any)}
+                                            disabled={saving}
+                                            options={UNITS.map((u) => ({ value: u, label: u }))}
+                                        />
                                     </div>
 
                                     <div className="modal-field">
@@ -591,17 +591,12 @@ export default function BeautyInventory() {
                                             <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
                                                 <div>
                                                     <label style={{ fontSize: 13, opacity: 0.8 }}>Unit</label>
-                                                    <select
+                                                    <BeautySelect
                                                         value={editEnableUnit}
-                                                        onChange={(e) => setEditEnableUnit(e.target.value as any)}
+                                                        onChange={(v) => setEditEnableUnit(v as any)}
                                                         disabled={saving}
-                                                    >
-                                                        {UNITS.map((u) => (
-                                                            <option key={u} value={u}>
-                                                                {u}
-                                                            </option>
-                                                        ))}
-                                                    </select>
+                                                        options={UNITS.map((u) => ({ value: u, label: u }))}
+                                                    />
                                                 </div>
 
                                                 <input
@@ -624,13 +619,12 @@ export default function BeautyInventory() {
                                     <>
                                         <div className="modal-field">
                                             <label>Stock ({stock.qtyOnHand} {stock.unit})</label>
-                                            <select value={editUnit} onChange={(e) => setEditUnit(e.target.value as any)} disabled={saving}>
-                                                {UNITS.map((u) => (
-                                                    <option key={u} value={u}>
-                                                        {u}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                            <BeautySelect
+                                                value={editUnit}
+                                                onChange={(v) => setEditUnit(v as any)}
+                                                disabled={saving}
+                                                options={UNITS.map((u) => ({ value: u, label: u }))}
+                                            />
                                         </div>
 
                                         <div className="modal-field">

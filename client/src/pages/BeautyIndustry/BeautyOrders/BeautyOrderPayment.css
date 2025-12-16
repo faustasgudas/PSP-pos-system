@@ -1,0 +1,49 @@
+.beauty-checkout-grid {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    gap: 12px;
+    align-items: start;
+}
+
+.beauty-checkout-right {
+    display: grid;
+    gap: 12px;
+}
+
+.beauty-card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 14px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.beauty-checkout-item {
+    border: 1px solid #eee;
+    border-radius: 12px;
+    padding: 12px;
+}
+
+.beauty-checkout-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.beauty-checkout-sep {
+    height: 1px;
+    background: #eee;
+    margin: 6px 0;
+}
+
+.beauty-checkout-input {
+    width: 100% !important;
+    margin-bottom: 0 !important;
+}
+
+@media (max-width: 980px) {
+    .beauty-checkout-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+

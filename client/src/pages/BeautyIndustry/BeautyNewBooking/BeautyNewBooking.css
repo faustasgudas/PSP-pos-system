@@ -1,24 +1,90 @@
+/* New Booking Form */
+
 .new-booking-container {
     padding: 20px;
 }
 
-.new-booking-card {
-    margin-top: 20px;
-    background: white;
-    border-radius: 14px;
-    padding: 36px 48px;
-    max-width: 900px;
-    margin-left: auto;
-    margin-right: auto;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+/* Two-column layout: details + schedule */
+.new-booking-layout {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 16px;
+    align-items: start;
 }
 
+/* Action bar */
+.action-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.section-title {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    color: #023047;
+}
+
+/* Main booking card */
+.new-booking-card {
+    margin-top: 16px;
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    border: 1px solid #e5e7eb;
+}
+
+/* schedule card */
+.schedule-card {
+    position: sticky;
+    top: 16px;
+}
+
+.schedule-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.schedule-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 2px;
+}
+
+.schedule-quick {
+    display: flex;
+    gap: 8px;
+}
+
+.schedule-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+/* Error styling */
+.new-booking-card[style*="color: #b01d1d"] {
+    background: rgba(220, 38, 38, 0.08);
+    border: 1px solid rgba(220, 38, 38, 0.3);
+    padding: 12px 16px;
+    max-width: none;
+}
+
+/* Form grid layout */
 .new-booking-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 22px 40px;
+    gap: 16px 24px;
 }
 
+/* Individual field container */
 .nb-field {
     display: flex;
     flex-direction: column;
@@ -28,22 +94,75 @@
     grid-column: 1 / -1;
 }
 
+/* Field labels */
 .nb-field label {
     margin-bottom: 6px;
-    font-size: 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
 }
 
+/* Inputs */
 .nb-field input,
-.nb-field select,
 .nb-field textarea {
-    padding: 8px 10px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
     font-size: 14px;
 }
 
+.nb-field input:focus,
+.nb-field textarea:focus {
+    outline: none;
+    border-color: #219ebc;
+    box-shadow: 0 0 0 2px rgba(33, 158, 188, 0.2);
+}
+
+/* Actions area */
 .new-booking-actions {
-    margin-top: 36px;
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
     display: flex;
     justify-content: flex-end;
+    gap: 10px;
+}
+
+/* Muted text */
+.muted {
+    color: #6b7280;
+    font-size: 13px;
+}
+
+/* Time slots */
+/* (removed visible quick time slots; time is picked via popup) */
+
+/* Responsive */
+@media (max-width: 600px) {
+    .new-booking-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .schedule-card {
+        position: static;
+    }
+
+    .schedule-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .new-booking-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+    
+    .nb-field.full {
+        grid-column: 1;
+    }
+    
+    .new-booking-card {
+        padding: 20px;
+    }
+
 }

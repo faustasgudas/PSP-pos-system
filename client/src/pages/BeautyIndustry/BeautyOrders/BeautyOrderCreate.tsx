@@ -6,6 +6,7 @@ import { fetchEmployees } from "../../../frontapi/employeesApi";
 
 import "../../../App.css";
 import "./BeautyOrderCreate.css";
+import { BeautySelect } from "../../../components/ui/BeautySelect";
 
 interface OrderLine {
     serviceId: number;
@@ -36,6 +37,31 @@ export default function BeautyOrderCreate({
     const [reservations, setReservations] = useState<ReservationSummary[]>([]);
     const [employees, setEmployees] = useState<any[]>([]);
     const [selectedReservationId, setSelectedReservationId] = useState<string>("");
+
+    const reservationSelectOptions = useMemo(() => {
+        if (reservationsLoading) {
+            return [{ value: "", label: "Loading reservations…", disabled: true }];
+        }
+        const opts = reservations
+            .slice()
+            .sort((a, b) => new Date(a.appointmentStart).getTime() - new Date(b.appointmentStart).getTime())
+            .map((r) => {
+                const svcName =
+                    services.find((s) => s.catalogItemId === r.catalogItemId)?.name ??
+                    `Service ${r.catalogItemId}`;
+                const empName =
+                    employees.find((e: any) => Number(e.employeeId ?? e.id) === r.employeeId)?.name ??
+                    `Employee ${r.employeeId}`;
+                const when = new Date(r.appointmentStart).toLocaleString();
+                return {
+                    value: String(r.reservationId),
+                    label: when,
+                    subLabel: `${svcName} • ${empName}`,
+                };
+            });
+        return [{ value: "", label: "No reservation (walk-in)", subLabel: "Optional link" }, ...opts];
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [reservationsLoading, reservations, services, employees]);
 
     /* ---------------- LOAD SERVICES ---------------- */
     useEffect(() => {
@@ -231,39 +257,15 @@ export default function BeautyOrderCreate({
             )}
 
             <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-                <select
-                    className="dropdown"
-                    value={selectedReservationId}
-                    onChange={(e) => setSelectedReservationId(e.target.value)}
-                    disabled={saving || reservationsLoading}
-                    style={{ maxWidth: 420 }}
-                    title="Optional: link order to an existing reservation"
-                >
-                    <option value="">No reservation (walk-in)</option>
-                    {reservationsLoading && <option value="">Loading reservations…</option>}
-                    {!reservationsLoading &&
-                        reservations
-                            .slice()
-                            .sort(
-                                (a, b) =>
-                                    new Date(a.appointmentStart).getTime() -
-                                    new Date(b.appointmentStart).getTime()
-                            )
-                            .map((r) => {
-                                const svcName =
-                                    services.find((s) => s.catalogItemId === r.catalogItemId)?.name ??
-                                    `Service ${r.catalogItemId}`;
-                                const empName =
-                                    employees.find((e: any) => Number(e.employeeId ?? e.id) === r.employeeId)?.name ??
-                                    `Employee ${r.employeeId}`;
-
-                                return (
-                                    <option key={r.reservationId} value={r.reservationId}>
-                                        {new Date(r.appointmentStart).toLocaleString()} — {svcName} ({empName})
-                                    </option>
-                                );
-                            })}
-                </select>
+                <div style={{ width: "min(520px, 100%)" }} title="Optional: link order to an existing reservation">
+                    <BeautySelect
+                        value={selectedReservationId}
+                        onChange={setSelectedReservationId}
+                        disabled={saving || reservationsLoading}
+                        placeholder="No reservation (walk-in)"
+                        options={reservationSelectOptions}
+                    />
+                </div>
 
                 <div className="muted">
                     Pick a reservation to link it; we’ll auto-add the reserved service (qty 1).

@@ -28,7 +28,6 @@ public static class ReservationMappings
         BookedAt = r.BookedAt,
         Notes = r.Notes,
         TableOrArea = r.TableOrArea,
-        OrderId = r.OrderId
     };
 
   

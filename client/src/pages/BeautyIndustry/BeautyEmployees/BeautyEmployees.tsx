@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import "./BeautyEmployees.css";
 import { getUserFromToken } from "../../../utils/auth";
+import { BeautySelect } from "../../../components/ui/BeautySelect";
 
 interface Employee {
     employeeId: number;
@@ -23,13 +24,19 @@ export default function BeautyEmployees() {
     const [loading, setLoading] = useState(true);
 
     const [showAddModal, setShowAddModal] = useState(false);
-    const [employeeToDeactivate, setEmployeeToDeactivate] =
-        useState<Employee | null>(null);
+    const [employeeToDeactivate, setEmployeeToDeactivate] = useState<Employee | null>(null);
+    const [employeeToEdit, setEmployeeToEdit] = useState<Employee | null>(null);
 
+    // Add form fields
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [newRole, setNewRole] = useState<"Staff" | "Manager">("Staff");
+
+    // Edit form fields
+    const [editName, setEditName] = useState("");
+    const [editEmail, setEditEmail] = useState("");
+    const [editRole, setEditRole] = useState<"Staff" | "Manager" | "Owner">("Staff");
 
     const fetchEmployees = async () => {
         try {
@@ -101,6 +108,36 @@ export default function BeautyEmployees() {
         fetchEmployees();
     };
 
+    const openEditModal = (emp: Employee) => {
+        setEmployeeToEdit(emp);
+        setEditName(emp.name);
+        setEditEmail(emp.email);
+        setEditRole(emp.role);
+    };
+
+    const handleEditEmployee = async () => {
+        if (!employeeToEdit) return;
+
+        await fetch(
+            `http://localhost:5269/api/businesses/${businessId}/employees/${employeeToEdit.employeeId}`,
+            {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    name: editName,
+                    email: editEmail,
+                    role: editRole,
+                }),
+            }
+        );
+
+        setEmployeeToEdit(null);
+        fetchEmployees();
+    };
+
     const sortedEmployees = employees
         .filter(e => e.status === "Active")
         .sort((a, b) => {
@@ -108,7 +145,7 @@ export default function BeautyEmployees() {
             return order[a.role] - order[b.role];
         });
 
-    if (loading) return <div>Loading employees…</div>;
+    if (loading) return <div className="loading-message">Loading employees…</div>;
 
     return (
         <div className="employees-container">
@@ -125,86 +162,170 @@ export default function BeautyEmployees() {
                 )}
             </div>
 
-            <div className="employee-grid">
-                {sortedEmployees.map(emp => {
-                    const isSelf = emp.email === user?.email;
-                    const canDeactivate =
-                        !isSelf &&
-                        (role === "Owner" ||
-                            (role === "Manager" && emp.role === "Staff"));
+            {/* Employee Table */}
+            <div className="employees-table-wrap">
+                <table className="employees-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {sortedEmployees.map(emp => {
+                            const isSelf = emp.email === user?.email;
+                            const canEdit = 
+                                role === "Owner" || 
+                                (role === "Manager" && emp.role === "Staff");
+                            const canDeactivate =
+                                !isSelf &&
+                                (role === "Owner" ||
+                                    (role === "Manager" && emp.role === "Staff"));
 
-                    return (
-                        <div key={emp.employeeId} className="employee-card">
-                            <div className="employee-name">
-                                {emp.name}
-                                {isSelf && <span className="you-badge">You</span>}
-                            </div>
-
-                            <div className="employee-email">{emp.email}</div>
-                            <div className="employee-role">{emp.role}</div>
-
-                            {canDeactivate && (
-                                <button
-                                    className="btn btn-danger"
-                                    onClick={() =>
-                                        setEmployeeToDeactivate(emp)
-                                    }
-                                >
-                                    Deactivate
-                                </button>
-                            )}
-                        </div>
-                    );
-                })}
+                            return (
+                                <tr key={emp.employeeId}>
+                                    <td className="name-cell">
+                                        {emp.name}
+                                        {isSelf && <span className="you-badge">You</span>}
+                                    </td>
+                                    <td>{emp.email}</td>
+                                    <td>
+                                        <span className={`role-badge role-${emp.role.toLowerCase()}`}>
+                                            {emp.role}
+                                        </span>
+                                    </td>
+                                    <td className="actions-cell">
+                                        {canEdit && !isSelf && (
+                                            <button
+                                                className="btn btn-sm"
+                                                onClick={() => openEditModal(emp)}
+                                            >
+                                                ✏️ Edit
+                                            </button>
+                                        )}
+                                        {canDeactivate && (
+                                            <button
+                                                className="btn btn-sm btn-danger"
+                                                onClick={() => setEmployeeToDeactivate(emp)}
+                                            >
+                                                Deactivate
+                                            </button>
+                                        )}
+                                        {isSelf && <span className="muted">—</span>}
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
             </div>
 
             {/* ADD EMPLOYEE MODAL */}
             {showAddModal && (
-                <div className="modal-backdrop">
-                    <div className="modal">
+                <div className="modal-backdrop" onClick={() => setShowAddModal(false)}>
+                    <div className="modal" onClick={e => e.stopPropagation()}>
                         <h3>Add Employee</h3>
 
-                        <input
-                            placeholder="Name"
-                            value={name}
-                            onChange={e => setName(e.target.value)}
-                        />
-                        <input
-                            placeholder="Email"
-                            value={email}
-                            onChange={e => setEmail(e.target.value)}
-                        />
-                        <input
-                            placeholder="Password"
-                            type="password"
-                            value={password}
-                            onChange={e => setPassword(e.target.value)}
-                        />
+                        <div className="form-field">
+                            <label>Name</label>
+                            <input
+                                placeholder="Enter name"
+                                value={name}
+                                onChange={e => setName(e.target.value)}
+                            />
+                        </div>
+                        
+                        <div className="form-field">
+                            <label>Email</label>
+                            <input
+                                placeholder="Enter email"
+                                type="email"
+                                value={email}
+                                onChange={e => setEmail(e.target.value)}
+                            />
+                        </div>
+                        
+                        <div className="form-field">
+                            <label>Password</label>
+                            <input
+                                placeholder="Enter password"
+                                type="password"
+                                value={password}
+                                onChange={e => setPassword(e.target.value)}
+                            />
+                        </div>
 
-                        <select
-                            value={newRole}
-                            onChange={e =>
-                                setNewRole(e.target.value as any)
-                            }
-                        >
-                            <option value="Staff">Staff</option>
-                            {role === "Owner" && (
-                                <option value="Manager">Manager</option>
-                            )}
-                        </select>
+                        <div className="form-field">
+                            <label>Role</label>
+                            <BeautySelect
+                                value={newRole}
+                                onChange={(v) => setNewRole(v as any)}
+                                placeholder="Select role"
+                                options={[
+                                    { value: "Staff", label: "Staff" },
+                                    ...(role === "Owner" ? [{ value: "Manager", label: "Manager" }] : []),
+                                ]}
+                            />
+                        </div>
 
                         <div className="modal-actions">
-                            <button
-                                className="btn"
-                                onClick={() => setShowAddModal(false)}
-                            >
+                            <button className="btn" onClick={() => setShowAddModal(false)}>
                                 Cancel
                             </button>
-                            <button
-                                className="btn btn-primary"
-                                onClick={handleAddEmployee}
-                            >
-                                Add
+                            <button className="btn btn-primary" onClick={handleAddEmployee}>
+                                Add Employee
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* EDIT EMPLOYEE MODAL */}
+            {employeeToEdit && (
+                <div className="modal-backdrop" onClick={() => setEmployeeToEdit(null)}>
+                    <div className="modal" onClick={e => e.stopPropagation()}>
+                        <h3>Edit Employee</h3>
+
+                        <div className="form-field">
+                            <label>Name</label>
+                            <input
+                                value={editName}
+                                onChange={e => setEditName(e.target.value)}
+                            />
+                        </div>
+                        
+                        <div className="form-field">
+                            <label>Email</label>
+                            <input
+                                type="email"
+                                value={editEmail}
+                                onChange={e => setEditEmail(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="form-field">
+                            <label>Role</label>
+                            <BeautySelect
+                                value={editRole}
+                                onChange={(v) => setEditRole(v as any)}
+                                disabled={employeeToEdit.role === "Owner"}
+                                placeholder="Select role"
+                                options={[
+                                    { value: "Staff", label: "Staff" },
+                                    ...(role === "Owner" ? [{ value: "Manager", label: "Manager" }] : []),
+                                    ...(employeeToEdit.role === "Owner" ? [{ value: "Owner", label: "Owner" }] : []),
+                                ]}
+                            />
+                        </div>
+
+                        <div className="modal-actions">
+                            <button className="btn" onClick={() => setEmployeeToEdit(null)}>
+                                Cancel
+                            </button>
+                            <button className="btn btn-primary" onClick={handleEditEmployee}>
+                                Save Changes
                             </button>
                         </div>
                     </div>
@@ -213,8 +334,8 @@ export default function BeautyEmployees() {
 
             {/* DEACTIVATE MODAL */}
             {employeeToDeactivate && (
-                <div className="modal-backdrop">
-                    <div className="modal">
+                <div className="modal-backdrop" onClick={() => setEmployeeToDeactivate(null)}>
+                    <div className="modal" onClick={e => e.stopPropagation()}>
                         <h3>Deactivate Employee</h3>
                         <p>
                             Are you sure you want to deactivate{" "}
@@ -222,18 +343,10 @@ export default function BeautyEmployees() {
                         </p>
 
                         <div className="modal-actions">
-                            <button
-                                className="btn"
-                                onClick={() =>
-                                    setEmployeeToDeactivate(null)
-                                }
-                            >
+                            <button className="btn" onClick={() => setEmployeeToDeactivate(null)}>
                                 Cancel
                             </button>
-                            <button
-                                className="btn btn-danger"
-                                onClick={handleDeactivate}
-                            >
+                            <button className="btn btn-danger" onClick={handleDeactivate}>
                                 Deactivate
                             </button>
                         </div>

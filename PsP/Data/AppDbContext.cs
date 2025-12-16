@@ -353,10 +353,10 @@ public class AppDbContext : DbContext
             e.Property(x => x.Status).HasMaxLength(16).IsRequired();
             e.Property(x => x.TableOrArea).HasMaxLength(64);
 
-            e.HasOne(x => x.Business!)
-             .WithMany(x => x.Reservations)
-             .HasForeignKey(x => x.BusinessId)
-             .OnDelete(DeleteBehavior.Restrict);
+            // e.HasOne(x => x.Business!)
+            //  .WithMany(x => x.Reservations)
+            //  .HasForeignKey(x => x.BusinessId)
+            //  .OnDelete(DeleteBehavior.Restrict);
 
             e.HasOne(x => x.Employee!)
              .WithMany(x => x.Reservations)

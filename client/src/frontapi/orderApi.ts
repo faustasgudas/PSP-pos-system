@@ -144,6 +144,31 @@ export async function getOrder(orderId: number): Promise<OrderDetail> {
     return res.json();
 }
 
+export type UpdateOrderRequest = {
+    employeeId: number;
+    status?: string | null;
+    tableOrArea?: string | null;
+    tipAmount?: string | null; // "12.50"
+    discountId?: number | null;
+};
+
+export async function updateOrder(orderId: number, body: UpdateOrderRequest): Promise<OrderDetail> {
+    const res = await fetch(`${API_URL}/orders/${orderId}`, {
+        method: "PUT",
+        headers: authHeaders(),
+        body: JSON.stringify({
+            employeeId: body.employeeId,
+            status: body.status ?? null,
+            tableOrArea: body.tableOrArea ?? null,
+            tipAmount: body.tipAmount ?? null,
+            discountId: body.discountId ?? null,
+        }),
+    });
+
+    if (!res.ok) throw new Error(await readErrorMessage(res));
+    return res.json();
+}
+
 export async function addOrderLine(orderId: number, catalogItemId: number, qty: number): Promise<OrderLine> {
     const res = await fetch(`${API_URL}/orders/${orderId}/lines`, {
         method: "POST",

@@ -6,6 +6,7 @@ import {
     listReservations,
     updateReservation,
     type ReservationSummary,
+    type ReservationDetail,
 } from "../../../frontapi/reservationsApi";
 import { getActiveServices, type CatalogItem } from "../../../frontapi/catalogApi";
 import { fetchEmployees } from "../../../frontapi/employeesApi";
@@ -14,6 +15,28 @@ import { logout } from "../../../frontapi/authApi";
 
 interface ReservationsProps {
     goToNewBooking: () => void;
+}
+
+// Parse client info from notes (format: "Client: Name\nPhone: 123...")
+function parseClientInfo(notes: string | null): { clientName: string; phone: string; otherNotes: string } {
+    if (!notes) return { clientName: "", phone: "", otherNotes: "" };
+    
+    const lines = notes.split("\n");
+    let clientName = "";
+    let phone = "";
+    const otherLines: string[] = [];
+    
+    for (const line of lines) {
+        if (line.startsWith("Client:")) {
+            clientName = line.replace("Client:", "").trim();
+        } else if (line.startsWith("Phone:")) {
+            phone = line.replace("Phone:", "").trim();
+        } else if (line.trim()) {
+            otherLines.push(line);
+        }
+    }
+    
+    return { clientName, phone, otherNotes: otherLines.join("\n") };
 }
 
 export default function BeautyReservations({
@@ -27,6 +50,10 @@ export default function BeautyReservations({
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [reservations, setReservations] = useState<ReservationSummary[]>([]);
+    
+    // Store detailed info for selected date bookings
+    const [detailedBookings, setDetailedBookings] = useState<Map<number, ReservationDetail>>(new Map());
+    const [loadingDetails, setLoadingDetails] = useState(false);
 
     const [services, setServices] = useState<CatalogItem[]>([]);
     const [employees, setEmployees] = useState<any[]>([]);
@@ -68,6 +95,12 @@ export default function BeautyReservations({
     const serviceNameById = useMemo(() => {
         const m = new Map<number, string>();
         services.forEach((s) => m.set(s.catalogItemId, s.name));
+        return m;
+    }, [services]);
+
+    const servicePriceById = useMemo(() => {
+        const m = new Map<number, number>();
+        services.forEach((s) => m.set(s.catalogItemId, s.basePrice));
         return m;
     }, [services]);
 
@@ -120,6 +153,26 @@ export default function BeautyReservations({
         }
     };
 
+    // Load detailed info for bookings on selected date
+    const loadBookingDetails = async (bookings: ReservationSummary[]) => {
+        if (!businessId || bookings.length === 0) return;
+        
+        setLoadingDetails(true);
+        try {
+            const details = await Promise.all(
+                bookings.map(b => getReservation(businessId, b.reservationId))
+            );
+            
+            const newMap = new Map<number, ReservationDetail>();
+            details.forEach(d => newMap.set(d.reservationId, d));
+            setDetailedBookings(newMap);
+        } catch (e) {
+            console.error("Failed to load booking details", e);
+        } finally {
+            setLoadingDetails(false);
+        }
+    };
+
     useEffect(() => {
         load(currentMonth);
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -130,6 +183,12 @@ export default function BeautyReservations({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentMonth]);
 
+    // Load details when selected date changes
+    useEffect(() => {
+        loadBookingDetails(bookingsForSelectedDate);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedDate, reservations]);
+
     const canManage = role === "Owner" || role === "Manager";
 
     const doCancel = async (reservationId: number) => {
@@ -139,7 +198,6 @@ export default function BeautyReservations({
 
         setError(null);
         try {
-            // Bulletproof rule: if there's already an order, cancel from the Order screen instead.
             const detail = await getReservation(businessId, reservationId);
             if (detail.orderId) {
                 setError(
@@ -166,6 +224,14 @@ export default function BeautyReservations({
         }
     };
 
+    const getStatusClass = (status: string) => {
+        switch (status) {
+            case "Booked": return "status-booked";
+            case "Completed": return "status-completed";
+            case "Cancelled": return "status-cancelled";
+            default: return "";
+        }
+    };
 
     return (
         <div className="reservations-container">
@@ -175,32 +241,27 @@ export default function BeautyReservations({
 
                 <button
                     className="btn btn-primary"
-                    onClick={() => {
-                        console.log("✅ NEW BOOKING BUTTON CLICKED");
-                        goToNewBooking(); // 🔥 THIS MUST FIRE
-                    }}
+                    onClick={goToNewBooking}
                 >
-                    <span>➕</span> New Booking
+                    ➕ New Booking
                 </button>
             </div>
 
             {error && (
-                <div style={{ margin: "10px 0" }} className="booking-item">
-                    <div className="booking-details">
-                        <div className="detail-value">{error}</div>
-                        {authProblem && (
-                            <button
-                                className="btn"
-                                onClick={() => {
-                                    logout();
-                                    window.location.reload();
-                                }}
-                                style={{ marginTop: 10 }}
-                            >
-                                Log out
-                            </button>
-                        )}
-                    </div>
+                <div className="error-box">
+                    <div>{error}</div>
+                    {authProblem && (
+                        <button
+                            className="btn"
+                            onClick={() => {
+                                logout();
+                                window.location.reload();
+                            }}
+                            style={{ marginTop: 10 }}
+                        >
+                            Log out
+                        </button>
+                    )}
                 </div>
             )}
 
@@ -234,11 +295,12 @@ export default function BeautyReservations({
 
                         const isSelected = isSameDay(thisDate, selectedDate);
                         const isBooked = bookedDates.includes(day);
+                        const isToday = isSameDay(thisDate, new Date());
 
                         return (
                             <div
                                 key={day}
-                                className={`calendar-day ${isSelected ? "selected" : ""}`}
+                                className={`calendar-day ${isSelected ? "selected" : ""} ${isToday ? "today" : ""}`}
                                 onClick={() => setSelectedDate(thisDate)}
                             >
                                 {day}
@@ -252,68 +314,107 @@ export default function BeautyReservations({
             <h3 className="sub-title">
                 Bookings for{" "}
                 {selectedDate.toLocaleDateString([], {
+                    weekday: "long",
                     year: "numeric",
-                    month: "short",
+                    month: "long",
                     day: "numeric",
                 })}
+                <span className="booking-count">({bookingsForSelectedDate.length} bookings)</span>
             </h3>
 
-            <div className="booking-list">
-                {loading ? (
-                    <div className="booking-item">
-                        <div className="booking-details">
-                            <div className="detail-value">Loading…</div>
-                        </div>
-                    </div>
-                ) : bookingsForSelectedDate.length > 0 ? (
-                    bookingsForSelectedDate
-                        .slice()
-                        .sort(
-                            (a, b) =>
-                                new Date(a.appointmentStart).getTime() -
-                                new Date(b.appointmentStart).getTime()
-                        )
-                        .map((b) => (
-                            <div key={b.reservationId} className="booking-item">
-                                <div className="booking-details">
-                                    <div className="detail-value">
-                                        {new Date(b.appointmentStart).toLocaleTimeString([], {
-                                            hour: "2-digit",
-                                            minute: "2-digit",
-                                        })}{" "}
-                                        —{" "}
-                                        {serviceNameById.get(b.catalogItemId) ?? `Service ${b.catalogItemId}`}
-                                    </div>
-                                    <div className="muted">
-                                        Employee: {employeeNameById.get(b.employeeId) ?? b.employeeId} • Status:{" "}
-                                        {b.status}
-                                    </div>
-                                </div>
-
-                                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                                    {canManage && b.status !== "Cancelled" && (
-                                        <button className="btn" onClick={() => doCancel(b.reservationId)}>
-                                            Cancel
-                                        </button>
-                                    )}
-                                    {canManage && b.status === "Booked" && (
-                                        <button className="btn" onClick={() => markCompleted(b.reservationId)}>
-                                            Mark completed
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        ))
-                ) : (
-                    <div className="booking-item">
-                        <div className="booking-details">
-                            <div className="detail-value">
-                                No bookings for this day
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </div>
+            {loading || loadingDetails ? (
+                <div className="loading-message">Loading bookings...</div>
+            ) : bookingsForSelectedDate.length > 0 ? (
+                <div className="bookings-table-wrap">
+                    <table className="bookings-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Client</th>
+                                <th>Phone</th>
+                                <th>Service</th>
+                                <th>Employee</th>
+                                <th>Duration</th>
+                                <th>Price</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {bookingsForSelectedDate
+                                .slice()
+                                .sort(
+                                    (a, b) =>
+                                        new Date(a.appointmentStart).getTime() -
+                                        new Date(b.appointmentStart).getTime()
+                                )
+                                .map((b) => {
+                                    const detail = detailedBookings.get(b.reservationId);
+                                    const clientInfo = parseClientInfo(detail?.notes ?? null);
+                                    
+                                    return (
+                                        <tr key={b.reservationId}>
+                                            <td className="time-cell">
+                                                {new Date(b.appointmentStart).toLocaleTimeString([], {
+                                                    hour: "2-digit",
+                                                    minute: "2-digit",
+                                                })}
+                                            </td>
+                                            <td className="client-cell">
+                                                {clientInfo.clientName || <span className="muted">—</span>}
+                                            </td>
+                                            <td>
+                                                {clientInfo.phone || <span className="muted">—</span>}
+                                            </td>
+                                            <td className="service-cell">
+                                                {serviceNameById.get(b.catalogItemId) ?? `Service ${b.catalogItemId}`}
+                                            </td>
+                                            <td>
+                                                {employeeNameById.get(b.employeeId) ?? <span className="muted">Not assigned</span>}
+                                            </td>
+                                            <td>
+                                                {b.plannedDurationMin} min
+                                            </td>
+                                            <td>
+                                                €{(servicePriceById.get(b.catalogItemId) ?? 0).toFixed(2)}
+                                            </td>
+                                            <td>
+                                                <span className={`status-badge ${getStatusClass(b.status)}`}>
+                                                    {b.status}
+                                                </span>
+                                            </td>
+                                            <td className="actions-cell">
+                                                {canManage && b.status === "Booked" && (
+                                                    <>
+                                                        <button 
+                                                            className="btn btn-sm btn-success" 
+                                                            onClick={() => markCompleted(b.reservationId)}
+                                                        >
+                                                            Complete
+                                                        </button>
+                                                        <button 
+                                                            className="btn btn-sm btn-danger" 
+                                                            onClick={() => doCancel(b.reservationId)}
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                    </>
+                                                )}
+                                                {b.status !== "Booked" && (
+                                                    <span className="muted">—</span>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                        </tbody>
+                    </table>
+                </div>
+            ) : (
+                <div className="no-bookings">
+                    No bookings for this day
+                </div>
+            )}
         </div>
     );
 }

@@ -8,6 +8,7 @@ import {
 } from "../../../frontapi/orderApi";
 
 import "./BeautyOrderSplitDialog.css";
+import { BeautySelect } from "../../../components/ui/BeautySelect";
 
 type MoveDraft = {
     orderLineId: number;
@@ -81,6 +82,21 @@ export default function BeautyOrderSplitDialog(props: {
         () => draft.filter((d) => d.checked).length,
         [draft]
     );
+
+    const targetOptions = useMemo(() => {
+        if (loadingTargets) return [{ value: "", label: "Loading…", disabled: true }];
+        if (!targets.length) return [{ value: "", label: "No other open orders", disabled: true }];
+        const opts = targets.map((t) => ({
+            value: String(t.orderId),
+            label: `#${t.orderId}`,
+            subLabel: new Date(t.createdAt).toLocaleTimeString(),
+        }));
+        // include current value if not in targets (edge)
+        if (targetOrderId && targets.find((t) => t.orderId === targetOrderId) == null) {
+            opts.unshift({ value: String(targetOrderId), label: `#${targetOrderId}`, subLabel: "" });
+        }
+        return opts;
+    }, [loadingTargets, targets, targetOrderId]);
 
     const validate = (): { ok: true; target: number; lines: { orderLineId: number; qty: number }[] } | { ok: false; message: string } => {
         const target = targetOrderId;
@@ -175,25 +191,15 @@ export default function BeautyOrderSplitDialog(props: {
                         {targetsError && <div className="split-error">{targetsError}</div>}
 
                         <div className="split-target-row">
-                            <select
-                                className="dropdown"
-                                value={targetOrderId ?? ""}
-                                onChange={(e) => setTargetOrderId(Number(e.target.value))}
-                                disabled={loadingTargets || moving}
-                            >
-                                {loadingTargets && <option value="">Loading…</option>}
-                                {!loadingTargets && targets.length === 0 && (
-                                    <option value="">No other open orders</option>
-                                )}
-                                {targets.map((t) => (
-                                    <option key={t.orderId} value={t.orderId}>
-                                        #{t.orderId} — {new Date(t.createdAt).toLocaleTimeString()}
-                                    </option>
-                                ))}
-                                {targetOrderId && targets.find((t) => t.orderId === targetOrderId) == null && (
-                                    <option value={targetOrderId}>#{targetOrderId}</option>
-                                )}
-                            </select>
+                            <div style={{ minWidth: 260, flex: 1 }}>
+                                <BeautySelect
+                                    value={targetOrderId ? String(targetOrderId) : ""}
+                                    onChange={(v) => setTargetOrderId(v ? Number(v) : null)}
+                                    disabled={loadingTargets || moving}
+                                    placeholder="Select target order"
+                                    options={targetOptions}
+                                />
+                            </div>
 
                             <button
                                 className="btn"
