@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import "./BeautyPayments.css";
-import { listPaymentsForBusiness, refundPayment, type PaymentHistoryItem } from "../../../frontapi/paymentApi";
+import {
+    listPaymentsForBusiness,
+    refundPayment,
+    type PaymentHistoryItem,
+} from "../../../frontapi/paymentApi";
 import { getUserFromToken } from "../../../utils/auth";
 import { logout } from "../../../frontapi/authApi";
 
@@ -12,7 +16,7 @@ function formatMoney(cents: number, currency: string) {
 
 export default function BeautyPayments() {
     const user = getUserFromToken();
-    const role = user?.role ?? "";
+    const role = (user?.role ?? "").toLowerCase();
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -21,7 +25,7 @@ export default function BeautyPayments() {
 
     const [busyRefundId, setBusyRefundId] = useState<number | null>(null);
 
-    const canRefund = role === "Owner" || role === "Manager";
+    const canRefund = role === "owner" || role === "manager";
 
     const authProblem =
         (error ?? "").toLowerCase().includes("unauthorized") ||
@@ -48,21 +52,32 @@ export default function BeautyPayments() {
     }, []);
 
     const filtered = useMemo(() => {
-        const id = queryOrderId.trim() ? Number(queryOrderId) : null;
-        if (!id) return payments;
+        const raw = queryOrderId.trim();
+        if (!raw) return payments;
+
+        const id = Number(raw);
+        if (!Number.isFinite(id) || id <= 0) return payments;
+
         return payments.filter((p) => p.orderId === id);
     }, [payments, queryOrderId]);
+
+    const totalCents = (p: PaymentHistoryItem) =>
+        (Number(p.amountCents) || 0) + (Number(p.tipCents) || 0);
 
     const doRefund = async (p: PaymentHistoryItem) => {
         if (!canRefund) return;
         if (busyRefundId) return;
+
         if (p.status !== "Success") {
             setError("Only successful payments can be refunded.");
             return;
         }
 
         const ok = window.confirm(
-            `Refund payment #${p.paymentId} for order #${p.orderId} (${formatMoney(p.amountCents, p.currency)})?`
+            `Refund payment #${p.paymentId} for order #${p.orderId} (${formatMoney(
+                totalCents(p),
+                p.currency
+            )})?`
         );
         if (!ok) return;
 
@@ -124,7 +139,7 @@ export default function BeautyPayments() {
                         <div key={p.paymentId} className="payment-card">
                             <div className="payment-main">
                                 <div className="payment-amount">
-                                    {formatMoney(p.amountCents, p.currency)}
+                                    {formatMoney(totalCents(p), p.currency)}
                                 </div>
                                 <div className="payment-status">{p.status}</div>
                             </div>
@@ -132,6 +147,12 @@ export default function BeautyPayments() {
                             <div className="payment-details">
                                 <div>Order #{p.orderId}</div>
                                 <div>Method: {p.method}</div>
+
+                                <div className="muted">
+                                    Base: {formatMoney(p.amountCents, p.currency)} • Tip:{" "}
+                                    {formatMoney(p.tipCents ?? 0, p.currency)}
+                                </div>
+
                                 <div className="muted">
                                     Created: {new Date(p.createdAt).toLocaleString()}
                                 </div>

@@ -19,20 +19,6 @@
     gap: 14px;
 }
 
-.add-items__controls {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    flex-wrap: wrap;
-    margin-bottom: 12px;
-}
-
-.add-items__tabs {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-}
-
 .service-card {
     background: white;
     border-radius: 10px;

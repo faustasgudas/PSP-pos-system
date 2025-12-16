@@ -63,20 +63,15 @@ export type PaymentHistoryItem = {
 
 export async function createPayment(
     orderId: number,
-    opts?: {
-        currency?: string;
-        giftCardCode?: string;
-        giftCardAmountCents?: number | null;
-    }
+    giftCardCode?: string
 ): Promise<PaymentResponse> {
     const res = await fetch(`${API_URL}/payments`, {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({
             orderId,
-            currency: opts?.currency ?? "EUR",
-            giftCardCode: opts?.giftCardCode ?? null,
-            giftCardAmountCents: opts?.giftCardAmountCents ?? null,
+            currency: "EUR",
+            giftCardCode: giftCardCode ?? null,
         }),
     });
 
