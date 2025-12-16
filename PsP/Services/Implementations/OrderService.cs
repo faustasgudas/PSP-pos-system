@@ -734,13 +734,18 @@ public class OrdersService : IOrdersService
 
         var order = await GetOrderEntityAsync(businessId, orderId, ct);
 
-        if (order.Status == "Open")
-            throw new InvalidOperationException("Order is already open.");
+        // if (order.Status == "Open")
+        //     throw new InvalidOperationException("Order is already open.");
+        if (!string.Equals(order.Status, "Cancelled", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Order can only be reopened when they were cancelled");
+
+        
+        
         
         order.Status = "Open";
         order.ClosedAt = null;
 
-        
+       
 
         var lines = await _db.OrderLines
             .Where(l => l.OrderId == orderId && l.BusinessId == businessId)
