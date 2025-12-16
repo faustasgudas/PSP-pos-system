@@ -132,3 +132,745 @@ body {
     font-style: italic;
 }
 
+/* =========================================================
+   Beauty UI refresh (visual-only, functionality unchanged)
+   Scoped to the Beauty dashboard shell wrapper.
+   ========================================================= */
+.beauty-shell {
+    --b-bg: #f6fbfd;
+    --b-surface: #ffffff;
+    --b-text: #0b2233;
+    --b-muted: rgba(11, 34, 51, 0.68);
+
+    --b-primary: #219ebc;
+    --b-primary-2: #8ecae6;
+    --b-accent: #ffb703;
+
+    --b-danger: #dc2626;
+    --b-success: #16a34a;
+
+    --b-border: rgba(2, 48, 71, 0.12);
+    --b-shadow: 0 8px 24px rgba(2, 48, 71, 0.10);
+    --b-radius: 14px;
+
+    background: var(--b-bg);
+    color: var(--b-text);
+    text-align: left; /* reduce “centered app” feel inside dashboards */
+}
+
+/* Top bar + navbar layout */
+.beauty-shell .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    background: linear-gradient(90deg, var(--b-primary) 0%, #1aa3c6 55%, var(--b-primary-2) 120%);
+    border-radius: 12px 12px 0 0;
+}
+
+.beauty-shell .top-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.beauty-shell .title {
+    position: static;
+    margin: 0;
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 0.2px;
+    color: #023047;
+    white-space: nowrap;
+}
+
+.beauty-shell .user-info {
+    position: static;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    color: #023047;
+    font-weight: 600;
+    min-width: 0;
+}
+
+.beauty-shell .navbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-start;
+    padding: 10px 12px;
+    background: rgba(142, 202, 230, 0.55);
+    border-bottom: 1px solid var(--b-border);
+}
+
+.beauty-shell .nav-btn {
+    background: rgba(33, 158, 188, 0.14);
+    color: #023047;
+    border: 1px solid rgba(33, 158, 188, 0.18);
+    padding: 9px 12px;
+    border-radius: 12px;
+    font-weight: 700;
+    line-height: 1;
+    transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.beauty-shell .nav-btn:hover {
+    background: rgba(33, 158, 188, 0.22);
+    border-color: rgba(33, 158, 188, 0.28);
+    transform: translateY(-1px);
+}
+
+.beauty-shell .nav-btn.active {
+    background: #023047;
+    color: white;
+    border-color: #023047;
+}
+
+/* Content padding */
+.beauty-shell .dashboard-container {
+    padding: 16px 16px 22px;
+}
+
+/* Typography helpers */
+.beauty-shell .muted {
+    color: var(--b-muted) !important;
+    opacity: 1; /* many pages use opacity; keep readable */
+}
+
+/* Unified buttons (overrides page-local .btn with higher specificity) */
+.beauty-shell .btn,
+.beauty-shell button.btn,
+.beauty-shell .logout-btn {
+    appearance: none;
+    border: 1px solid var(--b-border);
+    background: var(--b-surface);
+    color: var(--b-text);
+    padding: 9px 12px;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    line-height: 1;
+    box-shadow: 0 1px 0 rgba(2, 48, 71, 0.05);
+    transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+.beauty-shell .btn:hover,
+.beauty-shell .logout-btn:hover {
+    background: rgba(2, 48, 71, 0.03);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px rgba(2, 48, 71, 0.10);
+}
+
+.beauty-shell .btn:disabled,
+.beauty-shell .logout-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.beauty-shell .btn-primary {
+    background: #023047;
+    border-color: #023047;
+    color: #ffffff;
+}
+
+.beauty-shell .btn-primary:hover {
+    background: #062c41;
+}
+
+.beauty-shell .btn-ghost {
+    background: transparent;
+}
+
+.beauty-shell .btn-secondary {
+    background: rgba(2, 48, 71, 0.06);
+}
+
+.beauty-shell .btn-success {
+    background: var(--b-success);
+    border-color: var(--b-success);
+    color: #fff;
+}
+
+.beauty-shell .btn-danger {
+    background: var(--b-danger);
+    border-color: var(--b-danger);
+    color: #fff;
+}
+
+/* =========================================================
+   Form Controls: Simple, Clean Styling
+   ========================================================= */
+
+/* Base input styling - simple and clean */
+.beauty-shell input:not([type="checkbox"]):not([type="radio"]),
+.beauty-shell select,
+.beauty-shell textarea {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 10px 12px;
+    background: #fff;
+    color: var(--b-text);
+    font-size: 14px;
+    width: 100%;
+}
+
+.beauty-shell input:focus,
+.beauty-shell select:focus,
+.beauty-shell textarea:focus {
+    outline: none;
+    border-color: var(--b-primary);
+    box-shadow: 0 0 0 2px rgba(33, 158, 188, 0.2);
+}
+
+.beauty-shell input:disabled,
+.beauty-shell select:disabled,
+.beauty-shell textarea:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #f5f5f5;
+}
+
+/* Simple select arrow */
+.beauty-shell select {
+    cursor: pointer;
+}
+
+/* Textarea */
+.beauty-shell textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* Checkbox & Radio */
+.beauty-shell input[type="checkbox"],
+.beauty-shell input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--b-primary);
+}
+
+/* Cards / tables: make surfaces consistent */
+.beauty-shell .employee-card,
+.beauty-shell .service-card,
+.beauty-shell .payment-card,
+.beauty-shell .booking-item,
+.beauty-shell .orders-toolbar,
+.beauty-shell .orders-table-wrap,
+.beauty-shell .inventory-table-wrap,
+.beauty-shell .calendar-wrapper {
+    border: 1px solid var(--b-border);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+/* =========================================================
+   Unified Table Styles
+   ========================================================= */
+.beauty-shell .unified-table-wrap {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 16px;
+}
+
+.beauty-shell .unified-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.beauty-shell .unified-table thead th {
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6b7280;
+    background: #f9fafb;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.beauty-shell .unified-table tbody td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 14px;
+    color: #1f2937;
+    vertical-align: middle;
+}
+
+.beauty-shell .unified-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.beauty-shell .unified-table tbody tr:hover {
+    background: #f9fafb;
+}
+
+.beauty-shell .unified-table .text-right {
+    text-align: right;
+}
+
+.beauty-shell .unified-table .text-center {
+    text-align: center;
+}
+
+/* Apply to existing tables */
+.beauty-shell .orders-table,
+.beauty-shell .inventory-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.beauty-shell .orders-table thead th,
+.beauty-shell .inventory-table thead th {
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6b7280;
+    background: #f9fafb;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.beauty-shell .orders-table tbody td,
+.beauty-shell .inventory-table tbody td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.beauty-shell .orders-table tbody tr:hover,
+.beauty-shell .inventory-table tbody tr:hover {
+    background: #f9fafb;
+}
+
+/* =========================================================
+   BeautySelect (custom dropdown)
+   ========================================================= */
+.beauty-shell .bselect,
+.bselect {
+    width: 100%;
+    position: relative;
+}
+
+.beauty-shell .bselect__label,
+.bselect__label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 6px;
+}
+
+.beauty-shell .bselect__trigger,
+.bselect__trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    background: #fff;
+    cursor: pointer;
+    text-align: left;
+}
+
+.beauty-shell .bselect__trigger:hover,
+.bselect__trigger:hover {
+    border-color: #94a3b8;
+}
+
+.beauty-shell .bselect__trigger.is-open,
+.beauty-shell .bselect__trigger:focus,
+.bselect__trigger.is-open,
+.bselect__trigger:focus {
+    outline: none;
+    border-color: #219ebc;
+    box-shadow: 0 0 0 2px rgba(33, 158, 188, 0.2);
+}
+
+.beauty-shell .bselect__trigger:disabled,
+.bselect__trigger:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #f3f4f6;
+}
+
+.beauty-shell .bselect__value,
+.bselect__value {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.beauty-shell .bselect__value-main,
+.bselect__value-main {
+    font-size: 14px;
+    font-weight: 600;
+    color: #111827;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.beauty-shell .bselect__trigger:not(.has-value) .bselect__value-main,
+.bselect__trigger:not(.has-value) .bselect__value-main {
+    font-weight: 500;
+    color: #6b7280;
+}
+
+.beauty-shell .bselect__value-sub,
+.bselect__value-sub {
+    font-size: 12px;
+    color: #6b7280;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.beauty-shell .bselect__chev,
+.bselect__chev {
+    flex: 0 0 auto;
+    color: #6b7280;
+    font-size: 14px;
+    line-height: 1;
+}
+
+.beauty-shell .bselect__menu,
+.bselect__menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 16px 40px rgba(2, 48, 71, 0.18);
+    overflow: hidden;
+    z-index: 50;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.beauty-shell .bselect__option,
+.bselect__option {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    padding: 10px 12px;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.beauty-shell .bselect__option:hover,
+.bselect__option:hover {
+    background: #f9fafb;
+}
+
+.beauty-shell .bselect__option.is-selected,
+.bselect__option.is-selected {
+    background: rgba(33, 158, 188, 0.12);
+}
+
+.beauty-shell .bselect__option:disabled,
+.bselect__option:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.beauty-shell .bselect__option-main,
+.bselect__option-main {
+    font-size: 14px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.beauty-shell .bselect__option-sub,
+.bselect__option-sub {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+/* =========================================================
+   BeautyDatePicker / BeautyTimePicker (popup pickers)
+   ========================================================= */
+.beauty-shell .bpicker,
+.bpicker {
+    width: 100%;
+    position: relative;
+}
+
+.beauty-shell .bpicker__label,
+.bpicker__label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 6px;
+}
+
+.beauty-shell .bpicker__trigger,
+.bpicker__trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    background: #fff;
+    cursor: pointer;
+    text-align: left;
+}
+
+.beauty-shell .bpicker__trigger:hover,
+.bpicker__trigger:hover {
+    border-color: #94a3b8;
+}
+
+.beauty-shell .bpicker__trigger.is-open,
+.beauty-shell .bpicker__trigger:focus,
+.bpicker__trigger.is-open,
+.bpicker__trigger:focus {
+    outline: none;
+    border-color: #219ebc;
+    box-shadow: 0 0 0 2px rgba(33, 158, 188, 0.2);
+}
+
+.beauty-shell .bpicker__trigger:disabled,
+.bpicker__trigger:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #f3f4f6;
+}
+
+.beauty-shell .bpicker__value,
+.bpicker__value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #111827;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.beauty-shell .bpicker__trigger:not(.has-value) .bpicker__value,
+.bpicker__trigger:not(.has-value) .bpicker__value {
+    font-weight: 500;
+    color: #6b7280;
+}
+
+.beauty-shell .bpicker__icon,
+.bpicker__icon {
+    flex: 0 0 auto;
+    opacity: 0.8;
+}
+
+.beauty-shell .bpicker__popover,
+.bpicker__popover {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 16px 40px rgba(2, 48, 71, 0.18);
+    overflow: hidden;
+    z-index: 60;
+    padding: 12px;
+}
+
+/* Calendar */
+.beauty-shell .bcal__header,
+.bcal__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.beauty-shell .bcal__title,
+.bcal__title {
+    font-weight: 800;
+    color: #111827;
+    font-size: 14px;
+}
+
+.beauty-shell .bcal__nav,
+.bcal__nav {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+}
+
+.beauty-shell .bcal__nav:hover,
+.bcal__nav:hover {
+    background: #f9fafb;
+}
+
+.beauty-shell .bcal__weekdays,
+.bcal__weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 6px;
+    margin-bottom: 6px;
+}
+
+.beauty-shell .bcal__wd,
+.bcal__wd {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: #6b7280;
+}
+
+.beauty-shell .bcal__grid,
+.bcal__grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.beauty-shell .bcal__day,
+.bcal__day {
+    height: 36px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background: #f9fafb;
+    cursor: pointer;
+    font-weight: 700;
+    color: #111827;
+}
+
+.beauty-shell .bcal__day:hover,
+.bcal__day:hover {
+    background: #f3f4f6;
+}
+
+.beauty-shell .bcal__day.is-empty,
+.bcal__day.is-empty {
+    background: transparent;
+    cursor: default;
+}
+
+.beauty-shell .bcal__day.is-today,
+.bcal__day.is-today {
+    border-color: rgba(33, 158, 188, 0.45);
+}
+
+.beauty-shell .bcal__day.is-selected,
+.bcal__day.is-selected {
+    background: rgba(33, 158, 188, 0.16);
+    border-color: rgba(33, 158, 188, 0.35);
+    color: #0e7490;
+}
+
+.beauty-shell .bcal__footer,
+.bcal__footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #f3f4f6;
+}
+
+.beauty-shell .bcal__btn,
+.bcal__btn {
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.beauty-shell .bcal__btn:hover,
+.bcal__btn:hover {
+    background: #f9fafb;
+}
+
+/* Time picker */
+.beauty-shell .btime__title,
+.btime__title {
+    font-size: 13px;
+    font-weight: 800;
+    color: #111827;
+    margin-bottom: 10px;
+}
+
+.beauty-shell .btime__grid,
+.btime__grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    max-height: 260px;
+    overflow: auto;
+    padding-right: 4px;
+}
+
+.beauty-shell .btime__slot,
+.btime__slot {
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 13px;
+    font-weight: 800;
+    color: #111827;
+    cursor: pointer;
+}
+
+.beauty-shell .btime__slot:hover,
+.btime__slot:hover {
+    background: #f9fafb;
+    border-color: #cbd5e1;
+}
+
+.beauty-shell .btime__slot.is-selected,
+.btime__slot.is-selected {
+    background: rgba(33, 158, 188, 0.16);
+    border-color: rgba(33, 158, 188, 0.35);
+    color: #0e7490;
+}
+
+/* Mobile tweaks */
+@media (max-width: 720px) {
+    .beauty-shell .top-bar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .beauty-shell .user-info {
+        width: 100%;
+        justify-content: space-between;
+        flex-wrap: wrap;
+    }
+
+    .beauty-shell .dashboard-container {
+        padding: 12px;
+    }
+}

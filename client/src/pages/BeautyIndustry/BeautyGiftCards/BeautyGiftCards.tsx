@@ -1,5 +1,6 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "./BeautyGiftCards.css";
+import { BeautySelect } from "../../../components/ui/BeautySelect";
 
 import {
     createGiftCard,
@@ -225,15 +226,18 @@ export default function BeautyGiftCards() {
                     value={codeFilter}
                     onChange={(e) => setCodeFilter(e.target.value)}
                 />
-                <select
-                    className="giftcards-filter-input"
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                >
-                    <option value="">All statuses</option>
-                    <option value="Active">Active</option>
-                    <option value="Inactive">Inactive</option>
-                </select>
+                <div style={{ minWidth: 220 }}>
+                    <BeautySelect
+                        value={statusFilter}
+                        onChange={setStatusFilter}
+                        placeholder="All statuses"
+                        options={[
+                            { value: "", label: "All statuses" },
+                            { value: "Active", label: "Active" },
+                            { value: "Inactive", label: "Inactive" },
+                        ]}
+                    />
+                </div>
                 <button className="btn btn-secondary" onClick={load} disabled={loading || !isBusinessReady}>
                     Apply
                 </button>

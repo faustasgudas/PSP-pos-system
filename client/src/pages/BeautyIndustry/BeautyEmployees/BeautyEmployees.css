@@ -1,6 +1,6 @@
 /* ===== Container ===== */
 .employees-container {
-    padding: 24px;
+    padding: 20px;
 }
 
 /* ===== Header ===== */
@@ -8,134 +8,237 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 }
 
 .employees-header h2 {
-    font-size: 28px;
-    font-weight: 600;
+    font-size: 22px;
+    font-weight: 700;
+    color: #023047;
+    margin: 0;
 }
 
-/* ===== Grid Layout ===== */
-.employee-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 20px;
+/* ===== Loading ===== */
+.loading-message {
+    padding: 24px;
+    text-align: center;
+    color: #6b7280;
 }
 
-/* ===== Employee Card ===== */
-.employee-card {
-    background: #ffffff;
-    border-radius: 16px;
-    padding: 16px;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    min-height: 170px;
+/* ===== Table ===== */
+.employees-table-wrap {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
 }
 
-/* ===== Card Content ===== */
-.employee-info {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+.employees-table {
+    width: 100%;
+    border-collapse: collapse;
 }
 
-.employee-name {
-    font-size: 18px;
-    font-weight: 600;
-    line-height: 1.2;
-}
-
-.employee-email {
-    font-size: 14px;
-    color: #666;
-    word-break: break-all;
-}
-
-.employee-role {
-    display: inline-block;
-    align-self: flex-start;
+.employees-table thead th {
+    text-align: left;
     font-size: 12px;
-    padding: 4px 10px;
-    border-radius: 999px;
-    background: #e3f4f2;
-    color: #137a73;
-    font-weight: 500;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6b7280;
+    background: #f9fafb;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e5e7eb;
 }
 
-/* ===== Card Actions ===== */
-.employee-actions {
+.employees-table tbody td {
+    padding: 14px 16px;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 14px;
+    color: #1f2937;
+    vertical-align: middle;
+}
+
+.employees-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.employees-table tbody tr:hover {
+    background: #f9fafb;
+}
+
+.name-cell {
+    font-weight: 600;
     display: flex;
-    justify-content: flex-end;
-    margin-top: 12px;
+    align-items: center;
+    gap: 8px;
+}
+
+.actions-cell {
+    display: flex;
+    gap: 8px;
+}
+
+/* ===== Badges ===== */
+.you-badge {
+    background: #219ebc;
+    color: white;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+.role-badge {
+    display: inline-block;
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-weight: 600;
+}
+
+.role-owner {
+    background: rgba(255, 183, 3, 0.2);
+    color: #b45309;
+}
+
+.role-manager {
+    background: rgba(33, 158, 188, 0.15);
+    color: #0e7490;
+}
+
+.role-staff {
+    background: rgba(107, 114, 128, 0.15);
+    color: #4b5563;
 }
 
 /* ===== Buttons ===== */
 .btn {
     padding: 8px 14px;
     border-radius: 8px;
-    border: none;
+    border: 1px solid #e5e7eb;
+    background: #fff;
     cursor: pointer;
     font-size: 14px;
+    font-weight: 500;
+}
+
+.btn:hover {
+    background: #f9fafb;
+}
+
+.btn-sm {
+    padding: 6px 10px;
+    font-size: 12px;
 }
 
 .btn-primary {
-    background-color: #8ecae6;
-    color: #023047;
+    background-color: #023047;
+    color: white;
+    border-color: #023047;
 }
 
 .btn-primary:hover {
-    background-color: #74bddb;
+    background-color: #034569;
 }
 
 .btn-danger {
-    background-color: #ef4444;
+    background-color: #dc2626;
     color: white;
+    border-color: #dc2626;
 }
 
 .btn-danger:hover {
-    background-color: #dc2626;
+    background-color: #b91c1c;
+}
+
+.muted {
+    color: #9ca3af;
 }
 
 /* ===== Modal Backdrop ===== */
 .modal-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.55);
+    background: rgba(0, 0, 0, 0.5);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1000;
+    padding: 20px;
 }
 
 /* ===== Modal ===== */
 .modal {
-    background: white;
-    border-radius: 16px;
+    background: #fff;
+    border-radius: 12px;
     padding: 24px;
-    width: 360px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+    width: 400px;
+    max-width: 100%;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
 }
 
 .modal h3 {
+    margin: 0 0 20px 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #023047;
+}
+
+.modal p {
+    color: #4b5563;
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+/* ===== Form Fields ===== */
+.form-field {
     margin-bottom: 16px;
 }
 
-.modal input,
-.modal select {
+.form-field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 6px;
+}
+
+.form-field input,
+.form-field select {
     width: 100%;
-    padding: 10px;
-    margin-bottom: 12px;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
     border-radius: 8px;
-    border: 1px solid #ddd;
     font-size: 14px;
+}
+
+.form-field input:focus,
+.form-field select:focus {
+    outline: none;
+    border-color: #219ebc;
+    box-shadow: 0 0 0 2px rgba(33, 158, 188, 0.2);
 }
 
 /* ===== Modal Actions ===== */
 .modal-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 12px;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+}
+
+@media (max-width: 480px) {
+    .modal {
+        padding: 20px;
+    }
+    
+    .modal-actions {
+        flex-direction: column;
+    }
+    
+    .modal-actions .btn {
+        width: 100%;
+    }
 }

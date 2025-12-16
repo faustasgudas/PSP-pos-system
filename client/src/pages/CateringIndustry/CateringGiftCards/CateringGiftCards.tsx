@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import "./CateringGiftCards.css";
+import { BeautySelect } from "../../../components/ui/BeautySelect";
 
 interface GiftCard {
     id: number;
@@ -14,6 +15,7 @@ interface CateringGiftCardsProps {
 
 export default function CateringGiftCards({ giftCards }: CateringGiftCardsProps) {
     const [showModal, setShowModal] = useState(false);
+    const [currency, setCurrency] = useState("EUR");
 
     return (
         <div className="giftcards-container">
@@ -46,11 +48,15 @@ export default function CateringGiftCards({ giftCards }: CateringGiftCardsProps)
                             </div>
                             <div className="modal-field">
                                 <label>Currency</label>
-                                <select>
-                                    <option value="EUR">EUR</option>
-                                    <option value="USD">USD</option>
-                                    <option value="GBP">GBP</option>
-                                </select>
+                                <BeautySelect
+                                    value={currency}
+                                    onChange={setCurrency}
+                                    options={[
+                                        { value: "EUR", label: "EUR" },
+                                        { value: "USD", label: "USD" },
+                                        { value: "GBP", label: "GBP" },
+                                    ]}
+                                />
                             </div>
                         </div>
                         <div className="modal-actions">

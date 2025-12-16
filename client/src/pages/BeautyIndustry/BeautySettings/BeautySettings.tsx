@@ -1,6 +1,12 @@
+import { useState } from "react";
 import "./BeautySettings.css";
+import { BeautySelect } from "../../../components/ui/BeautySelect";
 
 export default function BeautySettings() {
+    const [country, setCountry] = useState("LT");
+    const [taxCalc, setTaxCalc] = useState("PerLine");
+    const [priceIncludesTax, setPriceIncludesTax] = useState("true");
+
     return (
         <div className="settings-container">
             <div className="action-bar">
@@ -21,25 +27,35 @@ export default function BeautySettings() {
 
                     <div className="settings-field">
                         <label>Country</label>
-                        <select defaultValue="LT">
-                            <option value="LT">Lithuania</option>
-                        </select>
+                        <BeautySelect
+                            value={country}
+                            onChange={setCountry}
+                            options={[{ value: "LT", label: "Lithuania" }]}
+                        />
                     </div>
 
                     <div className="settings-field">
                         <label>Tax Calculation</label>
-                        <select defaultValue="PerLine">
-                            <option value="PerLine">Round tax per line</option>
-                            <option value="PerOrder">Round tax per order</option>
-                        </select>
+                        <BeautySelect
+                            value={taxCalc}
+                            onChange={setTaxCalc}
+                            options={[
+                                { value: "PerLine", label: "Round tax per line" },
+                                { value: "PerOrder", label: "Round tax per order" },
+                            ]}
+                        />
                     </div>
 
                     <div className="settings-field">
                         <label>Price Includes Tax</label>
-                        <select defaultValue="true">
-                            <option value="true">Yes</option>
-                            <option value="false">No</option>
-                        </select>
+                        <BeautySelect
+                            value={priceIncludesTax}
+                            onChange={setPriceIncludesTax}
+                            options={[
+                                { value: "true", label: "Yes" },
+                                { value: "false", label: "No" },
+                            ]}
+                        />
                     </div>
                 </div>
 

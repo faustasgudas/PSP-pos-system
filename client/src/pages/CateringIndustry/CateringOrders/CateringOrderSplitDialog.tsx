@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import "../../../App.css";
 import { createOrder, listMyOrders, moveOrderLines, type OrderLine, type OrderSummary } from "../../../frontapi/orderApi";
+import { BeautySelect } from "../../../components/ui/BeautySelect";
 
 type Draft = { orderLineId: number; maxQty: number; qty: string; checked: boolean };
 
@@ -151,21 +152,19 @@ export default function CateringOrderSplitDialog(props: {
                     <div>
                         <div className="muted" style={{ marginBottom: 6 }}>Target order</div>
                         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                            <select
-                                className="dropdown"
-                                value={targetOrderId ?? ""}
-                                onChange={(e) => setTargetOrderId(Number(e.target.value))}
-                                disabled={loading || moving}
-                                style={{ maxWidth: 420 }}
-                            >
-                                {loading && <option value="">Loading…</option>}
-                                {!loading && targets.length === 0 && <option value="">No other open orders</option>}
-                                {targets.map((t) => (
-                                    <option key={t.orderId} value={t.orderId}>
-                                        #{t.orderId}
-                                    </option>
-                                ))}
-                            </select>
+                            <div style={{ width: 420, maxWidth: "100%" }}>
+                                <BeautySelect
+                                    value={targetOrderId ? String(targetOrderId) : ""}
+                                    onChange={(v) => setTargetOrderId(v ? Number(v) : null)}
+                                    disabled={loading || moving}
+                                    placeholder="Select target order"
+                                    options={[
+                                        ...(loading ? [{ value: "", label: "Loading…", disabled: true }] : []),
+                                        ...(!loading && targets.length === 0 ? [{ value: "", label: "No other open orders", disabled: true }] : []),
+                                        ...targets.map((t) => ({ value: String(t.orderId), label: `#${t.orderId}` })),
+                                    ]}
+                                />
+                            </div>
                             <button className="btn" onClick={createTarget} disabled={creating || moving || !employeeId}>
                                 {creating ? "Creating…" : "Create new order"}
                             </button>

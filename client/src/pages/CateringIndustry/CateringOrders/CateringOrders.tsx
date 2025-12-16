@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import "../../../App.css";
 import { getUserFromToken } from "../../../utils/auth";
 import { listAllOrders, listMyOrders, type OrderSummary } from "../../../frontapi/orderApi";
+import { BeautySelect } from "../../../components/ui/BeautySelect";
 
 type Scope = "mine" | "all";
 
@@ -107,12 +108,20 @@ export default function CateringOrders(props: {
 
                     <div style={{ width: 16 }} />
                     <div className="muted">Status</div>
-                    <select className="dropdown" value={status} onChange={(e) => setStatus(e.target.value)} disabled={loading} style={{ maxWidth: 220 }}>
-                        <option value="">All</option>
-                        <option value="Open">Open</option>
-                        <option value="Closed">Closed</option>
-                        <option value="Cancelled">Cancelled</option>
-                    </select>
+                    <div style={{ width: 220 }}>
+                        <BeautySelect
+                            value={status}
+                            onChange={setStatus}
+                            disabled={loading}
+                            placeholder="All"
+                            options={[
+                                { value: "", label: "All" },
+                                { value: "Open", label: "Open" },
+                                { value: "Closed", label: "Closed" },
+                                { value: "Cancelled", label: "Cancelled" },
+                            ]}
+                        />
+                    </div>
 
                     <div style={{ width: 16 }} />
                     <div className="muted">Open</div>

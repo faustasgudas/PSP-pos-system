@@ -9,6 +9,7 @@ import { logout } from "../../../frontapi/authApi";
 
 import "../../../App.css";
 import "./BeautyOrders.css";
+import { BeautySelect } from "../../../components/ui/BeautySelect";
 
 type OrdersScope = "mine" | "all";
 
@@ -122,16 +123,19 @@ export default function BeautyOrders(props: {
                         </button>
                     </div>
 
-                    <select
-                        className="dropdown dropdown-sm"
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                    >
-                        <option value="">All statuses</option>
-                        <option value="Open">Open</option>
-                        <option value="Closed">Closed</option>
-                        <option value="Cancelled">Cancelled</option>
-                    </select>
+                    <div style={{ minWidth: 200 }}>
+                        <BeautySelect
+                            value={statusFilter}
+                            onChange={setStatusFilter}
+                            placeholder="All statuses"
+                            options={[
+                                { value: "", label: "All statuses", subLabel: "Show everything" },
+                                { value: "Open", label: "Open", subLabel: "Active orders" },
+                                { value: "Closed", label: "Closed", subLabel: "Paid / finished" },
+                                { value: "Cancelled", label: "Cancelled", subLabel: "Cancelled orders" },
+                            ]}
+                        />
+                    </div>
 
                     <input
                         className="search-input"
