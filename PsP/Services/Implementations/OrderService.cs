@@ -783,8 +783,6 @@ public class OrdersService : IOrdersService
             }
         }
         
-        order.ApplyRefund();
-        
         await _db.SaveChangesAsync(ct);
 
         var lines_t = await _db.OrderLines

@@ -606,7 +606,7 @@ public class OrderServiceTests2
         var order = await svc.CreateOrderAsync(biz.BusinessId, staff.EmployeeId,
             new CreateOrderRequest { EmployeeId = staff.EmployeeId });
 
-        await svc.CloseOrderAsync(biz.BusinessId, order.OrderId, staff.EmployeeId);
+        await svc.CancelOrderAsync(biz.BusinessId, order.OrderId, staff.EmployeeId,new CancelOrderRequest(){EmployeeId = staff.EmployeeId,Reason = "whatever"});
 
         var reopened = await svc.ReopenOrderAsync(biz.BusinessId, order.OrderId, mgr.EmployeeId);
 
