@@ -18,6 +18,7 @@ public class DiscountsController : ControllerBase
 
    
     [HttpGet]
+    [Authorize(Roles = "Owner,Manager,Staff")]
     public async Task<ActionResult<IEnumerable<DiscountSummaryResponse>>> ListDiscounts()
     {
         var businessId = User.GetBusinessId();
@@ -32,6 +33,7 @@ public class DiscountsController : ControllerBase
     }
 
     [HttpGet("{discountId:int}")]
+    [Authorize(Roles = "Owner,Manager,Staff")]
     public async Task<ActionResult<DiscountDetailResponse>> GetDiscount(int discountId)
     {
         var businessId = User.GetBusinessId();
@@ -96,6 +98,7 @@ public class DiscountsController : ControllerBase
 
  
     [HttpGet("{discountId:int}/eligibilities")]
+    [Authorize(Roles = "Owner,Manager,Staff")]
     public async Task<ActionResult<IEnumerable<DiscountEligibilityResponse>>> ListEligibilities(int discountId)
     {
         var businessId = User.GetBusinessId();
@@ -110,6 +113,7 @@ public class DiscountsController : ControllerBase
     }
 
     [HttpGet("{discountId:int}/eligible-items")]
+    [Authorize(Roles = "Owner,Manager,Staff")]
     public async Task<ActionResult<IEnumerable<CatalogItemSummaryResponse>>> ListEligibleItems(int discountId)
     {
         var businessId = User.GetBusinessId();
