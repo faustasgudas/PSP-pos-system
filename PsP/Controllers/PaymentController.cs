@@ -48,6 +48,9 @@ public class PaymentController : ControllerBase
         {
             var baseUrl = $"{Request.Scheme}://{Request.Host}";
 
+            var frontendBaseUrl = "http://localhost:5173"; // dev
+// arba paimk iš config, žr. apačioj
+
             var result = await _payments.CreatePaymentAsync(
                 orderId: request.OrderId,
                 businessId: businessId,
@@ -55,8 +58,9 @@ public class PaymentController : ControllerBase
                 giftCardCode: request.GiftCardCode,
                 giftCardAmountCents: request.GiftCardAmountCents,
                 tipCents: request.TipCents,
-                baseUrl: baseUrl
+                baseUrl: frontendBaseUrl
             );
+
 
             return Ok(result);
         }
@@ -67,18 +71,7 @@ public class PaymentController : ControllerBase
     }
 
 
-    [AllowAnonymous]
-    [HttpGet("success")]
-    public IActionResult Success([FromQuery] string sessionId)
-        => Ok(new { message = "payment_processing", sessionId });
-
-    [AllowAnonymous]
-    [HttpGet("cancel")]
-    public async Task<IActionResult> Cancel([FromQuery] string sessionId)
-    {
-        await _payments.CancelStripeAsync(sessionId);
-        return Ok(new { message = "payment_cancelled", sessionId });
-    }
+   
 
 
     /// <summary>
