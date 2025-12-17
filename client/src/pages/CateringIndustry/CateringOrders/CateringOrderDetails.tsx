@@ -8,6 +8,7 @@ import {
     reopenOrder,
     refundOrder,
     removeOrderLine,
+    updateOrder,
     updateOrderLine,
     type OrderDetail,
     type OrderLine,
@@ -20,8 +21,7 @@ import CateringOrderSplitDialog from "./CateringOrderSplitDialog";
 function calcTotal(lines: OrderLine[]) {
     return lines.reduce((sum, l) => sum + Number(l.unitPriceSnapshot) * Number(l.qty), 0);
 }
-
-export default function CateringOrderDetails(props: { orderId: number; onBack: () => void }) {
+export default function CateringOrderDetails(props: { orderId: number; onBack: () => void; onPay: (orderId: number) => void }) {
     const user = getUserFromToken();
     const role = user?.role ?? "";
 
@@ -39,11 +39,14 @@ export default function CateringOrderDetails(props: { orderId: number; onBack: (
     const [catalog, setCatalog] = useState<CatalogItem[]>([]);
     const [catalogQuery, setCatalogQuery] = useState("");
 
+    const [editTableOrArea, setEditTableOrArea] = useState<string>("");
+
     const canManage = role === "Owner" || role === "Manager";
     const canEdit = (order?.status ?? "") === "Open";
     const canClose = canEdit;
     const canCancel = canEdit;
     const canSplit = canEdit;
+    const canPay = canEdit && (order?.lines?.length ?? 0) > 0;
     const canRefund = canManage && (order?.status ?? "") === "Closed";
     const canReopen = canManage && (order?.status ?? "") !== "Open";
 
@@ -53,6 +56,7 @@ export default function CateringOrderDetails(props: { orderId: number; onBack: (
         try {
             const dto = await getOrder(props.orderId);
             setOrder(dto);
+            setEditTableOrArea(String(dto?.tableOrArea ?? ""));
         } catch (e: any) {
             setOrder(null);
             setError(e?.message || "Failed to load order");
@@ -80,6 +84,27 @@ export default function CateringOrderDetails(props: { orderId: number; onBack: (
     }, [businessId]);
 
     const total = useMemo(() => calcTotal(order?.lines ?? []), [order?.lines]);
+
+    const saveTable = async () => {
+        if (!canEdit || busy) return;
+        if (!employeeId) return setError("Missing employeeId");
+        const next = editTableOrArea.trim();
+        if (!next) return setError("Table is required (e.g. T12)");
+
+        setBusy(true);
+        setError(null);
+        try {
+            const updated = await updateOrder(props.orderId, {
+                employeeId,
+                tableOrArea: next,
+            });
+            setOrder(updated);
+        } catch (e: any) {
+            setError(e?.message || "Failed to update table");
+        } finally {
+            setBusy(false);
+        }
+    };
 
     const markLineBusy = (lineId: number, on: boolean) => {
         setBusyLineIds((prev) => {
@@ -260,13 +285,21 @@ export default function CateringOrderDetails(props: { orderId: number; onBack: (
                     <button className="btn" onClick={() => setShowSplit(true)} disabled={!canSplit || busy || order.lines.length === 0}>
                         Split…
                     </button>
+                    <button
+                        className="btn btn-primary"
+                        onClick={() => props.onPay(order.orderId)}
+                        disabled={!canPay || busy}
+                        title={!canPay ? "Only open orders with at least one line can be paid" : ""}
+                    >
+                        Pay
+                    </button>
                     <button className="btn" onClick={doRefund} disabled={!canRefund || busy} title={!canRefund ? "Closed orders only (Owner/Manager)" : ""}>
                         Refund
                     </button>
                     <button className="btn" onClick={doReopen} disabled={!canReopen || busy} title={!canReopen ? "Owner/Manager only" : ""}>
                         Reopen
                     </button>
-                    <button className="btn btn-primary" onClick={doClose} disabled={!canClose || busy}>
+                    <button className="btn" onClick={doClose} disabled={!canClose || busy}>
                         Close
                     </button>
                     <button className="btn btn-danger" onClick={doCancel} disabled={!canCancel || busy}>
@@ -280,6 +313,24 @@ export default function CateringOrderDetails(props: { orderId: number; onBack: (
                     {error}
                 </div>
             )}
+
+            <div className="card" style={{ marginBottom: 12, textAlign: "left" }}>
+                <div className="muted" style={{ marginBottom: 6 }}>Table</div>
+                <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                    <input
+                        className="dropdown"
+                        value={editTableOrArea}
+                        onChange={(e) => setEditTableOrArea(e.target.value)}
+                        disabled={!canEdit || busy}
+                        placeholder="e.g. T12 / Patio"
+                        style={{ maxWidth: 340 }}
+                    />
+                    <button className="btn btn-primary" onClick={saveTable} disabled={!canEdit || busy}>
+                        Save table
+                    </button>
+                    {!canEdit && <span className="muted">Only open orders can be edited.</span>}
+                </div>
+            </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12 }}>
                 <div className="card">

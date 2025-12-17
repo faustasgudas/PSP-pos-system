@@ -132,10 +132,7 @@ body {
     font-style: italic;
 }
 
-/* =========================================================
-   Beauty UI refresh (visual-only, functionality unchanged)
-   Scoped to the Beauty dashboard shell wrapper.
-   ========================================================= */
+/* Beauty shell */
 .beauty-shell {
     --b-bg: #f6fbfd;
     --b-surface: #ffffff;
@@ -155,10 +152,18 @@ body {
 
     background: var(--b-bg);
     color: var(--b-text);
-    text-align: left; /* reduce “centered app” feel inside dashboards */
+    text-align: left;
+    box-sizing: border-box;
 }
 
-/* Top bar + navbar layout */
+/* Box sizing */
+.beauty-shell *,
+.beauty-shell *::before,
+.beauty-shell *::after {
+    box-sizing: border-box;
+}
+
+/* Top bar + navbar */
 .beauty-shell .top-bar {
     display: flex;
     align-items: center;
@@ -231,18 +236,105 @@ body {
     border-color: #023047;
 }
 
-/* Content padding */
+/* Content */
 .beauty-shell .dashboard-container {
     padding: 16px 16px 22px;
 }
 
-/* Typography helpers */
+/* Card */
+.beauty-shell .card {
+    background: var(--b-surface);
+    border: 1px solid var(--b-border);
+    border-radius: 14px;
+    padding: 14px;
+    box-shadow: 0 2px 10px rgba(2, 48, 71, 0.08);
+}
+
+.beauty-shell .page {
+    width: 100%;
+}
+
+.beauty-shell .action-buttons {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* Modal */
+.beauty-shell .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(2, 48, 71, 0.55);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 999;
+}
+
+.beauty-shell .modal-card {
+    width: min(560px, 100%);
+    background: #ffffff;
+    border: 1px solid rgba(2, 48, 71, 0.14);
+    border-radius: 18px;
+    padding: 22px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+    max-height: calc(100vh - 32px);
+    overflow: auto;
+    text-align: left;
+}
+
+.beauty-shell .modal-title {
+    margin: 0 0 14px 0;
+    font-size: 18px;
+    font-weight: 800;
+    color: #023047;
+}
+
+.beauty-shell .modal-form {
+    display: grid;
+    gap: 12px;
+}
+
+.beauty-shell .modal-field {
+    display: grid;
+    gap: 6px;
+}
+
+.beauty-shell .modal-field label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: rgba(2, 48, 71, 0.72);
+}
+
+.beauty-shell .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(2, 48, 71, 0.08);
+    flex-wrap: wrap;
+}
+
+@media (max-width: 520px) {
+    .beauty-shell .modal-actions .btn {
+        width: 100%;
+    }
+}
+
+/* Text */
 .beauty-shell .muted {
     color: var(--b-muted) !important;
     opacity: 1; /* many pages use opacity; keep readable */
 }
 
-/* Unified buttons (overrides page-local .btn with higher specificity) */
+/* Buttons */
 .beauty-shell .btn,
 .beauty-shell button.btn,
 .beauty-shell .logout-btn {
@@ -304,11 +396,9 @@ body {
     color: #fff;
 }
 
-/* =========================================================
-   Form Controls: Simple, Clean Styling
-   ========================================================= */
+/* Form controls */
 
-/* Base input styling - simple and clean */
+/* Inputs */
 .beauty-shell input:not([type="checkbox"]):not([type="radio"]),
 .beauty-shell select,
 .beauty-shell textarea {
@@ -319,6 +409,16 @@ body {
     color: var(--b-text);
     font-size: 14px;
     width: 100%;
+}
+
+/* Legacy .dropdown */
+.beauty-shell .dropdown {
+    width: 100%;
+    margin: 0;
+    border: 1px solid #ccc;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #fff;
 }
 
 .beauty-shell input:focus,
@@ -337,7 +437,7 @@ body {
     background: #f5f5f5;
 }
 
-/* Simple select arrow */
+/* Select */
 .beauty-shell select {
     cursor: pointer;
 }
@@ -348,7 +448,7 @@ body {
     min-height: 80px;
 }
 
-/* Checkbox & Radio */
+/* Checkboxes */
 .beauty-shell input[type="checkbox"],
 .beauty-shell input[type="radio"] {
     width: 18px;
@@ -357,7 +457,7 @@ body {
     accent-color: var(--b-primary);
 }
 
-/* Cards / tables: make surfaces consistent */
+/* Surfaces */
 .beauty-shell .employee-card,
 .beauty-shell .service-card,
 .beauty-shell .payment-card,
@@ -370,9 +470,7 @@ body {
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 
-/* =========================================================
-   Unified Table Styles
-   ========================================================= */
+/* Tables */
 .beauty-shell .unified-table-wrap {
     background: #fff;
     border: 1px solid #e5e7eb;
@@ -422,7 +520,7 @@ body {
     text-align: center;
 }
 
-/* Apply to existing tables */
+/* Existing tables */
 .beauty-shell .orders-table,
 .beauty-shell .inventory-table {
     width: 100%;
@@ -455,9 +553,7 @@ body {
     background: #f9fafb;
 }
 
-/* =========================================================
-   BeautySelect (custom dropdown)
-   ========================================================= */
+/* BeautySelect */
 .beauty-shell .bselect,
 .bselect {
     width: 100%;
@@ -607,9 +703,7 @@ body {
     color: #6b7280;
 }
 
-/* =========================================================
-   BeautyDatePicker / BeautyTimePicker (popup pickers)
-   ========================================================= */
+/* Pickers */
 .beauty-shell .bpicker,
 .bpicker {
     width: 100%;
@@ -842,6 +936,9 @@ body {
     font-weight: 800;
     color: #111827;
     cursor: pointer;
+    white-space: nowrap;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
 }
 
 .beauty-shell .btime__slot:hover,
@@ -857,7 +954,7 @@ body {
     color: #0e7490;
 }
 
-/* Mobile tweaks */
+/* Mobile */
 @media (max-width: 720px) {
     .beauty-shell .top-bar {
         flex-direction: column;
@@ -872,5 +969,18 @@ body {
 
     .beauty-shell .dashboard-container {
         padding: 12px;
+    }
+}
+
+@media (max-width: 520px) {
+    .beauty-shell .btime__grid,
+    .btime__grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .beauty-shell .btime__slot,
+    .btime__slot {
+        padding: 8px 6px;
+        font-size: 12px;
     }
 }

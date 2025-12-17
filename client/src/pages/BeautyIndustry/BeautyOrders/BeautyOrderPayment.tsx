@@ -111,8 +111,7 @@ function calculatePricing(order: OrderDetail | null) {
     const netSubtotalAfterLine = baseLines.reduce((s, x) => s + x.netAfterLineCents, 0);
 
     const lines: LinePricing[] = baseLines.map((x, idx) => {
-        // IMPORTANT: item cards should NOT be reduced by order-level discount.
-        // They show only item-level discount + tax (based on item-discounted net).
+        // Item totals: item discount + tax (no order-level discount applied here).
         const netAfterItemDiscount = Math.max(0, x.netAfterLineCents);
         const taxCents = Math.round((netAfterItemDiscount * x.taxRatePct) / 100);
         const totalCents = netAfterItemDiscount + taxCents;
