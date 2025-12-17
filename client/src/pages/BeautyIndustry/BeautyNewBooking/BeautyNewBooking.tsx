@@ -6,6 +6,7 @@ import { fetchEmployees } from "../../../frontapi/employeesApi";
 import { BeautySelect } from "../../../components/ui/BeautySelect";
 import { BeautyDatePicker } from "../../../components/ui/BeautyDatePicker";
 import { BeautyTimePicker } from "../../../components/ui/BeautyTimePicker";
+import { getUserFromToken } from "../../../utils/auth";
 
 export default function BeautyNewBooking({
                                              goBack,
@@ -13,6 +14,8 @@ export default function BeautyNewBooking({
     goBack: () => void;
 }) {
     const businessId = Number(localStorage.getItem("businessId"));
+    const user = getUserFromToken();
+    const role = user?.role ?? "";
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -35,6 +38,10 @@ export default function BeautyNewBooking({
         const id = Number(serviceId);
         return services.find((s) => s.catalogItemId === id) ?? null;
     }, [services, serviceId]);
+
+    const activeEmployees = useMemo(() => {
+        return (employees ?? []).filter((emp: any) => String(emp?.status ?? "").toLowerCase() === "active");
+    }, [employees]);
 
     const quickDateLabel = useMemo(() => {
         if (!date) return "";
@@ -101,7 +108,9 @@ export default function BeautyNewBooking({
         if (notes.trim()) parts.push(notes.trim());
         const finalNotes = parts.join("\n");
 
-        const empId = employeeId ? Number(employeeId) : null;
+        // NOTE: backend rule: Staff can only create reservations for themselves.
+        // So for Staff we always send null to let backend auto-assign callerEmployeeId.
+        const empId = role === "Staff" ? null : employeeId ? Number(employeeId) : null;
 
         setSaving(true);
         setError(null);
@@ -190,17 +199,22 @@ export default function BeautyNewBooking({
                                 label="Employee (optional)"
                                 value={employeeId}
                                 onChange={setEmployeeId}
-                                disabled={loading || saving}
+                                disabled={loading || saving || role === "Staff"}
                                 placeholder="Select employee"
                                 options={[
                                     { value: "", label: "Any employee", subLabel: "Auto-assign / optional" },
-                                    ...employees.map((emp: any) => ({
+                                    ...activeEmployees.map((emp: any) => ({
                                         value: String(emp.employeeId ?? emp.id),
                                         label: String(emp.name ?? "Employee"),
                                         subLabel: "",
                                     })),
                                 ]}
                             />
+                            {role === "Staff" && (
+                                <div className="muted" style={{ marginTop: 8 }}>
+                                    Staff can only create bookings for themselves (employee is auto-assigned).
+                                </div>
+                            )}
                         </div>
 
                         <div className="nb-field full">
