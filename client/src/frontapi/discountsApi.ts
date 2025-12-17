@@ -120,3 +120,17 @@ export async function addEligibility(discountId: number, catalogItemId: number) 
     return res.json();
 }
 
+export async function removeEligibility(discountId: number, catalogItemId: number): Promise<void> {
+    const res = await fetch(`${API_URL}/discounts/${discountId}/eligibilities/${catalogItemId}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+    });
+    if (!res.ok) throw new Error(await readErrorMessage(res));
+}
+
+export async function listEligibilities(discountId: number): Promise<DiscountEligibility[]> {
+    const res = await fetch(`${API_URL}/discounts/${discountId}/eligibilities`, { headers: authHeaders() });
+    if (!res.ok) throw new Error(await readErrorMessage(res));
+    return res.json();
+}
+
