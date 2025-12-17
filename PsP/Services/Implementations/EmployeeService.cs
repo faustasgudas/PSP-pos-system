@@ -62,7 +62,7 @@ public class EmployeeService : IEmployeeService
         string? role = null,
         string? status = null)
     {
-        await EnsureCallerIsManagerOrOwnerAsync(businessId, callerEmployeeId);
+        //await EnsureCallerIsManagerOrOwnerAsync(businessId, callerEmployeeId);
 
         var query = _db.Employees
             .AsNoTracking()
@@ -80,7 +80,7 @@ public class EmployeeService : IEmployeeService
         int employeeId,
         int callerEmployeeId)
     {
-        await EnsureCallerIsManagerOrOwnerAsync(businessId, callerEmployeeId);
+        //await EnsureCallerIsManagerOrOwnerAsync(businessId, callerEmployeeId);
 
         return await _db.Employees
             .AsNoTracking()
