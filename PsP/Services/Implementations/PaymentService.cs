@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using PsP.Contracts.Payments;
 using PsP.Data;
+using PsP.Mappings;
 using PsP.Models;
 using PsP.Services.Interfaces;
 
@@ -380,8 +381,9 @@ public class PaymentService : IPaymentService
         p.IsOpen = false;
 
         var order = await _db.Orders.FirstAsync(o => o.OrderId == p.OrderId, ct);
-        order.Status = "Cancelled";
+        order.ApplyRefund();
 
+        
         await _db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
     }
