@@ -60,15 +60,23 @@ public class StripePaymentService : IStripePaymentService
         CancellationToken ct = default)
     {
         var sessionService = new SessionService();
-        var session = await sessionService.GetAsync(stripeSessionId, cancellationToken: ct);
+        // Stripe.net does NOT auto-expand nested resources.
+        // If we don't expand "payment_intent", Session.PaymentIntent will be null even when PaymentIntentId exists.
+        var session = await sessionService.GetAsync(
+            stripeSessionId,
+            new SessionGetOptions { Expand = new List<string> { "payment_intent" } },
+            cancellationToken: ct);
 
-        if (session.PaymentIntent == null)
+        // Prefer expanded object; fall back to the id field if available.
+        var paymentIntentId = session.PaymentIntent?.Id ?? session.PaymentIntentId;
+
+        if (string.IsNullOrWhiteSpace(paymentIntentId))
             throw new InvalidOperationException("stripe_payment_intent_missing");
 
         var refundService = new RefundService();
         var options = new RefundCreateOptions
         {
-            PaymentIntent = session.PaymentIntent.Id, // 👈 čia ID
+            PaymentIntent = paymentIntentId,
             Amount        = amountCents
         };
 
