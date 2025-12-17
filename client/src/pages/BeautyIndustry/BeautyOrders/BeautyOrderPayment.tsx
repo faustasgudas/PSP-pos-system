@@ -114,7 +114,7 @@ function calculatePricing(order: OrderDetail | null) {
         // IMPORTANT: item cards should NOT be reduced by order-level discount.
         // They show only item-level discount + tax (based on item-discounted net).
         const netAfterItemDiscount = Math.max(0, x.netAfterLineCents);
-        const taxCents = Math.round((netAfterItemDiscount * x.taxRatePct) / 100);
+        const taxCents = x.taxRatePct * 100;
         const totalCents = netAfterItemDiscount + taxCents;
 
         return {
@@ -390,7 +390,7 @@ export default function BeautyOrderPayment(props?: {
 
                                             <div className="beauty-checkout-line">
                                                 <span className="muted">Tax</span>
-                                                <span>{l.taxCents ? formatCents(l.taxCents, "EUR") : "—"}</span>
+                                                <span>{l.taxCents ? formatCents(l.taxCents, "%") : "—"}</span>
                                             </div>
                                         </div>
                                     </div>

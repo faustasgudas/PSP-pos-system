@@ -223,66 +223,173 @@ public class PaymentService : IPaymentService
     // TOTAL CALCULATION (CORE FIX)
     // ============================================================
 
-    private static long CalculateOrderTotalCents(Order order)
+private static long CalculateOrderTotalCents(Order order)
+{
+    // Helpers
+    static long ToCents(decimal amount)
+        => (long)Math.Round(amount * 100m, MidpointRounding.AwayFromZero);
+
+    static decimal FromCents(long cents)
+        => cents / 100m;
+
+    static long ClampLong(long v, long min, long max)
+        => v < min ? min : (v > max ? max : v);
+
+    static long ApplyDiscountCents(long netCents, string discountSnapshot)
     {
-        var lines = new List<(decimal net, decimal taxRatePct)>();
+        if (netCents <= 0) return 0;
 
-        foreach (var line in order.Lines)
+        var type = GetDiscountType(discountSnapshot);
+        var value = GetDiscountValue(discountSnapshot);
+
+        if (string.IsNullOrWhiteSpace(type) || value <= 0) return netCents;
+
+        if (type == "Percent")
         {
-            if (line.Qty <= 0 || line.UnitPriceSnapshot <= 0) continue;
-
-            var net = Round2(line.UnitPriceSnapshot * line.Qty);
-            net = ApplyDiscountFromSnapshotJson(net, line.UnitDiscountSnapshot);
-            if (net < 0) net = 0;
-
-            lines.Add((net, Math.Max(0, line.TaxRateSnapshotPct)));
+            // value = percent (e.g. 10 => 10%)
+            var pct = Math.Max(0m, value);
+            var discounted = (decimal)netCents * (1m - pct / 100m);
+            return ClampLong(ToCents(discounted / 100m), 0, netCents); // discounted is in cents, convert carefully
         }
 
-        if (lines.Count == 0) return 0;
-
-        var netSubtotal = lines.Sum(l => l.net);
-
-        var orderType = GetDiscountType(order.OrderDiscountSnapshot);
-        var orderValue = GetDiscountValue(order.OrderDiscountSnapshot);
-
-        var discountedNets = new decimal[lines.Count];
-
-        if (orderType == "Percent" && orderValue > 0)
+        if (type == "Amount")
         {
-            var factor = Math.Max(0, 1m - orderValue / 100m);
-            for (int i = 0; i < lines.Count; i++)
-                discountedNets[i] = Round2(lines[i].net * factor);
+            // value = money amount in major units (e.g. 5.00 => 5€)
+            var discCents = Math.Max(0L, ToCents(value));
+            return ClampLong(netCents - discCents, 0, netCents);
         }
-        else if (orderType == "Amount" && orderValue > 0)
-        {
-            var remaining = orderValue;
 
-            for (int i = 0; i < lines.Count; i++)
+        return netCents;
+    }
+
+    static long CalcTaxCents(long netCents, decimal taxRatePct)
+    {
+        if (netCents <= 0 || taxRatePct <= 0) return 0;
+        var tax = FromCents(netCents) * (taxRatePct / 100m);
+        return ToCents(tax);
+    }
+
+    // 1) Build valid lines: net (after line discounts), tax rate
+    var lines = new List<(long NetBeforeOrderCents, decimal TaxRatePct)>();
+
+    foreach (var line in order.Lines)
+    {
+        if (line.Qty <= 0 || line.UnitPriceSnapshot <= 0) continue;
+
+        var gross = line.UnitPriceSnapshot * line.Qty;      // decimal money
+        var grossCents = ToCents(gross);
+
+        // Apply line/unit discount snapshot (Percent or Amount)
+        var netCents = ApplyDiscountCents(grossCents, line.UnitDiscountSnapshot);
+
+        var taxRate = Math.Max(0m, line.TaxRateSnapshotPct);
+        if (netCents > 0)
+            lines.Add((netCents, taxRate));
+    }
+
+    if (lines.Count == 0) return 0;
+
+    var netSubtotalCents = lines.Sum(l => l.NetBeforeOrderCents);
+    if (netSubtotalCents <= 0) return 0;
+
+    // 2) Compute TOTAL order discount in cents (then allocate like Amount)
+    var orderType = GetDiscountType(order.OrderDiscountSnapshot);
+    var orderValue = GetDiscountValue(order.OrderDiscountSnapshot);
+
+    long orderDiscountTotalCents = 0;
+
+    if (orderValue > 0)
+    {
+        if (orderType == "Percent")
+        {
+            var pct = Math.Max(0m, orderValue);
+            // total discount = round(subtotal * pct)
+            var disc = FromCents(netSubtotalCents) * (pct / 100m);
+            orderDiscountTotalCents = ToCents(disc);
+        }
+        else if (orderType == "Amount")
+        {
+            orderDiscountTotalCents = Math.Max(0L, ToCents(orderValue));
+        }
+    }
+
+    orderDiscountTotalCents = ClampLong(orderDiscountTotalCents, 0, netSubtotalCents);
+
+    // 3) Allocate order discount across lines proportionally (exact cents)
+    var discountedNetCents = new long[lines.Count];
+    var discountShareCents = new long[lines.Count];
+
+    if (orderDiscountTotalCents > 0)
+    {
+        // Largest remainder method:
+        // share_i = floor(D * net_i / subtotal)
+        // distribute leftover cents to biggest remainders
+        var remainders = new (int idx, long rem)[lines.Count];
+
+        long allocated = 0;
+        for (int i = 0; i < lines.Count; i++)
+        {
+            long net = lines[i].NetBeforeOrderCents;
+
+            // raw = D * net
+            // share = raw / subtotal
+            // rem = raw % subtotal
+            long raw = checked(orderDiscountTotalCents * net);
+            long share = raw / netSubtotalCents;
+            long rem = raw % netSubtotalCents;
+
+            // never discount more than the line net
+            share = ClampLong(share, 0, net);
+
+            discountShareCents[i] = share;
+            remainders[i] = (i, rem);
+            allocated += share;
+        }
+
+        long leftover = orderDiscountTotalCents - allocated;
+        if (leftover > 0)
+        {
+            Array.Sort(remainders, (a, b) => b.rem.CompareTo(a.rem)); // desc by remainder
+
+            for (int k = 0; k < remainders.Length && leftover > 0; k++)
             {
-                var share = Round2(orderValue * (lines[i].net / netSubtotal));
-                discountedNets[i] = Math.Max(0, lines[i].net - share);
-                remaining -= share;
+                int i = remainders[k].idx;
+
+                // add 1 cent if line still has room
+                if (discountShareCents[i] < lines[i].NetBeforeOrderCents)
+                {
+                    discountShareCents[i] += 1;
+                    leftover -= 1;
+                }
             }
 
-            discountedNets[^1] = Math.Max(0, discountedNets[^1] - remaining);
+            // If still leftover (all lines hit zero), it effectively can't be applied — ignore.
         }
-        else
-        {
-            for (int i = 0; i < lines.Count; i++)
-                discountedNets[i] = lines[i].net;
-        }
-
-        decimal taxTotal = 0m;
-        decimal finalNet = 0m;
 
         for (int i = 0; i < lines.Count; i++)
         {
-            finalNet += discountedNets[i];
-            taxTotal += Round2(discountedNets[i] * lines[i].taxRatePct / 100m);
+            discountedNetCents[i] = lines[i].NetBeforeOrderCents - discountShareCents[i];
+            if (discountedNetCents[i] < 0) discountedNetCents[i] = 0;
         }
-
-        return (long)Math.Round((finalNet + taxTotal) * 100m, MidpointRounding.AwayFromZero);
     }
+    else
+    {
+        for (int i = 0; i < lines.Count; i++)
+            discountedNetCents[i] = lines[i].NetBeforeOrderCents;
+    }
+
+    // 4) Tax per line, totals
+    long finalNetCents = 0;
+    long taxTotalCents = 0;
+
+    for (int i = 0; i < lines.Count; i++)
+    {
+        finalNetCents += discountedNetCents[i];
+        taxTotalCents += CalcTaxCents(discountedNetCents[i], lines[i].TaxRatePct);
+    }
+
+    return finalNetCents + taxTotalCents;
+}
 
     // ============================================================
     // HELPERS
