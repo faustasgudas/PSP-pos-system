@@ -2,12 +2,12 @@ import { useState } from 'react';
 import "../../../App.css";
 import "./CateringDashboard.css";
 import { getUserFromToken } from "../../../utils/auth"
+import { logout } from "../../../frontapi/authApi";
 
 import CateringEmployees from "../CateringEmployees/CateringEmployees";
 import CateringGiftCards from "../CateringGiftCards/CateringGiftCards";
 import CateringInventory from "../CateringInventory/CateringInventory";
 import CateringPayments from "../CateringPayments/CateringPayments";
-import CateringProducts from "../CateringProducts/CateringProducts";
 import CateringReservations from "../CateringReservations/CateringReservations";
 import CateringSettings from "../CateringSettings/CateringSettings";
 import CateringTables from "../CateringTables/CateringTables";
@@ -22,7 +22,6 @@ type Screen =
     | "gift-cards"
     | "inventory"
     | "payments"
-    | "products"
     | "catalog"
     | "reservations"
     | "reservation-create"
@@ -89,6 +88,11 @@ interface GiftCard {
 }
 
 function CateringMain(){
+    const handleLogout = () => {
+        logout();              // removes token, businessId, employeeId, role, businessType
+        window.location.reload();
+    };
+
     const [activeScreen, setActiveScreen] = useState<Screen>("dashboard");
     const [activeTab, setActiveTab] = useState<DashboardTab>("upcoming");
     const [activeOrderId, setActiveOrderId] = useState<number | null>(null);
@@ -120,17 +124,22 @@ function CateringMain(){
         <div className="content-box">
             {/* Top Bar */}
             <div className="top-bar">
-                <h1 className="title">SuperApp</h1>
+                <div className="top-left">
+                    <h1 className="title">SuperApp</h1>
+
+                    <button className="logout-btn" onClick={handleLogout}>
+                        🚪 Log out
+                    </button>
+                </div>
+
                 <div className="user-info">
                     {user ? `${user.email} (${user.role})` : ""}
-                    <button 
-                        className="nav-btn"
-                        onClick={() => setActiveScreen("settings")}
-                    >
+                    <button className="nav-btn" onClick={() => setActiveScreen("settings")}>
                         <span>⚙️</span> Settings
                     </button>
                 </div>
             </div>
+    
 
             {/* Navbar */}
             <div className="navbar">
@@ -163,13 +172,6 @@ function CateringMain(){
                 </button>
                 
                 <button 
-                    className={`nav-btn ${activeScreen === "products" ? "active" : ""}`}
-                    onClick={() => setActiveScreen("products")}
-                >
-                    <span>📋</span> Products
-                </button>
-
-                <button
                     className={`nav-btn ${activeScreen === "catalog" ? "active" : ""}`}
                     onClick={() => setActiveScreen("catalog")}
                 >
@@ -362,7 +364,6 @@ function CateringMain(){
                 {activeScreen === "catalog" && <CateringCatalogItems />}
                 {activeScreen === "employees" && (<CateringEmployees employees={employees}/>)}
                 {activeScreen === "tables" && (<CateringTables tables={tables} />)}
-                {activeScreen === "products" && (<CateringProducts products={products} />)}
                 {activeScreen === "inventory" && (<CateringInventory stockItems={stockItems} />)}
                 {activeScreen === "payments" && (<CateringPayments payments={payments} />)}
                 {activeScreen === "gift-cards" && (<CateringGiftCards giftCards={giftCards} />)}

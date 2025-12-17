@@ -2,37 +2,31 @@
     width: 100%;
     min-height: 97.5vh;
 }
-
-.top-bar{
-    position: relative;
+.top-bar {
+    display: flex;                 /* <-- add this */
+    align-items: center;           /* <-- add this */
+    justify-content: space-between;/* <-- better than space-around */
+    padding: 0 16px;               /* optional */
     background-color: #219ebc;
     width: 100%;
     min-height: 7vh;
     border-radius: 12px 12px 0 0;
     color: #023047;
-    justify-content: space-around;
 }
 
-
-.top-bar-left {
+.top-left {                      /* <-- rename from .top-bar-left */
     display: flex;
     align-items: center;
-    gap: 20px;
-}
-
-.title {
-    font-size: 20px;
-    color: #023047;
-    font-weight: bold;
-    margin-top: 14px;
+    gap: 12px;
 }
 
 .user-info {
-    position: absolute;
-    bottom: 5px;
-    right: 20px;
+    position: static;              /* <-- remove absolute positioning */
+    display: flex;
+    align-items: center;
     gap: 10px;
 }
+
 .user-name {
     color: #023047;
     font-size: 14px;
