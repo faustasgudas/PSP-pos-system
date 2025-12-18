@@ -10,4 +10,5 @@ public class CatalogItemSummaryResponse
     public decimal BasePrice { get; set; }
     public string Status { get; set; } = null!;
     public string TaxClass { get; set; } = null!;
+    public int DefaultDurationMin { get; set; }
 }

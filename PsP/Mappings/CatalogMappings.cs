@@ -15,7 +15,8 @@ public static class CatalogMappings
         Type          = c.Type,
         BasePrice     = c.BasePrice,
         Status        = c.Status,
-        TaxClass      = c.TaxClass
+        TaxClass      = c.TaxClass,
+        DefaultDurationMin = c.DefaultDurationMin
     };
 
     public static CatalogItemDetailResponse ToDetailResponse(this CatalogItem c) => new()

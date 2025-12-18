@@ -1,32 +1,38 @@
 import { useEffect, useMemo, useState } from "react";
 import "../../../App.css";
 import { createReservation } from "../../../frontapi/reservationsApi";
-import { listCatalogItems, type CatalogItem } from "../../../frontapi/catalogApi";
+import { createCatalogItem, listCatalogItems, updateCatalogItem, type CatalogItem } from "../../../frontapi/catalogApi";
 import { fetchEmployees } from "../../../frontapi/employeesApi";
 import { BeautySelect } from "../../../components/ui/BeautySelect";
+import { getUserFromToken } from "../../../utils/auth";
+import { BeautyDatePicker } from "../../../components/ui/BeautyDatePicker";
+import { BeautyTimePicker } from "../../../components/ui/BeautyTimePicker";
 
 export default function CateringNewReservation(props: { goBack: () => void }) {
     const businessId = Number(localStorage.getItem("businessId"));
+    const user = getUserFromToken();
+    const role = user?.role ?? "";
+    const canManage = role === "Owner" || role === "Manager";
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const [services, setServices] = useState<CatalogItem[]>([]);
+    const [reservationCatalogItemId, setReservationCatalogItemId] = useState<number | null>(null);
     const [employees, setEmployees] = useState<any[]>([]);
 
-    const [serviceId, setServiceId] = useState<string>("");
     const [employeeId, setEmployeeId] = useState<string>("");
     const [tableOrArea, setTableOrArea] = useState<string>("");
     const [date, setDate] = useState<string>("");
     const [time, setTime] = useState<string>("");
     const [notes, setNotes] = useState<string>("");
 
-    const selectedService = useMemo(() => {
-        const id = Number(serviceId);
+    const selectedReservationService = useMemo(() => {
+        const id = Number(reservationCatalogItemId);
         if (!id) return null;
         return services.find((s) => s.catalogItemId === id) ?? null;
-    }, [serviceId, services]);
+    }, [reservationCatalogItemId, services]);
 
     useEffect(() => {
         if (!businessId) {
@@ -35,23 +41,92 @@ export default function CateringNewReservation(props: { goBack: () => void }) {
             return;
         }
 
-        setLoading(true);
-        setError(null);
-        Promise.all([listCatalogItems(businessId, { type: "Service" }), fetchEmployees(businessId)])
-            .then(([svc, emps]) => {
-                setServices((Array.isArray(svc) ? svc : []).filter((s) => String(s.status).toLowerCase() === "active"));
+        const load = async () => {
+            setLoading(true);
+            setError(null);
+            try {
+                const [svc, emps] = await Promise.all([
+                    listCatalogItems(businessId, { type: "Service" }),
+                    fetchEmployees(businessId),
+                ]);
+
+                const activeServices = (Array.isArray(svc) ? svc : []).filter(
+                    (s) => String(s.status).toLowerCase() === "active"
+                );
+                setServices(activeServices);
                 setEmployees(Array.isArray(emps) ? emps : []);
-            })
-            .catch((e: any) => setError(e?.message || "Failed to load reservation data"))
-            .finally(() => setLoading(false));
+
+                // Backend requires catalogItemId; we keep a single internal “Reservation” service.
+                let reservationSvc =
+                    activeServices.find((s) => String(s.code).toUpperCase() === "RESERVATION") ??
+                    activeServices.find((s) => String(s.name).toLowerCase() === "reservation") ??
+                    null;
+
+                const REQUIRED_DURATION_MIN = 90;
+
+                // If the internal service exists but has invalid duration (<= 0), fix it (Owner/Manager only).
+                if (reservationSvc && (Number(reservationSvc.defaultDurationMin ?? 0) <= 0) && canManage) {
+                    try {
+                        const updated = await updateCatalogItem(businessId, reservationSvc.catalogItemId, {
+                            defaultDurationMin: REQUIRED_DURATION_MIN,
+                        });
+                        reservationSvc = updated;
+                        setServices((prev) =>
+                            prev.map((x) => (x.catalogItemId === updated.catalogItemId ? updated : x))
+                        );
+                    } catch {
+                        // If we can’t fix it, we’ll fall back below (or error).
+                    }
+                }
+
+                if (!reservationSvc && canManage) {
+                    try {
+                        const created = await createCatalogItem(businessId, {
+                            name: "Reservation",
+                            code: "RESERVATION",
+                            type: "Service",
+                            basePrice: 0,
+                            taxClass: "STANDARD",
+                            defaultDurationMin: REQUIRED_DURATION_MIN,
+                            status: "Active",
+                        });
+                        reservationSvc = created;
+                        setServices((prev) => [created, ...prev]);
+                    } catch {
+                        // If we can’t create it, we’ll fall back below.
+                    }
+                }
+
+                const firstValidServiceId =
+                    activeServices.find((s) => Number(s.defaultDurationMin ?? 0) > 0)?.catalogItemId ?? null;
+
+                const fallbackId = reservationSvc?.catalogItemId ?? firstValidServiceId;
+                setReservationCatalogItemId(fallbackId);
+
+                if (!fallbackId) {
+                    setError(
+                        "Cannot create reservations: backend requires an Active Service with DefaultDurationMin > 0. " +
+                        "Create a Service (or ensure RESERVATION service has a valid duration)."
+                    );
+                }
+            } catch (e: any) {
+                setError(e?.message || "Failed to load reservation data");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        load();
     }, [businessId]);
 
     const save = async () => {
         if (!businessId) return setError("Missing businessId");
         if (saving) return;
 
-        const catalogItemId = Number(serviceId);
-        if (!catalogItemId) return setError("Select a service");
+        const catalogItemId = Number(reservationCatalogItemId);
+        if (!catalogItemId) return setError("Internal reservation type is missing. Refresh and try again.");
+
+        if (!tableOrArea.trim()) return setError("Table is required (e.g. T12)");
 
         const empId = employeeId ? Number(employeeId) : null;
         if (employeeId && (!Number.isFinite(empId) || !empId)) return setError("Invalid employee selection");
@@ -68,7 +143,7 @@ export default function CateringNewReservation(props: { goBack: () => void }) {
                 employeeId: empId,
                 appointmentStart: start.toISOString(),
                 notes: notes.trim() || null,
-                tableOrArea: tableOrArea.trim() || null,
+                tableOrArea: tableOrArea.trim(),
             });
             props.goBack();
         } catch (e: any) {
@@ -94,24 +169,24 @@ export default function CateringNewReservation(props: { goBack: () => void }) {
             )}
 
             <div className="card" style={{ textAlign: "left" }}>
-                <div className="muted">Service</div>
-                <BeautySelect
-                    value={serviceId}
-                    onChange={setServiceId}
-                    disabled={loading || saving}
-                    placeholder="Select service"
-                    options={[
-                        { value: "", label: "Select service" },
-                        ...services.map((s) => ({
-                            value: String(s.catalogItemId),
-                            label: s.name,
-                            subLabel: `€${Number(s.basePrice).toFixed(2)}`,
-                        })),
-                    ]}
-                />
-                {selectedService && (
+                {!canManage && (
                     <div className="muted" style={{ marginBottom: 10 }}>
-                        Default duration: {selectedService.defaultDurationMin ?? 0} min
+                        Only Owner/Manager can create reservations.
+                    </div>
+                )}
+
+                <div className="muted">Table</div>
+                <input
+                    className="dropdown"
+                    value={tableOrArea}
+                    onChange={(e) => setTableOrArea(e.target.value)}
+                    disabled={saving || !canManage}
+                    placeholder="e.g. T12 / Patio"
+                />
+
+                {selectedReservationService && (
+                    <div className="muted" style={{ marginBottom: 10 }}>
+                        Reservation type: {selectedReservationService.name}
                     </div>
                 )}
 
@@ -119,7 +194,7 @@ export default function CateringNewReservation(props: { goBack: () => void }) {
                 <BeautySelect
                     value={employeeId}
                     onChange={setEmployeeId}
-                    disabled={loading || saving}
+                    disabled={loading || saving || !canManage}
                     placeholder="Select employee"
                     options={[
                         { value: "", label: "Select employee" },
@@ -130,24 +205,29 @@ export default function CateringNewReservation(props: { goBack: () => void }) {
                     ]}
                 />
 
-                <div className="muted">Table / Area (optional)</div>
-                <input className="dropdown" value={tableOrArea} onChange={(e) => setTableOrArea(e.target.value)} disabled={saving} placeholder="e.g. T12 / Patio" />
-
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                     <div style={{ flex: 1, minWidth: 220 }}>
-                        <div className="muted">Date</div>
-                        <input className="dropdown" type="date" value={date} onChange={(e) => setDate(e.target.value)} disabled={saving} />
+                        <BeautyDatePicker
+                            label="Date"
+                            value={date}
+                            onChange={setDate}
+                            disabled={saving || !canManage}
+                        />
                     </div>
                     <div style={{ flex: 1, minWidth: 220 }}>
-                        <div className="muted">Time</div>
-                        <input className="dropdown" type="time" value={time} onChange={(e) => setTime(e.target.value)} disabled={saving} />
+                        <BeautyTimePicker
+                            label="Time"
+                            value={time}
+                            onChange={setTime}
+                            disabled={saving || !canManage}
+                        />
                     </div>
                 </div>
 
                 <div className="muted">Notes</div>
-                <textarea className="dropdown" style={{ minHeight: 100 }} value={notes} onChange={(e) => setNotes(e.target.value)} disabled={saving} />
+                <textarea className="dropdown" style={{ minHeight: 100 }} value={notes} onChange={(e) => setNotes(e.target.value)} disabled={saving || !canManage} />
 
-                <button className="btn btn-primary" onClick={save} disabled={saving || loading}>
+                <button className="btn btn-primary" onClick={save} disabled={saving || loading || !canManage}>
                     {saving ? "Saving…" : "Create reservation"}
                 </button>
             </div>

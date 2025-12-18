@@ -91,10 +91,7 @@ export type MoveOrderLinesRequest = {
     lines: Array<{ orderLineId: number; qty: number }>;
 };
 
-/**
- * Creates an empty order.
- * Backend requires employeeId in body.
- */
+// Create an empty order (employeeId required by backend).
 export async function createOrder(
     employeeId: number,
     opts?: { reservationId?: number | null; tableOrArea?: string | null }

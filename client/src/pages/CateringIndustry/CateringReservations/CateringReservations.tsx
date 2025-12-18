@@ -7,6 +7,7 @@ import {
     listReservations,
     updateReservation,
     type ReservationSummary,
+    type ReservationDetail,
 } from "../../../frontapi/reservationsApi";
 import { listCatalogItems, type CatalogItem } from "../../../frontapi/catalogApi";
 import { fetchEmployees } from "../../../frontapi/employeesApi";
@@ -23,6 +24,9 @@ export default function CateringReservations(props: { goToNewReservation: () => 
     const [reservations, setReservations] = useState<ReservationSummary[]>([]);
     const [services, setServices] = useState<CatalogItem[]>([]);
     const [employees, setEmployees] = useState<any[]>([]);
+
+    const [detailedReservations, setDetailedReservations] = useState<Map<number, ReservationDetail>>(new Map());
+    const [loadingDetails, setLoadingDetails] = useState(false);
 
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -72,6 +76,25 @@ export default function CateringReservations(props: { goToNewReservation: () => 
         }
     };
 
+    const loadReservationDetails = async (list: ReservationSummary[]) => {
+        if (!businessId || list.length === 0) {
+            setDetailedReservations(new Map());
+            return;
+        }
+
+        setLoadingDetails(true);
+        try {
+            const details = await Promise.all(list.map((r) => getReservation(businessId, r.reservationId)));
+            const m = new Map<number, ReservationDetail>();
+            details.forEach((d) => m.set(d.reservationId, d));
+            setDetailedReservations(m);
+        } catch {
+            // non-blocking
+        } finally {
+            setLoadingDetails(false);
+        }
+    };
+
     useEffect(() => {
         load(currentMonth);
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -81,6 +104,17 @@ export default function CateringReservations(props: { goToNewReservation: () => 
         load(currentMonth);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentMonth]);
+
+    const reservationsForSelectedDate = useMemo(() => {
+        return reservations.filter(r =>
+            isSameDay(new Date(r.appointmentStart), selectedDate)
+        );
+    }, [reservations, selectedDate]);
+
+    useEffect(() => {
+        void loadReservationDetails(reservationsForSelectedDate);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedDate, reservations]);
 
     const reservedDates = useMemo(() => {
         const days = new Set<number>();
@@ -93,12 +127,6 @@ export default function CateringReservations(props: { goToNewReservation: () => 
         return Array.from(days);
     }, [reservations, year, month]);
     
-    const reservationsForSelectedDate = useMemo(() => {
-        return reservations.filter(r =>
-            isSameDay(new Date(r.appointmentStart), selectedDate)
-        );
-    }, [reservations, selectedDate]);
-
     const serviceNameById = useMemo(() => {
         const m = new Map<number, string>();
         services.forEach((s) => m.set(s.catalogItemId, s.name));
@@ -217,7 +245,7 @@ export default function CateringReservations(props: { goToNewReservation: () => 
                 })}
             </h3>
             <div className="reservation-list">
-                {loading ? (
+                {loading || loadingDetails ? (
                     <div className="reservation-item">
                         <div className="reservation-details">
                             <div className="detail-value">Loading…</div>
@@ -233,6 +261,9 @@ export default function CateringReservations(props: { goToNewReservation: () => 
                                 </div>
                                 <div className="muted">
                                     Employee: {employeeNameById.get(r.employeeId) ?? r.employeeId} • Status: {r.status}
+                                </div>
+                                <div className="muted">
+                                    Table: {detailedReservations.get(r.reservationId)?.tableOrArea ?? "—"}
                                 </div>
                             </div>
 

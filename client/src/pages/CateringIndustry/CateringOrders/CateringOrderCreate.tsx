@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import "../../../App.css";
 import { addOrderLine, createOrder } from "../../../frontapi/orderApi";
 import { listCatalogItems, type CatalogItem } from "../../../frontapi/catalogApi";
-import { listReservations, type ReservationSummary } from "../../../frontapi/reservationsApi";
+import { getReservation, listReservations, type ReservationSummary } from "../../../frontapi/reservationsApi";
 import { fetchEmployees } from "../../../frontapi/employeesApi";
 import { BeautySelect } from "../../../components/ui/BeautySelect";
 
@@ -29,6 +29,7 @@ export default function CateringOrderCreate(props: {
     const [employees, setEmployees] = useState<any[]>([]);
 
     const [selectedReservationId, setSelectedReservationId] = useState<string>("");
+    const [tableOrArea, setTableOrArea] = useState<string>("");
     const [query, setQuery] = useState("");
     const [lines, setLines] = useState<DraftLine[]>([]);
 
@@ -101,6 +102,29 @@ export default function CateringOrderCreate(props: {
         });
     }, [selectedReservationId, reservationOptions, items]);
 
+    // If order is linked to a reservation, auto-fill table from the reservation.
+    useEffect(() => {
+        const rid = selectedReservationId ? Number(selectedReservationId) : null;
+        if (!businessId) return;
+        if (!rid) return;
+
+        let cancelled = false;
+        (async () => {
+            try {
+                const detail = await getReservation(businessId, rid);
+                const t = String(detail?.tableOrArea ?? "").trim();
+                // Only overwrite if reservation has a table value.
+                if (!cancelled && t) setTableOrArea(t);
+            } catch {
+                // non-blocking; user can still type table manually
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [businessId, selectedReservationId]);
+
     const filteredItems = useMemo(() => {
         const q = query.trim().toLowerCase();
         let list = items.filter((i) => String(i.status).toLowerCase() === "active");
@@ -129,6 +153,7 @@ export default function CateringOrderCreate(props: {
 
     const create = async () => {
         if (!employeeId) return setError("Missing employeeId");
+        if (!tableOrArea.trim()) return setError("Table is required (e.g. T12)");
         if (lines.length === 0) return setError("Add at least one item");
         if (saving) return;
 
@@ -141,7 +166,7 @@ export default function CateringOrderCreate(props: {
         setSaving(true);
         setError(null);
         try {
-            const order = await createOrder(employeeId, { reservationId: rid });
+            const order = await createOrder(employeeId, { reservationId: rid, tableOrArea: tableOrArea.trim() });
             const orderId = Number(order?.orderId);
             if (!orderId) throw new Error("Backend returned invalid orderId");
 
@@ -176,8 +201,17 @@ export default function CateringOrderCreate(props: {
                 </div>
             )}
 
-            <div className="card" style={{ marginBottom: 12 }}>
-                <div className="muted" style={{ marginBottom: 6 }}>Reservation (optional)</div>
+            <div className="card" style={{ marginBottom: 12, textAlign: "left" }}>
+                <div className="muted" style={{ marginBottom: 6 }}>Table</div>
+                <input
+                    className="dropdown"
+                    placeholder="e.g. T12 / Patio"
+                    value={tableOrArea}
+                    onChange={(e) => setTableOrArea(e.target.value)}
+                    disabled={saving}
+                />
+
+                <div className="muted" style={{ marginTop: 12, marginBottom: 6 }}>Reservation (optional)</div>
                 <BeautySelect
                     value={selectedReservationId}
                     onChange={setSelectedReservationId}
