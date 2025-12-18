@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import "../../../App.css";
 import "./BeautyDashboard.css";
 import { getUserFromToken } from "../../../utils/auth";
@@ -20,6 +20,7 @@ import BeautyOrderPayment from "../BeautyOrders/BeautyOrderPayment";
 import { listPaymentsForBusiness, type PaymentHistoryItem } from "../../../frontapi/paymentApi";
 import { listReservations, type ReservationSummary } from "../../../frontapi/reservationsApi";
 import { listStockItems, type StockItemSummary } from "../../../frontapi/stockApi";
+import { fetchEmployees as fetchEmployeesApi } from "../../../frontapi/employeesApi";
 
 type Screen =
     | "dashboard"
@@ -67,7 +68,6 @@ export default function BeautyDashboard() {
     const [employeeCount, setEmployeeCount] = useState<number | null>(null);
 
     const businessId = Number(localStorage.getItem("businessId"));
-    const token = localStorage.getItem("token");
 
     // Dashboard data
     const [dashLoading, setDashLoading] = useState(true);
@@ -87,65 +87,73 @@ export default function BeautyDashboard() {
     };
 
     /* ---------------- LOAD DASHBOARD DATA ---------------- */
-    useEffect(() => {
-        const load = async () => {
-            if (!businessId) {
-                setDashError("Missing businessId");
-                setDashLoading(false);
-                return;
-            }
-
-            setDashLoading(true);
-            setDashError(null);
-
-            try {
-                // reservations for current month (so upcoming list works)
-                const from = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1, 0, 0, 0);
-                const to = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1, 0, 0, 0);
-
-                const [payList, resList, stockList] = await Promise.all([
-                    listPaymentsForBusiness(),
-                    listReservations(businessId, { dateFrom: from.toISOString(), dateTo: to.toISOString() }),
-                    listStockItems(businessId),
-                ]);
-
-                setPayments(Array.isArray(payList) ? payList : []);
-                setReservations(Array.isArray(resList) ? resList : []);
-                setStockItems(Array.isArray(stockList) ? stockList : []);
-            } catch (e: any) {
-                setDashError(e?.message || "Failed to load dashboard data");
-                setPayments([]);
-                setReservations([]);
-                setStockItems([]);
-            } finally {
-                setDashLoading(false);
-            }
-        };
-
-        load();
-    }, [businessId, currentMonth]);
-
-    /* -------- ACTIVE EMPLOYEE COUNT ---------- */
-    useEffect(() => {
-        if (role === "Staff") return;
-        if (!token || !businessId) {
+    const loadDashboard = useCallback(async () => {
+        if (!businessId) {
+            setDashError("Missing businessId");
+            setDashLoading(false);
+            setPayments([]);
+            setReservations([]);
+            setStockItems([]);
             setEmployeeCount(null);
             return;
         }
 
-        fetch(`http://localhost:5269/api/businesses/${businessId}/employees`, {
-            headers: { Authorization: `Bearer ${token}` },
-        })
-            .then((res) => {
-                if (!res.ok) throw new Error();
-                return res.json();
-            })
-            .then((data) => {
-                const active = (Array.isArray(data) ? data : []).filter((e: any) => e.status === "Active");
+        setDashLoading(true);
+        setDashError(null);
+
+        try {
+            // reservations for current month (so upcoming list works)
+            const from = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1, 0, 0, 0);
+            const to = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1, 0, 0, 0);
+
+            const [payList, resList, stockList, emps] = await Promise.all([
+                listPaymentsForBusiness(),
+                listReservations(businessId, { dateFrom: from.toISOString(), dateTo: to.toISOString() }),
+                listStockItems(businessId),
+                role === "Staff" ? Promise.resolve([]) : fetchEmployeesApi(businessId).catch(() => []),
+            ]);
+
+            setPayments(Array.isArray(payList) ? payList : []);
+            setReservations(Array.isArray(resList) ? resList : []);
+            setStockItems(Array.isArray(stockList) ? stockList : []);
+
+            if (role === "Staff") {
+                setEmployeeCount(null);
+            } else {
+                const active = (Array.isArray(emps) ? emps : []).filter((e: any) => String(e.status) === "Active");
                 setEmployeeCount(active.length);
-            })
-            .catch(() => setEmployeeCount(null));
-    }, [role, token, businessId]);
+            }
+        } catch (e: any) {
+            setDashError(e?.message || "Failed to load dashboard data");
+            setPayments([]);
+            setReservations([]);
+            setStockItems([]);
+            setEmployeeCount(null);
+        } finally {
+            setDashLoading(false);
+        }
+    }, [businessId, currentMonth, role]);
+
+    // Initial load
+    useEffect(() => {
+        void loadDashboard();
+    }, [loadDashboard]);
+
+    // Refresh immediately when switching back to dashboard screen
+    useEffect(() => {
+        if (activeScreen === "dashboard") {
+            void loadDashboard();
+        }
+    }, [activeScreen, loadDashboard]);
+
+    // Auto-refresh while dashboard is visible
+    useEffect(() => {
+        if (activeScreen !== "dashboard") return;
+        const id = window.setInterval(() => {
+            void loadDashboard();
+        }, 15000);
+        return () => window.clearInterval(id);
+    }, [activeScreen, loadDashboard]);
 
     /* ---------------- METRICS ---------------- */
     const todayBookings = useMemo(() => {

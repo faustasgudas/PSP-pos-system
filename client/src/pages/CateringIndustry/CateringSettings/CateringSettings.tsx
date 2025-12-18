@@ -23,7 +23,7 @@ export default function CateringSettings() {
                 <div className="settings-form-grid">
                     <div className="settings-field">
                         <label>Business Name</label>
-                        <input type="text" defaultValue="Catering" />
+                        <input type="text" defaultValue="Catering" placeholder="e.g. My Catering" />
                     </div>
 
                     <div className="settings-field">

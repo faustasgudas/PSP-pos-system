@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from "react";
 import "../../../App.css";
 import "./CateringDashboard.css";
-import { getUserFromToken } from "../../../utils/auth"
+import { getUserFromToken } from "../../../utils/auth";
 
 import CateringEmployees from "../CateringEmployees/CateringEmployees";
 import CateringGiftCards from "../CateringGiftCards/CateringGiftCards";
@@ -16,6 +16,12 @@ import CateringOrderCreate from "../CateringOrders/CateringOrderCreate";
 import CateringOrderDetails from "../CateringOrders/CateringOrderDetails";
 import CateringNewReservation from "../CateringReservations/CateringNewReservation";
 import CateringCatalogItems from "../CateringCatalogItems/CateringCatalogItems";
+import BeautyOrderPayment from "../../BeautyIndustry/BeautyOrders/BeautyOrderPayment";
+import { listReservations, type ReservationSummary } from "../../../frontapi/reservationsApi";
+import { listPaymentsForBusiness, type PaymentHistoryItem } from "../../../frontapi/paymentApi";
+import { fetchEmployees } from "../../../frontapi/employeesApi";
+import { listStockItems, type StockItemSummary } from "../../../frontapi/stockApi";
+import { listAllOrders } from "../../../frontapi/orderApi";
 
 type Screen =
     | "dashboard"
@@ -29,98 +35,138 @@ type Screen =
     | "orders"
     | "order-create"
     | "order-detail"
+    | "order-payment"
     | "employees"
     | "settings"
     | "tables";
 
 type DashboardTab = "upcoming" | "payments";
 
-interface Reservation {
-    id: number;
-    customerName: string;
-    customerPhone: string;
-    customerEmail: string;
-    reservationStart: string;
-    reservationEnd: string;
-    status: string;
-    employeeId: number;
-    notes?: string;
-}
-
-interface Payment {
-    id: number;
-    reservationId: number;
-    amount: { amount: number; currency: string} ;
-    method: string;
-    status: string;
-}
-
-interface Product {
-    id: number;
-    name: string;
-    basePrice: {amount: number; currency: string};
-}
-
-interface Table {
-    id: number;
-    seats: number;
-    status: string;
-}
-
-interface Employee {
-    id: number;
-    name: string;
-    role: string;
-    status: string;
-}
-
-interface StockItem {
-    id: number;
-    name: string;
-    qtyOnHand: number;
-    unit: string;
-}
-
-interface GiftCard {
-    id: number;
-    code: string;
-    balance: { amount: number; currency: string };
-    status: string;
+function isSameDay(a: Date, b: Date) {
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
 function CateringMain(){
     const [activeScreen, setActiveScreen] = useState<Screen>("dashboard");
     const [activeTab, setActiveTab] = useState<DashboardTab>("upcoming");
     const [activeOrderId, setActiveOrderId] = useState<number | null>(null);
-    
-    // data arrays (empty)
-    const [reservations] = useState<Reservation[]>([]);
-    const [payments] = useState<Payment[]>([]);
-    const [products] = useState<Product[]>([]);
-    const [tables] = useState<Table[]>([]);
-    const [employees] = useState<Employee[]>([]);
-    const [stockItems] = useState<StockItem[]>([]);
-    const [giftCards] = useState<GiftCard[]>([]);
-    
-    // dashboard tabs
-    const todayRevenue = payments.reduce((sum, p) => sum + p.amount.amount, 0);
-    const availableTables = tables.filter(table => table.status === "Available").length;
-    const activeEmployees = employees.filter(employee => employee.status = "Active").length;
-    const lowStockItems = stockItems.filter(item => item.qtyOnHand < 5).length;
-    
-    const upcomingReservations = reservations
-        .filter(r => new Date(r.reservationStart) > new Date())
-        .slice(0, 5);
-    
-    const recentPayments = payments.slice(0, 5);
+
+    const businessId = Number(localStorage.getItem("businessId"));
+
+    const [dashLoading, setDashLoading] = useState(true);
+    const [dashError, setDashError] = useState<string | null>(null);
+
+    const [employees, setEmployees] = useState<any[]>([]);
+    const [stockItems, setStockItems] = useState<StockItemSummary[]>([]);
+    const [upcomingReservations, setUpcomingReservations] = useState<ReservationSummary[]>([]);
+    const [recentPayments, setRecentPayments] = useState<PaymentHistoryItem[]>([]);
+    const [openOrdersCount, setOpenOrdersCount] = useState<number>(0);
     
     const user = getUserFromToken();
+
+    const handleLogout = () => {
+        localStorage.clear();
+        window.location.reload();
+    };
+
+    const loadDashboard = useCallback(async () => {
+        if (!businessId) {
+            setDashError("Missing businessId (try logging in again).");
+            setDashLoading(false);
+            return;
+        }
+
+        setDashLoading(true);
+        setDashError(null);
+        try {
+            const now = new Date();
+            const from = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            const to = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+            const [resv, pays, emps, stock, openOrders] = await Promise.all([
+                listReservations(businessId, { status: "Booked", dateFrom: from.toISOString(), dateTo: to.toISOString() }).catch(() => []),
+                listPaymentsForBusiness().catch(() => []),
+                fetchEmployees(businessId).catch(() => []),
+                listStockItems(businessId).catch(() => []),
+                listAllOrders({ status: "Open" }).catch(() => []),
+            ]);
+
+            setUpcomingReservations(Array.isArray(resv) ? resv : []);
+            setRecentPayments(Array.isArray(pays) ? pays : []);
+            setEmployees(Array.isArray(emps) ? emps : []);
+            setStockItems(Array.isArray(stock) ? stock : []);
+            setOpenOrdersCount(Array.isArray(openOrders) ? openOrders.length : 0);
+        } catch (e: any) {
+            setDashError(e?.message || "Failed to load dashboard data");
+        } finally {
+            setDashLoading(false);
+        }
+    }, [businessId]);
+
+    // Initial load (and when business changes)
+    useEffect(() => {
+        void loadDashboard();
+    }, [loadDashboard]);
+
+    // Refresh when user returns to Dashboard screen
+    useEffect(() => {
+        if (activeScreen === "dashboard") {
+            void loadDashboard();
+        }
+    }, [activeScreen, loadDashboard]);
+
+    // Auto-refresh dashboard while it is visible
+    useEffect(() => {
+        if (activeScreen !== "dashboard") return;
+        const id = window.setInterval(() => {
+            void loadDashboard();
+        }, 15000);
+        return () => window.clearInterval(id);
+    }, [activeScreen, loadDashboard]);
+
+    const todayRevenueEur = useMemo(() => {
+        const today = new Date();
+        const cents = recentPayments
+            .filter((p) => String(p.status).toLowerCase() === "success")
+            .filter((p) => {
+                const at = new Date(p.createdAt);
+                return isSameDay(at, today);
+            })
+            .reduce((s, p) => s + (Number(p.amountCents) || 0), 0);
+        return (cents / 100).toFixed(2);
+    }, [recentPayments]);
+
+    const activeEmployeesCount = useMemo(
+        () => employees.filter((e: any) => String(e.status ?? "").toLowerCase() === "active").length,
+        [employees]
+    );
+
+    const lowStockItemsCount = useMemo(() => stockItems.filter((s) => (Number(s.qtyOnHand) || 0) < 5).length, [stockItems]);
+
+    const upcomingTop5 = useMemo(() => {
+        return upcomingReservations
+            .slice()
+            .sort((a, b) => new Date(a.appointmentStart).getTime() - new Date(b.appointmentStart).getTime())
+            .slice(0, 5);
+    }, [upcomingReservations]);
+
+    const recentTop5Payments = useMemo(() => {
+        return recentPayments
+            .slice()
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            .slice(0, 5);
+    }, [recentPayments]);
     
     return(
-        <div className="content-box">
+        <div className="content-box beauty-shell">
             {/* Top Bar */}
             <div className="top-bar">
-                <h1 className="title">SuperApp</h1>
+                <div className="top-left">
+                    <h1 className="title">SuperApp</h1>
+                    <button className="logout-btn" onClick={handleLogout}>
+                        🚪 Log out
+                    </button>
+                </div>
                 <div className="user-info">
                     {user ? `${user.email} (${user.role})` : ""}
                     <button 
@@ -227,34 +273,40 @@ function CateringMain(){
                                 </button>
                             </div>
                         </div>
+
+                        {dashError && (
+                            <div className="card" style={{ borderColor: "rgba(214,40,40,0.3)", background: "rgba(214,40,40,0.08)", color: "#b01d1d", marginBottom: 12 }}>
+                                {dashError}
+                            </div>
+                        )}
                         
                         <div className="stat-grid">
                             <div 
                                 className="stat-card"
                                 onClick={() => setActiveScreen("payments")}
                             >
-                                <div className="stat-number" id="today-revenue">€{todayRevenue}</div>
+                                <div className="stat-number" id="today-revenue">€{todayRevenueEur}</div>
                                 <div className="stat-label">Today's Revenue</div>
                             </div>
                             <div 
                                 className="stat-card"
-                                onClick={() => setActiveScreen("tables")}
+                                onClick={() => setActiveScreen("orders")}
                             >
-                                <div className="stat-number" id="available-tables">{availableTables}</div>
-                                <div className="stat-label">Available Tables</div>
+                                <div className="stat-number" id="available-tables">{openOrdersCount}</div>
+                                <div className="stat-label">Open Orders</div>
                             </div>
                             <div 
                                 className="stat-card"
                                 onClick={() => setActiveScreen("employees")}
                             >
-                                <div className="stat-number" id="active-employees">{activeEmployees}</div>
+                                <div className="stat-number" id="active-employees">{activeEmployeesCount}</div>
                                 <div className="stat-label">Active Employees</div>
                             </div>
                             <div 
                                 className="stat-card"
                                 onClick={() => setActiveScreen("inventory")}
                             >
-                                <div className="stat-number" id="low-stock-items">{lowStockItems}</div>
+                                <div className="stat-number" id="low-stock-items">{lowStockItemsCount}</div>
                                 <div className="stat-label">Low Stock Items</div>
                             </div>
                         </div>
@@ -274,20 +326,29 @@ function CateringMain(){
                             </button>
                         </div>
                         {activeTab === "upcoming" && (
-                            <div className="reservation-list">
-                                {upcomingReservations.length > 0 ? (
-                                    upcomingReservations.map(b => (
-                                        <div key={b.id} className="reservation-item">
-                                            <div className="reservation-details">
+                            <div className="booking-list">
+                                {dashLoading ? (
+                                    <div className="booking-item">
+                                        <div className="booking-details">
+                                            <div className="detail-value">Loading…</div>
+                                        </div>
+                                    </div>
+                                ) : upcomingTop5.length > 0 ? (
+                                    upcomingTop5.map((r) => (
+                                        <div key={r.reservationId} className="booking-item">
+                                            <div className="booking-details">
                                                 <div className="detail-value">
-                                                    {b.customerName}
+                                                    {new Date(r.appointmentStart).toLocaleString()} • Reservation #{r.reservationId}
+                                                </div>
+                                                <div className="muted">
+                                                    Employee #{r.employeeId} • Status: {r.status}
                                                 </div>
                                             </div>
                                         </div>    
                                     ))
                                 ) : (
-                                    <div className="reservation-item">
-                                        <div className="reservation-details">
+                                    <div className="booking-item">
+                                        <div className="booking-details">
                                             <div className="detail-value">
                                                 No upcoming reservations
                                             </div>
@@ -297,20 +358,29 @@ function CateringMain(){
                             </div>
                         )}
                         {activeTab === "payments" && (
-                            <div className="reservation-list">
-                                {recentPayments.length > 0 ? (
-                                    recentPayments.map(p => (
-                                        <div key={p.id} className="reservation-item">
-                                            <div className="reservation-details">
+                            <div className="booking-list">
+                                {dashLoading ? (
+                                    <div className="booking-item">
+                                        <div className="booking-details">
+                                            <div className="detail-value">Loading…</div>
+                                        </div>
+                                    </div>
+                                ) : recentTop5Payments.length > 0 ? (
+                                    recentTop5Payments.map((p) => (
+                                        <div key={p.paymentId} className="booking-item">
+                                            <div className="booking-details">
                                                 <div className="detail-value">
-                                                    €{p.amount.amount}
+                                                    €{((Number(p.amountCents) || 0) / 100).toFixed(2)} • Order #{p.orderId}
+                                                </div>
+                                                <div className="muted">
+                                                    {p.method} • {p.status} • {new Date(p.createdAt).toLocaleString()}
                                                 </div>
                                             </div>
                                         </div>
                                     ))
                                 ) : (
-                                    <div className="reservation-item">
-                                        <div className="reservation-details">
+                                    <div className="booking-item">
+                                        <div className="booking-details">
                                             <div className="detail-value">
                                                 No recent payments
                                             </div>
@@ -356,16 +426,27 @@ function CateringMain(){
                     <CateringOrderDetails
                         orderId={activeOrderId}
                         onBack={() => setActiveScreen("orders")}
+                        onPay={(orderId) => {
+                            setActiveOrderId(orderId);
+                            setActiveScreen("order-payment");
+                        }}
+                    />
+                )}
+
+                {activeScreen === "order-payment" && activeOrderId && (
+                    <BeautyOrderPayment
+                        orderId={activeOrderId}
+                        onBack={() => setActiveScreen("order-detail")}
                     />
                 )}
 
                 {activeScreen === "catalog" && <CateringCatalogItems />}
-                {activeScreen === "employees" && (<CateringEmployees employees={employees}/>)}
-                {activeScreen === "tables" && (<CateringTables tables={tables} />)}
-                {activeScreen === "products" && (<CateringProducts products={products} />)}
-                {activeScreen === "inventory" && (<CateringInventory stockItems={stockItems} />)}
-                {activeScreen === "payments" && (<CateringPayments payments={payments} />)}
-                {activeScreen === "gift-cards" && (<CateringGiftCards giftCards={giftCards} />)}
+                {activeScreen === "employees" && (<CateringEmployees />)}
+                {activeScreen === "tables" && (<CateringTables />)}
+                {activeScreen === "products" && (<CateringProducts />)}
+                {activeScreen === "inventory" && (<CateringInventory />)}
+                {activeScreen === "payments" && (<CateringPayments />)}
+                {activeScreen === "gift-cards" && (<CateringGiftCards />)}
                 {activeScreen === "settings" && <CateringSettings />}
             </div>
         </div>

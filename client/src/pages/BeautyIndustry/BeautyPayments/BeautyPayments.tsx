@@ -85,7 +85,7 @@ export default function BeautyPayments() {
                 <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                     <input
                         className="dropdown"
-                        placeholder="Filter by Order ID"
+                        placeholder="Filter by Order ID (e.g. 123)"
                         inputMode="numeric"
                         value={queryOrderId}
                         onChange={(e) => setQueryOrderId(e.target.value)}

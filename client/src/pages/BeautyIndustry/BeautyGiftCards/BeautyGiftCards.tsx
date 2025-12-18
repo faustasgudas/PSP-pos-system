@@ -382,6 +382,7 @@ export default function BeautyGiftCards() {
                                 <input
                                     type="number"
                                     inputMode="decimal"
+                                    placeholder="e.g. 10.00"
                                     value={manageTopUpAmount}
                                     onChange={(e) => setManageTopUpAmount(e.target.value)}
                                     disabled={managing}
@@ -396,6 +397,7 @@ export default function BeautyGiftCards() {
                                 <input
                                     type="number"
                                     inputMode="decimal"
+                                    placeholder="e.g. 5.00"
                                     value={manageRedeemAmount}
                                     onChange={(e) => setManageRedeemAmount(e.target.value)}
                                     disabled={managing}

@@ -366,7 +366,11 @@ export default function BeautyDiscounts() {
                         <div className="modal-form">
                             <div className="modal-field">
                                 <label>Code</label>
-                                <input value={code} onChange={(e) => setCode(e.target.value)} />
+                                <input
+                                    placeholder="e.g. SUMMER10"
+                                    value={code}
+                                    onChange={(e) => setCode(e.target.value)}
+                                />
                             </div>
 
                             <div className="modal-field">
@@ -465,7 +469,13 @@ export default function BeautyDiscounts() {
 
                             <div className="modal-field">
                                 <label>Value</label>
-                                <input type="number" value={value} onChange={(e) => setValue(e.target.value)} />
+                                <input
+                                    type="number"
+                                    inputMode="decimal"
+                                    placeholder={type === "Percent" ? "e.g. 10" : "e.g. 5.00"}
+                                    value={value}
+                                    onChange={(e) => setValue(e.target.value)}
+                                />
                                 <div className="muted" style={{ fontSize: 12 }}>
                                     Percent: e.g. 10 = 10%. Amount: depends on backend currency rules.
                                 </div>

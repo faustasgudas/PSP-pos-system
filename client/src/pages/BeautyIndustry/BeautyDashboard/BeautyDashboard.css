@@ -1,8 +1,4 @@
-/*
-  IMPORTANT:
-  This file must not leak global styles into other tabs/screens.
-  All rules are scoped under .beauty-shell so other pages keep consistent layout.
-*/
+/* Scoped under .beauty-shell */
 
 /* Statistics Grid */
 .beauty-shell .stat-grid {

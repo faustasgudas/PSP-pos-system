@@ -64,7 +64,7 @@
 
 .schedule-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 12px;
     margin-bottom: 12px;
 }
@@ -146,10 +146,6 @@
 
     .schedule-card {
         position: static;
-    }
-
-    .schedule-grid {
-        grid-template-columns: 1fr;
     }
 
     .new-booking-grid {
