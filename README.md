@@ -21,9 +21,9 @@ Our YAML defines order modification via a single PATCH /orders/{id} endpoint, we
 
 
 
-#Score for the design document: 5.5 / 10
+#  Score for the design document: 5.5 / 10
 
-##Why:
+##  Why:
 
 -  Data model exists, but not deep enough (missing cardinalities, snapshot/audit rules, delete vs archive).
 
