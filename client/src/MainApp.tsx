@@ -41,36 +41,40 @@ export default function MainApp() {
 
     if (!isLoggedIn) {
         return (
-            <div className="content-box">
+            <div className="content-box login-shell">
                 <div className="top-bar">
                     <h1 className="title">SuperApp</h1>
                 </div>
 
                 <div className="login">
-                    <h1 className="login-text">Log In</h1>
+                    <h1 className="login-text">Welcome back</h1>
+                    <p className="login-info">Sign in to access your business dashboard.</p>
 
-                    <input
-                        className="dropdown"
-                        placeholder="Email"
-                        value={email}
-                        onChange={(e) => setEmail(e.currentTarget.value)}
-                    />
+                    <div className="login-form">
+                        <label className="login-label">Email</label>
+                        <input
+                            className="dropdown"
+                            placeholder="you@company.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.currentTarget.value)}
+                            autoComplete="username"
+                        />
 
-                    <input
-                        className="dropdown"
-                        placeholder="Password"
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.currentTarget.value)}
-                    />
+                        <label className="login-label">Password</label>
+                        <input
+                            className="dropdown"
+                            placeholder="••••••••"
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.currentTarget.value)}
+                            autoComplete="current-password"
+                            onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+                        />
+                    </div>
 
                     <button type="button" className="login-btn" onClick={handleLogin}>
                         Log In
                     </button>
-
-                    <p className="login-info">
-                        Enter your credentials to access your business.
-                    </p>
                 </div>
             </div>
         );

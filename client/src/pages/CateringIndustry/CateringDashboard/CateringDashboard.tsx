@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState } from "react";
 import "../../../App.css";
 import "./CateringDashboard.css";
-import { getUserFromToken } from "../../../utils/auth"
+import { getUserFromToken } from "../../../utils/auth";
 
 import CateringEmployees from "../CateringEmployees/CateringEmployees";
 import CateringGiftCards from "../CateringGiftCards/CateringGiftCards";
@@ -115,12 +115,22 @@ function CateringMain(){
     const recentPayments = payments.slice(0, 5);
     
     const user = getUserFromToken();
+
+    const handleLogout = () => {
+        localStorage.clear();
+        window.location.reload();
+    };
     
     return(
-        <div className="content-box">
+        <div className="content-box beauty-shell">
             {/* Top Bar */}
             <div className="top-bar">
-                <h1 className="title">SuperApp</h1>
+                <div className="top-left">
+                    <h1 className="title">SuperApp</h1>
+                    <button className="logout-btn" onClick={handleLogout}>
+                        🚪 Log out
+                    </button>
+                </div>
                 <div className="user-info">
                     {user ? `${user.email} (${user.role})` : ""}
                     <button 
@@ -274,11 +284,11 @@ function CateringMain(){
                             </button>
                         </div>
                         {activeTab === "upcoming" && (
-                            <div className="reservation-list">
+                            <div className="booking-list">
                                 {upcomingReservations.length > 0 ? (
                                     upcomingReservations.map(b => (
-                                        <div key={b.id} className="reservation-item">
-                                            <div className="reservation-details">
+                                        <div key={b.id} className="booking-item">
+                                            <div className="booking-details">
                                                 <div className="detail-value">
                                                     {b.customerName}
                                                 </div>
@@ -286,8 +296,8 @@ function CateringMain(){
                                         </div>    
                                     ))
                                 ) : (
-                                    <div className="reservation-item">
-                                        <div className="reservation-details">
+                                    <div className="booking-item">
+                                        <div className="booking-details">
                                             <div className="detail-value">
                                                 No upcoming reservations
                                             </div>
@@ -297,11 +307,11 @@ function CateringMain(){
                             </div>
                         )}
                         {activeTab === "payments" && (
-                            <div className="reservation-list">
+                            <div className="booking-list">
                                 {recentPayments.length > 0 ? (
                                     recentPayments.map(p => (
-                                        <div key={p.id} className="reservation-item">
-                                            <div className="reservation-details">
+                                        <div key={p.id} className="booking-item">
+                                            <div className="booking-details">
                                                 <div className="detail-value">
                                                     €{p.amount.amount}
                                                 </div>
@@ -309,8 +319,8 @@ function CateringMain(){
                                         </div>
                                     ))
                                 ) : (
-                                    <div className="reservation-item">
-                                        <div className="reservation-details">
+                                    <div className="booking-item">
+                                        <div className="booking-details">
                                             <div className="detail-value">
                                                 No recent payments
                                             </div>
