@@ -857,15 +857,27 @@ body {
     margin-bottom: 10px;
 }
 
-.beauty-shell .btime__grid,
-.btime__grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+/* New time picker layout: manual input + two columns */
+.beauty-shell .btime__manual,
+.btime__manual {
+    display: flex;
     gap: 8px;
-    max-height: 260px;
-    overflow: auto;
-    padding-right: 4px;
+    align-items: center;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
 }
+
+.beauty-shell .btime__input,
+.btime__input {
+    flex: 1 1 160px;
+    min-width: 160px;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    font-size: 14px;
+}
+
+/* Time picker is input-only now (HH:MM) */
 
 .beauty-shell .btime__slot,
 .btime__slot {

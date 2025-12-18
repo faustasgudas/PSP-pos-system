@@ -16,12 +16,26 @@ import { getUserFromToken } from "../../../utils/auth";
 import { logout } from "../../../frontapi/authApi";
 import { listCatalogItems, type CatalogItem } from "../../../frontapi/catalogApi";
 import { BeautySelect } from "../../../components/ui/BeautySelect";
+import { BeautyDatePicker } from "../../../components/ui/BeautyDatePicker";
+import { BeautyTimePicker } from "../../../components/ui/BeautyTimePicker";
 
 function toLocalDateTimeInputValue(d: Date) {
     const pad = (n: number) => String(n).padStart(2, "0");
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
         d.getHours()
     )}:${pad(d.getMinutes())}`;
+}
+
+function splitLocalDateTime(value: string): { date: string; time: string } {
+    const s = String(value || "").trim();
+    const m = s.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/);
+    if (m) return { date: m[1], time: m[2] };
+    return { date: "", time: "" };
+}
+
+function joinLocalDateTime(date: string, time: string) {
+    if (!date || !time) return "";
+    return `${date}T${time}`;
 }
 
 export default function BeautyDiscounts() {
@@ -49,6 +63,12 @@ export default function BeautyDiscounts() {
         toLocalDateTimeInputValue(new Date(Date.now() + 1000 * 60 * 60 * 24 * 365))
     );
     const [status, setStatus] = useState("Active");
+
+    // UI for nicer Starts/Ends pickers
+    const [startsDate, setStartsDate] = useState(() => splitLocalDateTime(startsAt).date);
+    const [startsTime, setStartsTime] = useState(() => splitLocalDateTime(startsAt).time);
+    const [endsDate, setEndsDate] = useState(() => splitLocalDateTime(endsAt).date);
+    const [endsTime, setEndsTime] = useState(() => splitLocalDateTime(endsAt).time);
 
     // Eligible items (Line discounts)
     const [catalog, setCatalog] = useState<CatalogItem[]>([]);
@@ -95,12 +115,19 @@ export default function BeautyDiscounts() {
     }, [items, query, scopeFilter]);
 
     const openCreate = () => {
+        const startStr = toLocalDateTimeInputValue(new Date());
+        const endStr = toLocalDateTimeInputValue(new Date(Date.now() + 1000 * 60 * 60 * 24 * 365));
+
         setCode("");
         setType("Percent");
         setScope("Line");
         setValue("10");
-        setStartsAt(toLocalDateTimeInputValue(new Date()));
-        setEndsAt(toLocalDateTimeInputValue(new Date(Date.now() + 1000 * 60 * 60 * 24 * 365)));
+        setStartsAt(startStr);
+        setEndsAt(endStr);
+        setStartsDate(splitLocalDateTime(startStr).date);
+        setStartsTime(splitLocalDateTime(startStr).time);
+        setEndsDate(splitLocalDateTime(endStr).date);
+        setEndsTime(splitLocalDateTime(endStr).time);
         setStatus("Active");
         setCatalogQuery("");
         setCreateEligibleIds([]);
@@ -363,8 +390,8 @@ export default function BeautyDiscounts() {
                     <div className="modal-card" onClick={(e) => e.stopPropagation()}>
                         <h3 className="modal-title">New Discount</h3>
 
-                        <div className="modal-form">
-                            <div className="modal-field">
+                        <div className="modal-form discount-create-grid">
+                            <div className="modal-field dc-span-4">
                                 <label>Code</label>
                                 <input
                                     placeholder="e.g. SUMMER10"
@@ -373,20 +400,24 @@ export default function BeautyDiscounts() {
                                 />
                             </div>
 
-                            <div className="modal-field">
-                                <label>Type</label>
-                                <select value={type} onChange={(e) => setType(e.target.value as any)}>
-                                    <option value="Percent">Percent</option>
-                                    <option value="Amount">Amount</option>
-                                </select>
+                            <div className="modal-field dc-span-2">
+                                <BeautySelect
+                                    label="Type"
+                                    value={String(type)}
+                                    onChange={(v) => setType(v as any)}
+                                    options={[
+                                        { value: "Percent", label: "Percent", subLabel: "e.g. 10 = 10%" },
+                                        { value: "Amount", label: "Amount", subLabel: "Fixed amount off" },
+                                    ]}
+                                />
                             </div>
 
-                            <div className="modal-field">
-                                <label>Scope</label>
-                                <select
-                                    value={scope}
-                                    onChange={(e) => {
-                                        const next = e.target.value as any;
+                            <div className="modal-field dc-span-3">
+                                <BeautySelect
+                                    label="Scope"
+                                    value={String(scope)}
+                                    onChange={(v) => {
+                                        const next = v as any;
                                         setScope(next);
                                         if (next !== "Line") {
                                             setCreateEligibleIds([]);
@@ -395,15 +426,28 @@ export default function BeautyDiscounts() {
                                             void ensureCatalogLoaded();
                                         }
                                     }}
-                                >
-                                    <option value="Order">Order</option>
-                                    <option value="Line">Line</option>
-                                </select>
+                                    options={[
+                                        { value: "Order", label: "Order", subLabel: "Applies to the whole order" },
+                                        { value: "Line", label: "Line", subLabel: "Applies to selected items" },
+                                    ]}
+                                />
+                            </div>
+
+                            <div className="modal-field dc-span-3">
+                                <BeautySelect
+                                    label="Status"
+                                    value={status}
+                                    onChange={setStatus}
+                                    options={[
+                                        { value: "Active", label: "Active", subLabel: "Usable now" },
+                                        { value: "Inactive", label: "Inactive", subLabel: "Hidden/disabled" },
+                                    ]}
+                                />
                             </div>
 
                             {/* Eligible items only for Line */}
                             {scope === "Line" && (
-                                <div className="modal-field">
+                                <div className="modal-field dc-span-12">
                                     <label>Eligible items</label>
 
                                     <div className="muted" style={{ fontSize: 12 }}>
@@ -467,44 +511,70 @@ export default function BeautyDiscounts() {
                                 </div>
                             )}
 
-                            <div className="modal-field">
-                                <label>Value</label>
-                                <input
-                                    type="number"
-                                    inputMode="decimal"
-                                    placeholder={type === "Percent" ? "e.g. 10" : "e.g. 5.00"}
-                                    value={value}
-                                    onChange={(e) => setValue(e.target.value)}
-                                />
-                                <div className="muted" style={{ fontSize: 12 }}>
-                                    Percent: e.g. 10 = 10%. Amount: depends on backend currency rules.
-                                </div>
+                            <div className="modal-field dc-span-3">
+                                    <label>Value</label>
+                                    <input
+                                        type="number"
+                                        inputMode="decimal"
+                                        placeholder={type === "Percent" ? "e.g. 10" : "e.g. 5.00"}
+                                        value={value}
+                                        onChange={(e) => setValue(e.target.value)}
+                                    />
+                                    <div className="muted" style={{ fontSize: 12 }}>
+                                        Percent: 10 = 10%. Amount: 5.00 = €5.00 off.
+                                    </div>
                             </div>
 
-                            <div className="modal-field">
-                                <label>Starts at</label>
-                                <input
-                                    type="datetime-local"
-                                    value={startsAt}
-                                    onChange={(e) => setStartsAt(e.target.value)}
-                                />
-                            </div>
-
-                            <div className="modal-field">
-                                <label>Ends at</label>
-                                <input
-                                    type="datetime-local"
-                                    value={endsAt}
-                                    onChange={(e) => setEndsAt(e.target.value)}
+                            <div className="modal-field dc-span-3">
+                                <BeautyDatePicker
+                                    label="Starts (date)"
+                                    value={startsDate}
+                                    onChange={(d) => {
+                                        setStartsDate(d);
+                                        const next = joinLocalDateTime(d, startsTime || "09:00");
+                                        setStartsAt(next);
+                                    }}
+                                    placeholder="Pick date"
                                 />
                             </div>
 
-                            <div className="modal-field">
-                                <label>Status</label>
-                                <select value={status} onChange={(e) => setStatus(e.target.value)}>
-                                    <option value="Active">Active</option>
-                                    <option value="Inactive">Inactive</option>
-                                </select>
+                            <div className="modal-field dc-span-2">
+                                <BeautyTimePicker
+                                    label="Starts (time)"
+                                    value={startsTime}
+                                    onChange={(t) => {
+                                        setStartsTime(t);
+                                        const next = joinLocalDateTime(startsDate || splitLocalDateTime(startsAt).date, t);
+                                        setStartsAt(next);
+                                    }}
+                                    placeholder="Pick time"
+                                />
+                            </div>
+
+                            <div className="modal-field dc-span-2">
+                                <BeautyDatePicker
+                                    label="Ends (date)"
+                                    value={endsDate}
+                                    onChange={(d) => {
+                                        setEndsDate(d);
+                                        const next = joinLocalDateTime(d, endsTime || "18:00");
+                                        setEndsAt(next);
+                                    }}
+                                    placeholder="Pick date"
+                                />
+                            </div>
+
+                            <div className="modal-field dc-span-2">
+                                <BeautyTimePicker
+                                    label="Ends (time)"
+                                    value={endsTime}
+                                    onChange={(t) => {
+                                        setEndsTime(t);
+                                        const next = joinLocalDateTime(endsDate || splitLocalDateTime(endsAt).date, t);
+                                        setEndsAt(next);
+                                    }}
+                                    placeholder="Pick time"
+                                />
                             </div>
                         </div>
 

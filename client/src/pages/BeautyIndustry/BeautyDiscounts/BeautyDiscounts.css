@@ -203,14 +203,21 @@
     border-radius: 20px;
     padding: 32px;
     width: 100%;
-    max-width: 520px;
+    max-width: 980px;
     box-shadow: 
         0 4px 6px rgba(2, 48, 71, 0.07),
         0 16px 48px rgba(2, 48, 71, 0.15),
         0 0 0 1px rgba(2, 48, 71, 0.08);
     max-height: calc(100vh - 48px);
     overflow-y: auto;
+    overflow-x: hidden;
     animation: modalCardSlide 250ms ease-out;
+}
+
+/* Make the Discounts create modal MUCH wider (no side scroll) */
+.beauty-discounts .modal-card {
+    width: min(1400px, 96vw);
+    max-width: min(1400px, 96vw);
 }
 
 @keyframes modalCardSlide {
@@ -279,9 +286,36 @@
     gap: 16px;
 }
 
+/* 3-up group for compact modal forms */
+.modal-field-group-3 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+}
+
+.modal-field-group > *,
+.modal-field-group-3 > * {
+    min-width: 0;
+}
+
+.modal-field.is-span-2 {
+    grid-column: span 2;
+}
+
+.modal-field.is-span-3 {
+    grid-column: span 3;
+}
+
 @media (max-width: 480px) {
     .modal-field-group {
         grid-template-columns: 1fr;
+    }
+    .modal-field-group-3 {
+        grid-template-columns: 1fr;
+    }
+    .modal-field.is-span-2,
+    .modal-field.is-span-3 {
+        grid-column: auto;
     }
 }
 
@@ -342,4 +376,53 @@
     font-size: 14px;
     font-weight: 600;
     color: #1f2937;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Create modal layout: 12-col grid so everything fits */
+.beauty-discounts .modal-form.discount-create-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.beauty-discounts .modal-form.discount-create-grid > * {
+    min-width: 0;
+}
+
+.beauty-discounts .dc-span-12 { grid-column: span 12; }
+.beauty-discounts .dc-span-6  { grid-column: span 6; }
+.beauty-discounts .dc-span-4  { grid-column: span 4; }
+.beauty-discounts .dc-span-3  { grid-column: span 3; }
+.beauty-discounts .dc-span-2  { grid-column: span 2; }
+
+@media (max-width: 980px) {
+    .beauty-discounts .modal-card {
+        width: min(980px, 96vw);
+        max-width: min(980px, 96vw);
+    }
+    .beauty-discounts .modal-form.discount-create-grid {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+    .beauty-discounts .dc-span-12 { grid-column: span 6; }
+    .beauty-discounts .dc-span-6  { grid-column: span 6; }
+    .beauty-discounts .dc-span-4  { grid-column: span 6; }
+    .beauty-discounts .dc-span-3  { grid-column: span 3; }
+    .beauty-discounts .dc-span-2  { grid-column: span 3; }
+}
+
+@media (max-width: 520px) {
+    .beauty-discounts .modal-form.discount-create-grid {
+        grid-template-columns: 1fr;
+    }
+    .beauty-discounts .dc-span-12,
+    .beauty-discounts .dc-span-6,
+    .beauty-discounts .dc-span-4,
+    .beauty-discounts .dc-span-3,
+    .beauty-discounts .dc-span-2 {
+        grid-column: auto;
+    }
 }

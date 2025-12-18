@@ -413,7 +413,7 @@ export default function BeautyDashboard() {
                 {activeScreen === "payments" && <BeautyPayments />}
                 {activeScreen === "giftcards" && <BeautyGiftCards />}
                 {activeScreen === "discounts" && role !== "Staff" && <BeautyDiscounts />}
-                {activeScreen === "settings" && <BeautySettings />}
+                {activeScreen === "settings" && <BeautySettings onBack={() => setActiveScreen("dashboard")} />}
 
                 {activeScreen === "orders" && (
                     <BeautyOrders
