@@ -29,7 +29,7 @@ Our YAML defines order modification via a single PATCH /orders/{id} endpoint, we
 
 -  No package diagram → architecture/module boundaries unclear (harder to map to code structure).
 
--  wireframes.
+-  No wireframes.
 
 -  Endpoint behavior is underwritten → lacks error cases.
 
