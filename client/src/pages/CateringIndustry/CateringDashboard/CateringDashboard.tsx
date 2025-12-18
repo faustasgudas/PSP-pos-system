@@ -447,7 +447,7 @@ function CateringMain(){
                 {activeScreen === "inventory" && (<CateringInventory />)}
                 {activeScreen === "payments" && (<CateringPayments />)}
                 {activeScreen === "gift-cards" && (<CateringGiftCards />)}
-                {activeScreen === "settings" && <CateringSettings />}
+                {activeScreen === "settings" && <CateringSettings onBack={() => setActiveScreen("dashboard")} />}
             </div>
         </div>
     );

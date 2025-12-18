@@ -4,15 +4,16 @@ function pad2(n: number) {
     return String(n).padStart(2, "0");
 }
 
-function buildTimes(stepMin = 15, fromHour = 8, toHour = 20) {
-    const out: string[] = [];
-    for (let h = fromHour; h <= toHour; h++) {
-        for (let m = 0; m < 60; m += stepMin) {
-            if (h === toHour && m > 0) continue;
-            out.push(`${pad2(h)}:${pad2(m)}`);
-        }
-    }
-    return out;
+function tryParseHHMM(input: string): string | null {
+    const s = input.trim();
+    const m = s.match(/^(\d{1,2}):(\d{2})$/);
+    if (!m) return null;
+    const hh = Number(m[1]);
+    const mm = Number(m[2]);
+    if (!Number.isFinite(hh) || !Number.isFinite(mm)) return null;
+    if (hh < 0 || hh > 23) return null;
+    if (mm < 0 || mm > 59) return null;
+    return `${pad2(hh)}:${pad2(mm)}`;
 }
 
 export function BeautyTimePicker(props: {
@@ -25,6 +26,8 @@ export function BeautyTimePicker(props: {
     const { label, value, onChange, disabled, placeholder = "Select time" } = props;
     const [open, setOpen] = useState(false);
     const rootRef = useRef<HTMLDivElement | null>(null);
+    const [draft, setDraft] = useState(value);
+    const inputRef = useRef<HTMLInputElement | null>(null);
 
     useEffect(() => {
         const onDocMouseDown = (e: MouseEvent) => {
@@ -36,7 +39,12 @@ export function BeautyTimePicker(props: {
         return () => document.removeEventListener("mousedown", onDocMouseDown);
     }, []);
 
-    const times = useMemo(() => buildTimes(15, 8, 20), []);
+    useEffect(() => {
+        setDraft(value);
+    }, [value, open]);
+
+    const parsedDraft = useMemo(() => tryParseHHMM(draft), [draft]);
+    const isValid = !!parsedDraft;
 
     return (
         <div className={`bpicker ${disabled ? "is-disabled" : ""}`} ref={rootRef}>
@@ -57,21 +65,50 @@ export function BeautyTimePicker(props: {
             {open && !disabled && (
                 <div className="bpicker__popover">
                     <div className="btime__title">Choose a time</div>
-                    <div className="btime__grid">
-                        {times.map((t) => (
-                            <button
-                                key={t}
-                                type="button"
-                                className={`btime__slot ${t === value ? "is-selected" : ""}`}
-                                onClick={() => {
-                                    onChange(t);
+
+                    <div className="btime__manual">
+                        <input
+                            ref={inputRef}
+                            className="btime__input"
+                            value={draft}
+                            onChange={(e) => setDraft(e.target.value)}
+                            placeholder="HH:MM (e.g. 09:30)"
+                            inputMode="numeric"
+                            autoFocus
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    if (!parsedDraft) return;
+                                    onChange(parsedDraft);
                                     setOpen(false);
-                                }}
-                            >
-                                {t}
-                            </button>
-                        ))}
+                                }
+                            }}
+                            onBlur={() => {
+                                // Don't auto-apply on blur; just keep draft.
+                            }}
+                        />
+                        <button
+                            type="button"
+                            className="bcal__btn"
+                            onClick={() => {
+                                if (!parsedDraft) {
+                                    inputRef.current?.focus();
+                                    return;
+                                }
+                                onChange(parsedDraft);
+                                setOpen(false);
+                            }}
+                            disabled={!isValid}
+                        >
+                            Apply
+                        </button>
                     </div>
+
+                    {!isValid && (
+                        <div className="muted" style={{ fontSize: 12 }}>
+                            Please type time in <strong>HH:MM</strong> format (00:00–23:59).
+                        </div>
+                    )}
+
                     <div className="bcal__footer">
                         <button type="button" className="bcal__btn" onClick={() => setOpen(false)}>
                             Close
