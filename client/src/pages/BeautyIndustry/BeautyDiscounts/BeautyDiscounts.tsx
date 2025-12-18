@@ -15,6 +15,7 @@ import {
 import { getUserFromToken } from "../../../utils/auth";
 import { logout } from "../../../frontapi/authApi";
 import { listCatalogItems, type CatalogItem } from "../../../frontapi/catalogApi";
+import { BeautySelect } from "../../../components/ui/BeautySelect";
 
 function toLocalDateTimeInputValue(d: Date) {
     const pad = (n: number) => String(n).padStart(2, "0");
@@ -246,17 +247,19 @@ export default function BeautyDiscounts() {
                         disabled={loading}
                     />
 
-                    <select
-                        className="inventory-search"
-                        value={scopeFilter}
-                        onChange={(e) => setScopeFilter(e.target.value)}
-                        disabled={loading}
-                        style={{ minWidth: 180 }}
-                    >
-                        <option value="">All scopes</option>
-                        <option value="Order">Order</option>
-                        <option value="Line">Line</option>
-                    </select>
+                    <div style={{ minWidth: 180 }}>
+                        <BeautySelect
+                            value={scopeFilter}
+                            onChange={setScopeFilter}
+                            disabled={loading}
+                            placeholder="All scopes"
+                            options={[
+                                { value: "", label: "All scopes" },
+                                { value: "Order", label: "Order" },
+                                { value: "Line", label: "Line" },
+                            ]}
+                        />
+                    </div>
 
                     <button className="btn btn-ghost" onClick={load} disabled={loading}>
                         {loading ? "Refreshing…" : "Refresh"}
