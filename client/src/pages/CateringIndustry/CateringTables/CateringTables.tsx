@@ -244,7 +244,12 @@ export default function CateringTables() {
                         <div className="modal-form">
                             <div className="modal-field">
                                 <label>Name</label>
-                                <input className="dropdown" value={name} onChange={(e) => setName(e.target.value)} />
+                                <input
+                                    className="dropdown"
+                                    placeholder="e.g. T12 / Patio / Bar"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                />
                             </div>
 
                             <div className="modal-field">
@@ -254,7 +259,13 @@ export default function CateringTables() {
 
                             <div className="modal-field">
                                 <label>Turnover time (min)</label>
-                                <input className="dropdown" type="number" value={turnoverMin} onChange={(e) => setTurnoverMin(e.target.value)} />
+                                <input
+                                    className="dropdown"
+                                    type="number"
+                                    placeholder="e.g. 90"
+                                    value={turnoverMin}
+                                    onChange={(e) => setTurnoverMin(e.target.value)}
+                                />
                             </div>
                         </div>
 

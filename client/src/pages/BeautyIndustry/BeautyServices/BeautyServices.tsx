@@ -263,6 +263,7 @@ export default function BeautyServices() {
                         <input
                             placeholder="Price"
                             type="number"
+                            inputMode="decimal"
                             value={price}
                             onChange={e => setPrice(e.target.value)}
                         />
@@ -312,6 +313,8 @@ export default function BeautyServices() {
 
                         <input
                             type="number"
+                            inputMode="decimal"
+                            placeholder="Price (e.g. 25.00)"
                             value={price}
                             onChange={e => setPrice(e.target.value)}
                         />

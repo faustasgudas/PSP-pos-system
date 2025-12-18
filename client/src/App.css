@@ -98,13 +98,15 @@ body {
 }
 
 .dropdown{
-    width: 80%;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
     padding: 0.8rem;
     font-size: 1rem;
     border-radius: 8px;
     border: 2px solid #023047;
     margin-bottom: 1.5rem;
-    cursor: pointer;
+    cursor: text;
     margin-top: 5px;
 }
 
@@ -158,6 +160,19 @@ body {
     text-align: left; /* reduce “centered app” feel inside dashboards */
 }
 
+/* Prevent modal/input overflow inside the dashboard shells */
+.beauty-shell *,
+.login-shell * {
+    box-sizing: border-box;
+}
+
+.beauty-shell .modal-card input,
+.beauty-shell .modal-card textarea,
+.beauty-shell .modal-card select {
+    width: 100%;
+    max-width: 100%;
+}
+
 /* Top bar + navbar layout */
 .beauty-shell .top-bar {
     display: flex;
@@ -198,11 +213,11 @@ body {
 }
 
 .beauty-shell .navbar {
-    /* Spread tabs evenly across the row, wrap gracefully */
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 8px;
+    display: flex;
     align-items: center;
+    justify-content: space-evenly;
+    flex-wrap: nowrap;
+    gap: 4px;
     padding: 10px 12px;
     background: rgba(142, 202, 230, 0.55);
     border-bottom: 1px solid var(--b-border);
@@ -216,7 +231,9 @@ body {
     border-radius: 12px;
     font-weight: 700;
     line-height: 1;
-    width: 100%;
+    flex: 1 1 auto;
+    min-width: 0;
+    white-space: nowrap;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -893,7 +910,13 @@ body {
     }
 
     .beauty-shell .navbar {
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .beauty-shell .nav-btn {
+        flex: 1 1 calc(50% - 3px);
+        min-width: 120px;
     }
 }
 

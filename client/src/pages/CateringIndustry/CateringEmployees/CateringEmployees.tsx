@@ -242,17 +242,31 @@ export default function CateringEmployees() {
 
                         <div className="form-field">
                             <label>Name</label>
-                            <input value={name} onChange={(e) => setName(e.target.value)} />
+                            <input
+                                placeholder="e.g. John Smith"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                            />
                         </div>
 
                         <div className="form-field">
                             <label>Email</label>
-                            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                            <input
+                                type="email"
+                                placeholder="e.g. name@company.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                            />
                         </div>
 
                         <div className="form-field">
                             <label>Password</label>
-                            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                            <input
+                                type="password"
+                                placeholder="Set a temporary password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                            />
                         </div>
 
                         <div className="form-field">
@@ -286,12 +300,21 @@ export default function CateringEmployees() {
 
                         <div className="form-field">
                             <label>Name</label>
-                            <input value={editName} onChange={(e) => setEditName(e.target.value)} />
+                            <input
+                                placeholder="e.g. John Smith"
+                                value={editName}
+                                onChange={(e) => setEditName(e.target.value)}
+                            />
                         </div>
 
                         <div className="form-field">
                             <label>Email</label>
-                            <input type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} />
+                            <input
+                                type="email"
+                                placeholder="e.g. name@company.com"
+                                value={editEmail}
+                                onChange={(e) => setEditEmail(e.target.value)}
+                            />
                         </div>
 
                         <div className="form-field">

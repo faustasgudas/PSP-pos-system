@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import "../../../App.css";
+import "../../BeautyIndustry/BeautyOrders/BeautyOrders.css";
 import { getUserFromToken } from "../../../utils/auth";
 import { listAllOrders, listMyOrders, type OrderSummary } from "../../../frontapi/orderApi";
 import { BeautySelect } from "../../../components/ui/BeautySelect";
+import { fetchEmployees } from "../../../frontapi/employeesApi";
 
 type Scope = "mine" | "all";
 
@@ -13,6 +15,7 @@ export default function CateringOrders(props: {
     const user = getUserFromToken();
     const role = user?.role ?? "";
     const employeeId = Number(localStorage.getItem("employeeId"));
+    const businessId = Number(localStorage.getItem("businessId"));
 
     const canListAll = role === "Owner" || role === "Manager";
 
@@ -23,6 +26,29 @@ export default function CateringOrders(props: {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [orders, setOrders] = useState<OrderSummary[]>([]);
+
+    const [employees, setEmployees] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (!businessId) {
+            setEmployees([]);
+            return;
+        }
+        fetchEmployees(businessId)
+            .then((emps) => setEmployees(Array.isArray(emps) ? emps : []))
+            .catch(() => setEmployees([]));
+    }, [businessId]);
+
+    const employeeEmailById = useMemo(() => {
+        const m = new Map<number, string>();
+        employees.forEach((e: any) => {
+            const id = Number(e.employeeId ?? e.id);
+            if (!id) return;
+            const email = String(e.email ?? e.userEmail ?? "").trim();
+            if (email) m.set(id, email);
+        });
+        return m;
+    }, [employees]);
 
     const load = async () => {
         setLoading(true);
@@ -125,7 +151,13 @@ export default function CateringOrders(props: {
 
                     <div style={{ width: 16 }} />
                     <div className="muted">Open</div>
-                    <input className="dropdown" value={openId} onChange={(e) => setOpenId(e.target.value)} placeholder="Order ID" style={{ maxWidth: 160 }} />
+                    <input
+                        className="dropdown"
+                        value={openId}
+                        onChange={(e) => setOpenId(e.target.value)}
+                        placeholder="Order ID (e.g. 123)"
+                        style={{ maxWidth: 200 }}
+                    />
                     <button className="btn" onClick={openById}>
                         Open
                     </button>
@@ -148,24 +180,52 @@ export default function CateringOrders(props: {
             ) : filtered.length === 0 ? (
                 <div className="card">No orders found.</div>
             ) : (
-                <div style={{ display: "grid", gap: 10 }}>
-                    {filtered.map((o) => (
-                        <button
-                            key={o.orderId}
-                            className="card"
-                            style={{ textAlign: "left", cursor: "pointer" }}
-                            onClick={() => props.onOpenOrder(o.orderId)}
-                        >
-                            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
-                                <div style={{ fontWeight: 800 }}>Order #{o.orderId}</div>
-                                <div className="muted">{o.status}</div>
-                            </div>
-                            <div className="muted" style={{ marginTop: 6 }}>
-                                {new Date(o.createdAt).toLocaleString()} • Employee {o.employeeId}
-                                {o.reservationId ? ` • Reservation #${o.reservationId}` : ""}
-                            </div>
-                        </button>
-                    ))}
+                <div className="orders-table-wrap">
+                    <table className="orders-table">
+                        <thead>
+                        <tr>
+                            <th>Order</th>
+                            <th>Created</th>
+                            <th>Table</th>
+                            <th>Reservation</th>
+                            <th>Employee</th>
+                            <th>Status</th>
+                            <th className="right">Actions</th>
+                        </tr>
+                        </thead>
+
+                        <tbody>
+                        {filtered.map((o) => (
+                            <tr
+                                key={o.orderId}
+                                className="orders-row"
+                                onClick={() => props.onOpenOrder(o.orderId)}
+                            >
+                                <td className="order-id">#{o.orderId}</td>
+                                <td>{new Date(o.createdAt).toLocaleString()}</td>
+                                <td className="muted">{o.tableOrArea ? String(o.tableOrArea) : "—"}</td>
+                                <td className="muted">{o.reservationId ? `#${o.reservationId}` : "—"}</td>
+                                <td className="muted">{employeeEmailById.get(o.employeeId) ?? `#${o.employeeId}`}</td>
+                                <td>
+                                    <span className={`status-pill status-${String(o.status).toLowerCase()}`}>
+                                        {o.status}
+                                    </span>
+                                </td>
+                                <td className="right">
+                                    <button
+                                        className="btn btn-ghost"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            props.onOpenOrder(o.orderId);
+                                        }}
+                                    >
+                                        Open →
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                        </tbody>
+                    </table>
                 </div>
             )}
         </div>

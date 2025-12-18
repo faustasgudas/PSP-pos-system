@@ -6,6 +6,7 @@ import {
 } from "../../../frontapi/orderApi";
 import { getUserFromToken } from "../../../utils/auth";
 import { logout } from "../../../frontapi/authApi";
+import { fetchEmployees } from "../../../frontapi/employeesApi";
 
 import "../../../App.css";
 import "./BeautyOrders.css";
@@ -20,6 +21,7 @@ export default function BeautyOrders(props: {
     const user = getUserFromToken();
     const role = user?.role ?? "";
     const employeeId = Number(localStorage.getItem("employeeId"));
+    const businessId = Number(localStorage.getItem("businessId"));
 
     const [scope, setScope] = useState<OrdersScope>("mine");
     const [statusFilter, setStatusFilter] = useState<string>("");
@@ -29,12 +31,35 @@ export default function BeautyOrders(props: {
     const [error, setError] = useState<string | null>(null);
     const [orders, setOrders] = useState<OrderSummary[]>([]);
 
+    const [employees, setEmployees] = useState<any[]>([]);
+
     const canListAll = role === "Owner" || role === "Manager";
     const authProblem =
         (error ?? "").toLowerCase().includes("unauthorized") ||
         (error ?? "").toLowerCase().includes("forbid") ||
         (error ?? "").includes("401") ||
         (error ?? "").includes("403");
+
+    useEffect(() => {
+        if (!businessId) {
+            setEmployees([]);
+            return;
+        }
+        fetchEmployees(businessId)
+            .then((emps) => setEmployees(Array.isArray(emps) ? emps : []))
+            .catch(() => setEmployees([]));
+    }, [businessId]);
+
+    const employeeEmailById = useMemo(() => {
+        const m = new Map<number, string>();
+        employees.forEach((e: any) => {
+            const id = Number(e.employeeId ?? e.id);
+            if (!id) return;
+            const email = String(e.email ?? e.userEmail ?? "").trim();
+            if (email) m.set(id, email);
+        });
+        return m;
+    }, [employees]);
 
     const load = async () => {
         setLoading(true);
@@ -207,7 +232,7 @@ export default function BeautyOrders(props: {
                                 </td>
 
                                 <td>
-                                    {o.employeeId}
+                                    {employeeEmailById.get(o.employeeId) ?? `#${o.employeeId}`}
                                 </td>
 
                                 <td>

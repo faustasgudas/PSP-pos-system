@@ -51,14 +51,18 @@
 }
 
 .employees-table tbody td {
-    padding: 14px 16px;
-    border-bottom: 1px solid #f3f4f6;
+    padding: 12px 16px;
     font-size: 14px;
     color: #1f2937;
     vertical-align: middle;
 }
 
-.employees-table tbody tr:last-child td {
+/* Use row borders (not cell borders) to keep the horizontal line perfectly continuous */
+.employees-table tbody tr {
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.employees-table tbody tr:last-child {
     border-bottom: none;
 }
 

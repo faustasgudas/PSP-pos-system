@@ -231,7 +231,7 @@ export default function BeautyEmployees() {
                         <div className="form-field">
                             <label>Name</label>
                             <input
-                                placeholder="Enter name"
+                                placeholder="e.g. John Smith"
                                 value={name}
                                 onChange={e => setName(e.target.value)}
                             />
@@ -240,7 +240,7 @@ export default function BeautyEmployees() {
                         <div className="form-field">
                             <label>Email</label>
                             <input
-                                placeholder="Enter email"
+                                placeholder="e.g. name@company.com"
                                 type="email"
                                 value={email}
                                 onChange={e => setEmail(e.target.value)}
@@ -250,7 +250,7 @@ export default function BeautyEmployees() {
                         <div className="form-field">
                             <label>Password</label>
                             <input
-                                placeholder="Enter password"
+                                placeholder="Set a temporary password"
                                 type="password"
                                 value={password}
                                 onChange={e => setPassword(e.target.value)}
@@ -291,6 +291,7 @@ export default function BeautyEmployees() {
                         <div className="form-field">
                             <label>Name</label>
                             <input
+                                placeholder="e.g. John Smith"
                                 value={editName}
                                 onChange={e => setEditName(e.target.value)}
                             />
@@ -300,6 +301,7 @@ export default function BeautyEmployees() {
                             <label>Email</label>
                             <input
                                 type="email"
+                                placeholder="e.g. name@company.com"
                                 value={editEmail}
                                 onChange={e => setEditEmail(e.target.value)}
                             />

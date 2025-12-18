@@ -275,7 +275,12 @@ export default function CateringCatalogItems() {
 
                         <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
                             <div className="muted">Name</div>
-                            <input className="dropdown" value={name} onChange={(e) => setName(e.target.value)} />
+                            <input
+                                className="dropdown"
+                                placeholder={tab === "Service" ? "e.g. Delivery" : "e.g. Sandwich"}
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                            />
 
                             <div className="muted">Code</div>
                             <input className="dropdown" value={code} onChange={(e) => setCode(e.target.value)} placeholder="AUTO from name if empty" />
@@ -283,18 +288,36 @@ export default function CateringCatalogItems() {
                             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                                 <div style={{ flex: 1, minWidth: 220 }}>
                                     <div className="muted">Base price</div>
-                                    <input className="dropdown" type="number" value={basePrice} onChange={(e) => setBasePrice(e.target.value)} />
+                                    <input
+                                        className="dropdown"
+                                        type="number"
+                                        inputMode="decimal"
+                                        placeholder="e.g. 5.99"
+                                        value={basePrice}
+                                        onChange={(e) => setBasePrice(e.target.value)}
+                                    />
                                 </div>
                                 <div style={{ flex: 1, minWidth: 220 }}>
                                     <div className="muted">Tax class</div>
-                                    <input className="dropdown" value={taxClass} onChange={(e) => setTaxClass(e.target.value)} />
+                                    <input
+                                        className="dropdown"
+                                        placeholder='e.g. "STANDARD"'
+                                        value={taxClass}
+                                        onChange={(e) => setTaxClass(e.target.value)}
+                                    />
                                 </div>
                             </div>
 
                             {tab === "Service" && (
                                 <>
                                     <div className="muted">Default duration (min)</div>
-                                    <input className="dropdown" type="number" value={durationMin} onChange={(e) => setDurationMin(e.target.value)} />
+                                    <input
+                                        className="dropdown"
+                                        type="number"
+                                        placeholder="e.g. 30"
+                                        value={durationMin}
+                                        onChange={(e) => setDurationMin(e.target.value)}
+                                    />
                                 </>
                             )}
                         </div>

@@ -225,7 +225,14 @@ export default function CateringNewReservation(props: { goBack: () => void }) {
                 </div>
 
                 <div className="muted">Notes</div>
-                <textarea className="dropdown" style={{ minHeight: 100 }} value={notes} onChange={(e) => setNotes(e.target.value)} disabled={saving || !canManage} />
+                <textarea
+                    className="dropdown"
+                    style={{ minHeight: 100 }}
+                    placeholder="Optional: customer name, phone (+370...), allergies, special requests…"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    disabled={saving || !canManage}
+                />
 
                 <button className="btn btn-primary" onClick={save} disabled={saving || loading || !canManage}>
                     {saving ? "Saving…" : "Create reservation"}

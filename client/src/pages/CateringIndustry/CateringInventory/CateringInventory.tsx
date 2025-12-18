@@ -465,17 +465,34 @@ export default function CateringInventory() {
                         <div className="modal-form">
                             <div className="modal-field">
                                 <label>Name</label>
-                                <input value={createName} onChange={(e) => setCreateName(e.target.value)} disabled={saving} />
+                                <input
+                                    placeholder="e.g. Cola syrup"
+                                    value={createName}
+                                    onChange={(e) => setCreateName(e.target.value)}
+                                    disabled={saving}
+                                />
                             </div>
 
                             <div className="modal-field">
                                 <label>Base price</label>
-                                <input type="number" value={createPrice} onChange={(e) => setCreatePrice(e.target.value)} disabled={saving} />
+                                <input
+                                    type="number"
+                                    inputMode="decimal"
+                                    placeholder="e.g. 2.50"
+                                    value={createPrice}
+                                    onChange={(e) => setCreatePrice(e.target.value)}
+                                    disabled={saving}
+                                />
                             </div>
 
                             <div className="modal-field">
                                 <label>Tax class</label>
-                                <input value={createTaxClass} onChange={(e) => setCreateTaxClass(e.target.value)} disabled={saving} />
+                                <input
+                                    placeholder='e.g. "STANDARD"'
+                                    value={createTaxClass}
+                                    onChange={(e) => setCreateTaxClass(e.target.value)}
+                                    disabled={saving}
+                                />
                             </div>
 
                             <div className="modal-field">
@@ -494,7 +511,13 @@ export default function CateringInventory() {
 
                                     <div className="modal-field">
                                         <label>Initial qty</label>
-                                        <input type="number" value={createInitialQty} onChange={(e) => setCreateInitialQty(e.target.value)} disabled={saving} />
+                                        <input
+                                            type="number"
+                                            placeholder="e.g. 10"
+                                            value={createInitialQty}
+                                            onChange={(e) => setCreateInitialQty(e.target.value)}
+                                            disabled={saving}
+                                        />
                                     </div>
                                 </>
                             )}

@@ -241,7 +241,12 @@ export default function CateringProducts() {
                         <div className="modal-form">
                             <div className="modal-field">
                                 <label>Name</label>
-                                <input className="dropdown" value={name} onChange={(e) => setName(e.target.value)} />
+                                <input
+                                    className="dropdown"
+                                    placeholder="e.g. Coca-Cola 0.33L"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                />
                             </div>
 
                             <div className="modal-field">
@@ -252,11 +257,23 @@ export default function CateringProducts() {
                             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                                 <div style={{ flex: 1, minWidth: 220 }} className="modal-field">
                                     <label>Base price</label>
-                                    <input className="dropdown" type="number" value={basePrice} onChange={(e) => setBasePrice(e.target.value)} />
+                                    <input
+                                        className="dropdown"
+                                        type="number"
+                                        inputMode="decimal"
+                                        placeholder="e.g. 2.50"
+                                        value={basePrice}
+                                        onChange={(e) => setBasePrice(e.target.value)}
+                                    />
                                 </div>
                                 <div style={{ flex: 1, minWidth: 220 }} className="modal-field">
                                     <label>Tax class</label>
-                                    <input className="dropdown" value={taxClass} onChange={(e) => setTaxClass(e.target.value)} />
+                                    <input
+                                        className="dropdown"
+                                        placeholder='e.g. "STANDARD"'
+                                        value={taxClass}
+                                        onChange={(e) => setTaxClass(e.target.value)}
+                                    />
                                 </div>
                             </div>
                         </div>
