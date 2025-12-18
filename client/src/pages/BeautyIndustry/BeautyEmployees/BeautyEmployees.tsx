@@ -174,21 +174,21 @@ export default function BeautyEmployees() {
                         </tr>
                     </thead>
                     <tbody>
-                        {sortedEmployees.map(emp => {
-                            const isSelf = emp.email === user?.email;
+                {sortedEmployees.map(emp => {
+                    const isSelf = emp.email === user?.email;
                             const canEdit = 
                                 role === "Owner" || 
                                 (role === "Manager" && emp.role === "Staff");
-                            const canDeactivate =
-                                !isSelf &&
-                                (role === "Owner" ||
-                                    (role === "Manager" && emp.role === "Staff"));
+                    const canDeactivate =
+                        !isSelf &&
+                        (role === "Owner" ||
+                            (role === "Manager" && emp.role === "Staff"));
 
-                            return (
+                    return (
                                 <tr key={emp.employeeId}>
                                     <td className="name-cell">
-                                        {emp.name}
-                                        {isSelf && <span className="you-badge">You</span>}
+                                {emp.name}
+                                {isSelf && <span className="you-badge">You</span>}
                                     </td>
                                     <td>{emp.email}</td>
                                     <td>
@@ -205,19 +205,19 @@ export default function BeautyEmployees() {
                                                 ✏️ Edit
                                             </button>
                                         )}
-                                        {canDeactivate && (
-                                            <button
+                            {canDeactivate && (
+                                <button
                                                 className="btn btn-sm btn-danger"
                                                 onClick={() => setEmployeeToDeactivate(emp)}
-                                            >
-                                                Deactivate
-                                            </button>
-                                        )}
+                                >
+                                    Deactivate
+                                </button>
+                            )}
                                         {isSelf && <span className="muted">—</span>}
                                     </td>
                                 </tr>
-                            );
-                        })}
+                    );
+                })}
                     </tbody>
                 </table>
             </div>
@@ -230,37 +230,37 @@ export default function BeautyEmployees() {
 
                         <div className="form-field">
                             <label>Name</label>
-                            <input
+                        <input
                                 placeholder="Enter name"
-                                value={name}
-                                onChange={e => setName(e.target.value)}
-                            />
+                            value={name}
+                            onChange={e => setName(e.target.value)}
+                        />
                         </div>
                         
                         <div className="form-field">
                             <label>Email</label>
-                            <input
+                        <input
                                 placeholder="Enter email"
                                 type="email"
-                                value={email}
-                                onChange={e => setEmail(e.target.value)}
-                            />
+                            value={email}
+                            onChange={e => setEmail(e.target.value)}
+                        />
                         </div>
                         
                         <div className="form-field">
                             <label>Password</label>
-                            <input
+                        <input
                                 placeholder="Enter password"
-                                type="password"
-                                value={password}
-                                onChange={e => setPassword(e.target.value)}
-                            />
+                            type="password"
+                            value={password}
+                            onChange={e => setPassword(e.target.value)}
+                        />
                         </div>
 
                         <div className="form-field">
                             <label>Role</label>
                             <BeautySelect
-                                value={newRole}
+                            value={newRole}
                                 onChange={(v) => setNewRole(v as any)}
                                 placeholder="Select role"
                                 options={[

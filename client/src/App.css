@@ -198,11 +198,11 @@ body {
 }
 
 .beauty-shell .navbar {
-    /* Spread tabs evenly across the row, wrap gracefully */
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 8px;
+    display: flex;
     align-items: center;
+    justify-content: space-evenly;
+    flex-wrap: nowrap;
+    gap: 4px;
     padding: 10px 12px;
     background: rgba(142, 202, 230, 0.55);
     border-bottom: 1px solid var(--b-border);
@@ -216,11 +216,9 @@ body {
     border-radius: 12px;
     font-weight: 700;
     line-height: 1;
-    width: 100%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
+    flex: 1 1 auto;
+    min-width: 0;
+    white-space: nowrap;
     transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
 }
 
@@ -893,7 +891,13 @@ body {
     }
 
     .beauty-shell .navbar {
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .beauty-shell .nav-btn {
+        flex: 1 1 calc(50% - 3px);
+        min-width: 120px;
     }
 }
 
