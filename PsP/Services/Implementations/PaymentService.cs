@@ -1,278 +1,515 @@
+using System.Globalization;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using PsP.Contracts.Payments;
 using PsP.Data;
+using PsP.Mappings;
 using PsP.Models;
 using PsP.Services.Interfaces;
 
-namespace PsP.Services.Implementations
+namespace PsP.Services.Implementations;
+
+public class PaymentService : IPaymentService
 {
-    public class PaymentService : IPaymentService
+    private readonly AppDbContext _db;
+    private readonly IStripePaymentService _stripe;
+
+    public PaymentService(
+        AppDbContext db,
+        IGiftCardService _ /* unused */,
+        IStripePaymentService stripe)
     {
-        private readonly AppDbContext _db;
-        private readonly IGiftCardService _giftCards;
-        private readonly IStripePaymentService _stripe;
+        _db = db;
+        _stripe = stripe;
+    }
 
-        public PaymentService(
-            AppDbContext db,
-            IGiftCardService giftCards,
-            IStripePaymentService stripe)
-        {
-            _db = db;
-            _giftCards = giftCards;
-            _stripe = stripe;
-        }
+    // ============================================================
+    // PUBLIC API
+    // ============================================================
 
-       public async Task<PaymentResponse> CreatePaymentAsync(
-    int orderId,
-    string currency,
-    int businessId,
-    string? giftCardCode,
-    long? giftCardAmountCents,
-    string baseUrl)
-{
-    // 1) Order + lines
-    var order = await _db.Orders
-        .Include(o => o.Lines)
-        .ThenInclude(ol => ol.CatalogItem)
-        .AsNoTracking()
-        .FirstOrDefaultAsync(o => o.OrderId == (int)orderId); // 👈 cast į int, jei OrderId yra int
-
-    if (order is null)
-        throw new InvalidOperationException("order_not_found");
-
-    if (order.BusinessId != businessId)
-        throw new InvalidOperationException("wrong_business");
-
-    // 2) server-side total
-    var amountCents = CalculateOrderTotal(order);
-    if (amountCents <= 0)
-        throw new InvalidOperationException("invalid_order_total");
-
-    GiftCard? card = null;
-    long plannedFromGiftCard = 0;
-    long remainingForStripe  = amountCents;
-
-    // 3) gift card logic
-    if (!string.IsNullOrWhiteSpace(giftCardCode))
+    public async Task<PaymentResponse> CreatePaymentAsync(
+        int orderId,
+        int businessId,
+        int callerEmployeeId,
+        string? giftCardCode,
+        long? giftCardAmountCents,
+        long? tipCents,
+        string baseUrl,
+        CancellationToken ct = default)
     {
-        card = await _giftCards.GetByCodeAsync(giftCardCode)
-               ?? throw new InvalidOperationException("invalid_gift_card");
+        var order = await _db.Orders
+            .Include(o => o.Lines)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(o => o.OrderId == orderId, ct)
+            ?? throw new InvalidOperationException("order_not_found");
 
-        if (card.BusinessId != businessId)
+        if (order.BusinessId != businessId)
             throw new InvalidOperationException("wrong_business");
 
-        if (card.Status != "Active")
-            throw new InvalidOperationException("blocked");
+        if (!string.Equals(order.Status, "Open", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("order_not_open");
 
-        if (card.ExpiresAt is not null && card.ExpiresAt <= DateTime.UtcNow)
-            throw new InvalidOperationException("expired");
+        var amountCents = CalculateOrderTotalCents(order);
+        if (amountCents <= 0)
+            throw new InvalidOperationException("invalid_order_total");
 
-        var maxFromCard = Math.Min(card.Balance, amountCents);
+        var tip = tipCents.GetValueOrDefault(0);
+        if (tip < 0) throw new InvalidOperationException("tip_invalid");
 
-        if (giftCardAmountCents.HasValue)
+        var totalCents = checked(amountCents + tip);
+
+        GiftCard? card = null;
+        long plannedFromGiftCard = 0;
+        long remainingForStripe = totalCents;
+
+        if (!string.IsNullOrWhiteSpace(giftCardCode))
         {
-            if (giftCardAmountCents.Value <= 0)
-                throw new ArgumentOutOfRangeException(nameof(giftCardAmountCents));
+            card = await _db.GiftCards
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Code == giftCardCode.Trim(), ct)
+                ?? throw new InvalidOperationException("invalid_gift_card");
 
-            plannedFromGiftCard = Math.Min(giftCardAmountCents.Value, maxFromCard);
+            EnsureActiveAndNotExpired(card);
+
+            if (card.BusinessId != businessId)
+                throw new InvalidOperationException("wrong_business");
+
+            var maxFromCard = Math.Min(card.Balance, totalCents);
+
+            plannedFromGiftCard = giftCardAmountCents.HasValue
+                ? Math.Min(Math.Max(0, giftCardAmountCents.Value), maxFromCard)
+                : maxFromCard;
+
+            remainingForStripe = totalCents - plannedFromGiftCard;
         }
-        else
+
+        var method =
+            plannedFromGiftCard == 0 ? "Stripe" :
+            remainingForStripe == 0 ? "GiftCard" :
+            "GiftCard+Stripe";
+
+        var payment = new Payment
         {
-            plannedFromGiftCard = maxFromCard;
+            BusinessId = businessId,
+            OrderId = orderId,
+            EmployeeId = callerEmployeeId,
+            AmountCents = amountCents,
+            TipCents = tip,
+            Currency = "EUR",
+            Method = method,
+            Status = "Pending",
+            IsOpen = true,
+            GiftCardId = plannedFromGiftCard > 0 ? card?.GiftCardId : null,
+            GiftCardPlannedCents = plannedFromGiftCard,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        try
+        {
+            _db.Payments.Add(payment);
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex) when (IsUniqueViolation(ex))
+        {
+            throw new InvalidOperationException("payment_already_pending_for_order");
         }
 
-        remainingForStripe = amountCents - plannedFromGiftCard;
+        if (remainingForStripe > 0)
+        {
+            var successUrl = $"{baseUrl}/payments/success?sessionId={{CHECKOUT_SESSION_ID}}";
+            var cancelUrl  = $"{baseUrl}/payments/cancel?sessionId={{CHECKOUT_SESSION_ID}}";
+
+            var session = _stripe.CreateCheckoutSession(
+                remainingForStripe,
+                payment.Currency,
+                successUrl,
+                cancelUrl,
+                payment.PaymentId
+            );
+
+            payment.StripeSessionId = session.Id;
+            await _db.SaveChangesAsync(ct);
+
+            return new PaymentResponse(
+                payment.PaymentId,
+                plannedFromGiftCard,
+                remainingForStripe,
+                session.Url,
+                session.Id
+            );
+        }
+
+        await FinalizePaymentSuccessAsync(payment.PaymentId, null, ct);
+        return new PaymentResponse(payment.PaymentId, plannedFromGiftCard, 0, null, null);
     }
 
-    string method;
-    if (plannedFromGiftCard == 0 && remainingForStripe > 0)
-        method = "Stripe";
-    else if (plannedFromGiftCard > 0 && remainingForStripe == 0)
-        method = "GiftCard";
-    else
-        method = "GiftCard+Stripe";
-
-    var p = new Payment
+    public async Task ConfirmStripeSuccessAsync(string sessionId, CancellationToken ct = default)
     {
-        AmountCents          = amountCents,
-        Currency             = currency,
-        CreatedAt            = DateTime.UtcNow,
-        Status               = "Pending",
-        Method               = method,
-        GiftCardId           = plannedFromGiftCard > 0 ? card?.GiftCardId : null,
-        BusinessId           = businessId,
-        OrderId              = (int)orderId, // 👈 ir čia cast
-        GiftCardPlannedCents = plannedFromGiftCard
-    };
+        var p = await _db.Payments
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.StripeSessionId == sessionId, ct);
 
-    _db.Payments.Add(p);
-    await _db.SaveChangesAsync();
-
-    string? stripeUrl = null;
-    string? stripeSessionId = null;
-
-    if (remainingForStripe > 0)
-    {
-        var successUrl = $"{baseUrl}/api/payments/success?sessionId={{CHECKOUT_SESSION_ID}}";
-        var cancelUrl  = $"{baseUrl}/api/payments/cancel?sessionId={{CHECKOUT_SESSION_ID}}";
-
-        var session = _stripe.CreateCheckoutSession(
-            remainingForStripe,
-            currency,
-            successUrl,
-            cancelUrl,
-            p.PaymentId
-        );
-
-        stripeUrl       = session.Url;
-        stripeSessionId = session.Id;
-
-        p.StripeSessionId = session.Id;
-        await _db.SaveChangesAsync();
+        if (p != null)
+            await FinalizePaymentSuccessAsync(p.PaymentId, sessionId, ct);
     }
-    else
-    {
-        await using var tx = await _db.Database.BeginTransactionAsync();
 
-        if (card is not null && plannedFromGiftCard > 0)
+    public async Task CancelStripeAsync(string sessionId, CancellationToken ct = default)
+    {
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+
+        var p = await _db.Payments.FirstOrDefaultAsync(x => x.StripeSessionId == sessionId, ct);
+        if (p == null || p.Status != "Pending")
         {
-            await _giftCards.RedeemAsync(card.GiftCardId, plannedFromGiftCard, businessId);
+            await tx.CommitAsync(ct);
+            return;
         }
 
-        p.Status      = "Success";
+        p.Status = "Cancelled";
+        p.IsOpen = false;
+
+        var order = await _db.Orders.FirstAsync(o => o.OrderId == p.OrderId, ct);
+        order.Status = "Open";
+
+        await _db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+    }
+
+    // ============================================================
+    // PAYMENT FINALIZATION
+    // ============================================================
+
+    private async Task FinalizePaymentSuccessAsync(
+        int paymentId,
+        string? stripeSessionId,
+        CancellationToken ct)
+    {
+        await using var tx = await _db.Database.BeginTransactionAsync(
+            System.Data.IsolationLevel.Serializable, ct);
+
+        var p = await _db.Payments.FirstAsync(x => x.PaymentId == paymentId, ct);
+
+        if (stripeSessionId != null && p.StripeSessionId != stripeSessionId)
+            throw new InvalidOperationException("stripe_session_mismatch");
+
+        if (p.Status == "Success")
+        {
+            await tx.CommitAsync(ct);
+            return;
+        }
+
+        if (p.GiftCardId.HasValue && p.GiftCardPlannedCents > 0 && p.GiftCardChargedCents == 0)
+        {
+            var card = await _db.GiftCards.FirstAsync(g => g.GiftCardId == p.GiftCardId, ct);
+            EnsureActiveAndNotExpired(card);
+
+            var charge = Math.Min(card.Balance, p.GiftCardPlannedCents);
+            card.Balance -= charge;
+            p.GiftCardChargedCents = charge;
+        }
+
+        p.Status = "Success";
+        p.IsOpen = false;
         p.CompletedAt = DateTime.UtcNow;
 
-        await _db.SaveChangesAsync();
-        await tx.CommitAsync();
+        var order = await _db.Orders.FirstAsync(o => o.OrderId == p.OrderId, ct);
+        order.Status = "Closed";
+
+        await _db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
     }
 
-    return new PaymentResponse(
-        p.PaymentId,
-        plannedFromGiftCard,
-        remainingForStripe,
-        stripeUrl,
-        stripeSessionId
-    );
-}
+    // ============================================================
+    // TOTAL CALCULATION (CORE FIX)
+    // ============================================================
 
-
-private static long CalculateOrderTotal(Order order)
+private static long CalculateOrderTotalCents(Order order)
 {
-    long totalCents = 0;
+    // Helpers
+    static long ToCents(decimal amount)
+        => (long)Math.Round(amount * 100m, MidpointRounding.AwayFromZero);
+
+    static decimal FromCents(long cents)
+        => cents / 100m;
+
+    static long ClampLong(long v, long min, long max)
+        => v < min ? min : (v > max ? max : v);
+
+    static long ApplyDiscountCents(long netCents, string discountSnapshot)
+    {
+        if (netCents <= 0) return 0;
+
+        var type = GetDiscountType(discountSnapshot);
+        var value = GetDiscountValue(discountSnapshot);
+
+        if (string.IsNullOrWhiteSpace(type) || value <= 0) return netCents;
+
+        if (type == "Percent")
+        {
+            // value = percent (e.g. 10 => 10%)
+            var pct = Math.Max(0m, value);
+            var discounted = (decimal)netCents * (1m - pct / 100m);
+            return ClampLong(ToCents(discounted / 100m), 0, netCents); // discounted is in cents, convert carefully
+        }
+
+        if (type == "Amount")
+        {
+            // value = money amount in major units (e.g. 5.00 => 5€)
+            var discCents = Math.Max(0L, ToCents(value));
+            return ClampLong(netCents - discCents, 0, netCents);
+        }
+
+        return netCents;
+    }
+
+    static long CalcTaxCents(long netCents, decimal taxRatePct)
+    {
+        if (netCents <= 0 || taxRatePct <= 0) return 0;
+        var tax = FromCents(netCents) * (taxRatePct / 100m);
+        return ToCents(tax);
+    }
+
+    // 1) Build valid lines: net (after line discounts), tax rate
+    var lines = new List<(long NetBeforeOrderCents, decimal TaxRatePct)>();
 
     foreach (var line in order.Lines)
     {
-        if (line.UnitPriceSnapshot <= 0)
-            throw new InvalidOperationException("missing_price_snapshot");
+        if (line.Qty <= 0 || line.UnitPriceSnapshot <= 0) continue;
 
-        // 1) suma eurais už eilutę
-        decimal lineTotalEur = line.UnitPriceSnapshot * line.Qty;
+        var gross = line.UnitPriceSnapshot * line.Qty;      // decimal money
+        var grossCents = ToCents(gross);
 
-        // 2) paverčiam į centus
-        long lineTotalCents = (long)Math.Round(
-            lineTotalEur * 100m,
-            MidpointRounding.AwayFromZero
-        );
+        // Apply line/unit discount snapshot (Percent or Amount)
+        var netCents = ApplyDiscountCents(grossCents, line.UnitDiscountSnapshot);
 
-        totalCents += lineTotalCents;
+        var taxRate = Math.Max(0m, line.TaxRateSnapshotPct);
+        if (netCents > 0)
+            lines.Add((netCents, taxRate));
     }
 
-    return totalCents;
+    if (lines.Count == 0) return 0;
+
+    var netSubtotalCents = lines.Sum(l => l.NetBeforeOrderCents);
+    if (netSubtotalCents <= 0) return 0;
+
+    // 2) Compute TOTAL order discount in cents (then allocate like Amount)
+    var orderType = GetDiscountType(order.OrderDiscountSnapshot);
+    var orderValue = GetDiscountValue(order.OrderDiscountSnapshot);
+
+    long orderDiscountTotalCents = 0;
+
+    if (orderValue > 0)
+    {
+        if (orderType == "Percent")
+        {
+            var pct = Math.Max(0m, orderValue);
+            // total discount = round(subtotal * pct)
+            var disc = FromCents(netSubtotalCents) * (pct / 100m);
+            orderDiscountTotalCents = ToCents(disc);
+        }
+        else if (orderType == "Amount")
+        {
+            orderDiscountTotalCents = Math.Max(0L, ToCents(orderValue));
+        }
+    }
+
+    orderDiscountTotalCents = ClampLong(orderDiscountTotalCents, 0, netSubtotalCents);
+
+    // 3) Allocate order discount across lines proportionally (exact cents)
+    var discountedNetCents = new long[lines.Count];
+    var discountShareCents = new long[lines.Count];
+
+    if (orderDiscountTotalCents > 0)
+    {
+        // Largest remainder method:
+        // share_i = floor(D * net_i / subtotal)
+        // distribute leftover cents to biggest remainders
+        var remainders = new (int idx, long rem)[lines.Count];
+
+        long allocated = 0;
+        for (int i = 0; i < lines.Count; i++)
+        {
+            long net = lines[i].NetBeforeOrderCents;
+
+            // raw = D * net
+            // share = raw / subtotal
+            // rem = raw % subtotal
+            long raw = checked(orderDiscountTotalCents * net);
+            long share = raw / netSubtotalCents;
+            long rem = raw % netSubtotalCents;
+
+            // never discount more than the line net
+            share = ClampLong(share, 0, net);
+
+            discountShareCents[i] = share;
+            remainders[i] = (i, rem);
+            allocated += share;
+        }
+
+        long leftover = orderDiscountTotalCents - allocated;
+        if (leftover > 0)
+        {
+            Array.Sort(remainders, (a, b) => b.rem.CompareTo(a.rem)); // desc by remainder
+
+            for (int k = 0; k < remainders.Length && leftover > 0; k++)
+            {
+                int i = remainders[k].idx;
+
+                // add 1 cent if line still has room
+                if (discountShareCents[i] < lines[i].NetBeforeOrderCents)
+                {
+                    discountShareCents[i] += 1;
+                    leftover -= 1;
+                }
+            }
+
+            // If still leftover (all lines hit zero), it effectively can't be applied — ignore.
+        }
+
+        for (int i = 0; i < lines.Count; i++)
+        {
+            discountedNetCents[i] = lines[i].NetBeforeOrderCents - discountShareCents[i];
+            if (discountedNetCents[i] < 0) discountedNetCents[i] = 0;
+        }
+    }
+    else
+    {
+        for (int i = 0; i < lines.Count; i++)
+            discountedNetCents[i] = lines[i].NetBeforeOrderCents;
+    }
+
+    // 4) Tax per line, totals
+    long finalNetCents = 0;
+    long taxTotalCents = 0;
+
+    for (int i = 0; i < lines.Count; i++)
+    {
+        finalNetCents += discountedNetCents[i];
+        taxTotalCents += CalcTaxCents(discountedNetCents[i], lines[i].TaxRatePct);
+    }
+
+    return finalNetCents + taxTotalCents;
 }
 
-        public async Task ConfirmStripeSuccessAsync(string sessionId)
+    // ============================================================
+    // HELPERS
+    // ============================================================
+
+    private static decimal Round2(decimal v)
+        => Math.Round(v, 2, MidpointRounding.AwayFromZero);
+
+    private static string? GetDiscountType(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        using var doc = JsonDocument.Parse(json);
+        return GetStringCI(doc.RootElement, "type")?.Trim();
+    }
+
+    private static decimal GetDiscountValue(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return 0;
+        using var doc = JsonDocument.Parse(json);
+        return GetDecimalCI(doc.RootElement, "value");
+    }
+
+    private static decimal ApplyDiscountFromSnapshotJson(decimal amount, string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return amount;
+
+        using var doc = JsonDocument.Parse(json);
+        var type = GetStringCI(doc.RootElement, "type");
+        var value = GetDecimalCI(doc.RootElement, "value");
+
+        return type switch
         {
-            await using var tx = await _db.Database.BeginTransactionAsync();
+            "Percent" => amount * (1m - value / 100m),
+            "Amount"  => amount - value,
+            _ => amount
+        };
+    }
 
-            var p = await _db.Payments
-                .Include(x => x.GiftCard)
-                .FirstOrDefaultAsync(x => x.StripeSessionId == sessionId);
+    private static string? GetStringCI(JsonElement root, string name)
+        => root.EnumerateObject()
+            .FirstOrDefault(p => p.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+            .Value.ToString();
 
-            if (p == null)
-                return;
+    private static decimal GetDecimalCI(JsonElement root, string name)
+        => decimal.TryParse(
+            GetStringCI(root, name),
+            NumberStyles.Any,
+            CultureInfo.InvariantCulture,
+            out var d) ? d : 0m;
 
-            if (p.Status == "Success")
-                return;
+    private static bool IsUniqueViolation(DbUpdateException ex)
+        => ex.InnerException is PostgresException pg
+           && pg.SqlState == PostgresErrorCodes.UniqueViolation;
 
-            if (p.GiftCardId is not null && p.GiftCardPlannedCents > 0)
-            {
-                try
-                {
-                    var (charged, _) = await _giftCards.RedeemAsync(
-                        p.GiftCardId.Value,
-                        p.GiftCardPlannedCents,
-                        p.BusinessId
-                    );
+    private static void EnsureActiveAndNotExpired(GiftCard c)
+    {
+        if (!string.Equals(c.Status, "Active", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("blocked");
 
-                    // saugom realiai nuskaitytą sumą
-                    p.GiftCardPlannedCents = charged;
-                }
-                catch
-                {
-                }
-            }
+        if (c.ExpiresAt != null && c.ExpiresAt <= DateTime.UtcNow)
+            throw new InvalidOperationException("expired");
+    }
+    public async Task RefundFullAsync(int paymentId, CancellationToken ct = default)
+    {
+        var p = await _db.Payments
+                    .FirstOrDefaultAsync(x => x.PaymentId == paymentId, ct)
+                ?? throw new InvalidOperationException("payment_not_found");
 
-            p.Status      = "Success";
-            p.CompletedAt = DateTime.UtcNow;
+        if (p.Status != "Success")
+            throw new InvalidOperationException("cannot_refund_non_success_payment");
 
-            await _db.SaveChangesAsync();
-            await tx.CommitAsync();
+        var totalCents = p.AmountCents + p.TipCents;
+
+        // Stripe refund
+        if (!string.IsNullOrEmpty(p.StripeSessionId))
+        {
+            var stripeAmount = Math.Max(0, totalCents - p.GiftCardChargedCents);
+            if (stripeAmount > 0)
+                await _stripe.RefundAsync(p.StripeSessionId, stripeAmount, ct);
         }
 
-        public async Task RefundFullAsync(int paymentId)
+        await using var tx = await _db.Database.BeginTransactionAsync(
+            System.Data.IsolationLevel.Serializable, ct);
+
+        // Refund gift card
+        if (p.GiftCardId.HasValue && p.GiftCardChargedCents > 0)
         {
-            // Pasiimam payment
-            var p = await _db.Payments
-                .FirstOrDefaultAsync(x => x.PaymentId == paymentId);
+            var card = await _db.GiftCards
+                .FirstAsync(g => g.GiftCardId == p.GiftCardId, ct);
 
-            if (p is null)
-                throw new InvalidOperationException("payment_not_found");
-
-            if (p.Status != "Success")
-                throw new InvalidOperationException("cannot_refund_non_success_payment");
-
-            var refundAmount = p.AmountCents;
-            if (refundAmount <= 0)
-                throw new InvalidOperationException("nothing_to_refund");
-
-            // 1) Pirma Stripe – kad jei čia nepavyks, DB neliesim
-            if (!string.IsNullOrEmpty(p.StripeSessionId))
-            {
-                await _stripe.RefundAsync(p.StripeSessionId, refundAmount);
-            }
-
-            // 2) DB tranzakcija: GiftCard + Payment status
-            await using var tx = await _db.Database.BeginTransactionAsync();
-
-            // GiftCard refund – jei buvo naudota
-            if (p.GiftCardId is not null && p.GiftCardPlannedCents > 0)
-            {
-                var ok = await _giftCards.TopUpAsync(p.GiftCardId.Value, p.GiftCardPlannedCents);
-                if (!ok)
-                    throw new InvalidOperationException("gift_card_refund_failed");
-            }
-
-            p.Status = "Refunded";
-            // p.RefundedAt = DateTime.UtcNow; // jei turi tokį lauką
-
-            await _db.SaveChangesAsync();
-            await tx.CommitAsync();
+            card.Balance += p.GiftCardChargedCents;
         }
 
-        public Task<List<Payment>> GetPaymentsForOrderAsync(int businessId, int orderId)
-        {
-            return _db.Payments
-                .Where(p => p.BusinessId == businessId && p.OrderId == orderId)
-                .OrderByDescending(p => p.CreatedAt)
-                .ToListAsync();
-        }
+        p.Status = "Refunded";
+        p.RefundedAt = DateTime.UtcNow;
+        p.IsOpen = false;
 
-        public Task<List<Payment>> GetPaymentsForBusinessAsync(int businessId)
-        {
-            return _db.Payments
-                .Where(p => p.BusinessId == businessId)
-                .OrderByDescending(p => p.CreatedAt)
-                .ToListAsync();
-        }
+        var order = await _db.Orders.FirstAsync(o => o.OrderId == p.OrderId, ct);
+        order.ApplyRefund();
+
+        
+        await _db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+    }
+    
+    public Task<List<Payment>> GetPaymentsForOrderAsync(int businessId, int orderId)
+    {
+        return _db.Payments
+            .AsNoTracking()
+            .Where(p => p.BusinessId == businessId && p.OrderId == orderId)
+            .OrderByDescending(p => p.CreatedAt)
+            .ToListAsync();
+    }
+    
+    public Task<List<Payment>> GetPaymentsForBusinessAsync(int businessId)
+    {
+        return _db.Payments
+            .AsNoTracking()
+            .Where(p => p.BusinessId == businessId)
+            .OrderByDescending(p => p.CreatedAt)
+            .ToListAsync();
     }
 }

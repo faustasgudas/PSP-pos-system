@@ -393,60 +393,59 @@ public class AppDbContext : DbContext
 
         
         mb.Entity<Payment>(e =>
-        {e.HasKey(x => x.PaymentId);
+        {
+            e.HasKey(x => x.PaymentId);
 
-   
-    e.Property(x => x.AmountCents)
-        .IsRequired();
+            e.Property(x => x.AmountCents).IsRequired();
+            e.Property(x => x.TipCents).HasDefaultValue(0);
 
-    e.Property(x => x.TipCents)
-        .HasDefaultValue(0);
+            e.Property(x => x.Currency).HasMaxLength(8).IsRequired();
+            e.Property(x => x.Method).HasMaxLength(16).IsRequired();
 
-    e.Property(x => x.GiftCardPlannedCents)
-        .IsRequired();
+            e.Property(x => x.Status).HasMaxLength(32).IsRequired();
 
+            e.Property(x => x.IsOpen)
+                .IsRequired()
+                .HasDefaultValue(true);
 
-    e.Property(x => x.Currency)
-        .HasMaxLength(8)
-        .IsRequired(); // e.g. "EUR", "USD"
+            e.Property(x => x.GiftCardPlannedCents)
+                .IsRequired()
+                .HasDefaultValue(0);
 
-    e.Property(x => x.Method)
-        .HasMaxLength(16)
-        .IsRequired(); 
+            e.Property(x => x.GiftCardChargedCents)
+                .IsRequired()
+                .HasDefaultValue(0);
 
-    e.Property(x => x.Status)
-        .HasMaxLength(32)
-        .IsRequired(); 
+            e.Property(x => x.StripeSessionId).HasMaxLength(128);
 
-    e.Property(x => x.StripeSessionId)
-        .HasMaxLength(128);
-    e.HasOne(p => p.Order)
-        .WithMany(o => o.Payments)
-        .HasForeignKey(p => p.OrderId)
-        .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(p => p.Order)
+                .WithMany(o => o.Payments)
+                .HasForeignKey(p => p.OrderId)
+                .OnDelete(DeleteBehavior.Restrict);
 
+            e.HasOne(p => p.Business)
+                .WithMany(b => b.Payments)
+                .HasForeignKey(p => p.BusinessId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-    e.HasOne(p => p.Business)
-        .WithMany(b => b.Payments)
-        .HasForeignKey(p => p.BusinessId)
-        .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(p => p.Employee)
+                .WithMany()
+                .HasForeignKey(p => p.EmployeeId)
+                .OnDelete(DeleteBehavior.SetNull);
 
+            e.HasOne(p => p.GiftCard)
+                .WithMany(g => g.Payments)
+                .HasForeignKey(p => p.GiftCardId)
+                .OnDelete(DeleteBehavior.SetNull);
 
-    
-    e.HasOne(p => p.Employee)
-        .WithMany()
-        .HasForeignKey(p => p.EmployeeId)
-        .OnDelete(DeleteBehavior.SetNull);
-        
+            // 👇 vienas atidarytas payment per order
+            e.HasIndex(x => new { x.BusinessId, x.OrderId })
+                .IsUnique()
+                .HasFilter("\"IsOpen\" = true");
 
-    
-    e.HasOne(p => p.GiftCard)
-        .WithMany(g => g.Payments)
-        .HasForeignKey(p => p.GiftCardId)
-        .OnDelete(DeleteBehavior.SetNull);
-        
-    e.HasIndex(x => new { x.BusinessId, x.OrderId, x.CreatedAt });
+            e.HasIndex(x => new { x.BusinessId, x.OrderId, x.CreatedAt });
         });
+
 
         // ==== StockItem (per CatalogItem) ====
         mb.Entity<StockItem>(e =>

@@ -1,0 +1,10 @@
+/*
+  Catering now reuses the Beauty UI shell styles via `content-box beauty-shell`.
+  Keep this file minimal so it doesn't override shared styling.
+*/
+
+.beauty-shell .action-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}

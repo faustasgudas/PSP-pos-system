@@ -1,0 +1,271 @@
+.reservations-container {
+    padding: 20px;
+}
+
+/* Action bar */
+.action-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.section-title {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    color: #023047;
+}
+
+/* Error box */
+.error-box {
+    background: rgba(220, 38, 38, 0.1);
+    border: 1px solid rgba(220, 38, 38, 0.3);
+    color: #b91c1c;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+/* Calendar */
+.calendar-wrapper {
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e5e7eb;
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.cal-nav-btn {
+    background: #8ecae6;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    color: #023047;
+}
+
+.cal-nav-btn:hover {
+    background: #58b4d1;
+}
+
+.calendar-title {
+    font-weight: 700;
+    font-size: 18px;
+    color: #023047;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+}
+
+.calendar-day {
+    padding: 12px 8px;
+    background: #f3f4f6;
+    border-radius: 8px;
+    text-align: center;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.15s ease;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.calendar-day:hover {
+    background: #e5e7eb;
+}
+
+.calendar-day.today {
+    border: 2px solid #219ebc;
+    font-weight: 700;
+}
+
+.calendar-day.selected {
+    background: #219ebc;
+    color: white;
+}
+
+.calendar-day.selected.today {
+    border-color: #023047;
+}
+
+.calendar-day .dot {
+    width: 6px;
+    height: 6px;
+    background: #16a34a;
+    border-radius: 50%;
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.calendar-day.selected .dot {
+    background: white;
+}
+
+/* Bookings section title */
+.sub-title {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.booking-count {
+    font-weight: 400;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+/* Loading and empty states */
+.loading-message,
+.no-bookings {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 24px;
+    text-align: center;
+    color: #6b7280;
+}
+
+/* Bookings table */
+.bookings-table-wrap {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.bookings-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.bookings-table thead th {
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6b7280;
+    background: #f9fafb;
+    padding: 12px 12px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.bookings-table tbody td {
+    padding: 12px 12px;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 14px;
+    color: #1f2937;
+    vertical-align: middle;
+}
+
+.bookings-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.bookings-table tbody tr:hover {
+    background: #f9fafb;
+}
+
+/* Table cells */
+.time-cell {
+    font-weight: 700;
+    color: #023047;
+    white-space: nowrap;
+}
+
+.client-cell {
+    font-weight: 600;
+}
+
+.service-cell {
+    color: #219ebc;
+    font-weight: 500;
+}
+
+.actions-cell {
+    display: flex;
+    gap: 6px;
+    flex-wrap: nowrap;
+}
+
+/* Status badges */
+.status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.status-booked {
+    background: rgba(33, 158, 188, 0.15);
+    color: #0e7490;
+}
+
+.status-completed {
+    background: rgba(22, 163, 74, 0.15);
+    color: #15803d;
+}
+
+.status-cancelled {
+    background: rgba(220, 38, 38, 0.15);
+    color: #b91c1c;
+}
+
+/* Small buttons */
+.btn-sm {
+    padding: 6px 10px;
+    font-size: 12px;
+}
+
+/* Muted text */
+.muted {
+    color: #9ca3af;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .bookings-table-wrap {
+        overflow-x: auto;
+    }
+    
+    .bookings-table {
+        min-width: 800px;
+    }
+}
+
+@media (max-width: 768px) {
+    .calendar-grid {
+        gap: 4px;
+    }
+    
+    .calendar-day {
+        padding: 8px 4px;
+        font-size: 12px;
+    }
+    
+    .action-bar {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+    }
+}

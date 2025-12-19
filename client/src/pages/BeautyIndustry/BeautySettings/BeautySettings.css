@@ -1,0 +1,134 @@
+/* =========================================================
+   Settings Page - Premium Beauty Salon Styling
+   ========================================================= */
+
+.settings-container {
+    padding: 24px;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+/* The main settings card */
+.settings-panel {
+    margin-top: 28px;
+    background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+    border-radius: 20px;
+    padding: 48px 56px;
+    box-shadow: 
+        0 4px 6px rgba(2, 48, 71, 0.04),
+        0 10px 24px rgba(2, 48, 71, 0.08),
+        0 0 0 1px rgba(2, 48, 71, 0.06);
+    border: 1px solid rgba(2, 48, 71, 0.08);
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Section title inside the card */
+.settings-card-title {
+    text-align: center;
+    margin-bottom: 40px;
+    font-size: 24px;
+    font-weight: 800;
+    color: #023047;
+    letter-spacing: -0.3px;
+}
+
+/* Subtitle for sections */
+.settings-section-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: rgba(2, 48, 71, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid rgba(2, 48, 71, 0.08);
+}
+
+/* Grid for form fields */
+.settings-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px 48px;
+    justify-content: center;
+    margin-bottom: 40px;
+}
+
+/* Each label + input pair */
+.settings-field {
+    display: flex;
+    flex-direction: column;
+    font-size: 15px;
+}
+
+.settings-field label {
+    margin-bottom: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(2, 48, 71, 0.7);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Inputs inherit premium styling from App.css .beauty-shell */
+.settings-field input,
+.settings-field select {
+    width: 100%;
+    font-size: 15px;
+}
+
+/* Full width field */
+.settings-field.full-width {
+    grid-column: 1 / -1;
+}
+
+/* Save button area */
+.settings-actions {
+    display: flex;
+    justify-content: center;
+    padding-top: 32px;
+    border-top: 1px solid rgba(2, 48, 71, 0.08);
+    margin-top: 16px;
+}
+
+.settings-actions .btn-primary {
+    padding: 14px 48px;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .settings-container {
+        padding: 16px;
+    }
+    
+    .settings-panel {
+        padding: 32px 24px;
+        border-radius: 16px;
+    }
+    
+    .settings-form-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .settings-field.full-width {
+        grid-column: 1;
+    }
+    
+    .settings-actions .btn-primary {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .settings-panel {
+        padding: 24px 20px;
+    }
+    
+    .settings-card-title {
+        font-size: 20px;
+    }
+}

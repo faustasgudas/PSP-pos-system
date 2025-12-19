@@ -1,55 +1,20 @@
-import { useEffect, useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
-import "./App.css";
+import { Routes, Route, Navigate } from "react-router-dom";
+import PaymentSuccess from "./pages/BeautyIndustry/BeautyPayments/PaymentSuccess";
+import PaymentCancel from "./pages/BeautyIndustry/BeautyPayments/PaymentCancel";
+import MainApp from "./MainApp";
 
-function App() {
-    const [count, setCount] = useState(0);
-    const [apiMessage, setApiMessage] = useState("Loading from API...");
-
-    useEffect(() => {
-        fetch("http://localhost:5269/api/hello")
-            .then(async (res) => {
-                if (!res.ok) throw new Error(`Status ${res.status}`);
-                const text = await res.text();   // 👈 read plain text, not JSON
-                setApiMessage(text);
-            })
-            .catch((err) => {
-                console.error("API error:", err);
-                setApiMessage("Error talking to API");
-            });
-    }, []);
-
+export default function App() {
     return (
-        <>
-            <div>
-                <a href="https://vite.dev" target="_blank">
-                    <img src={viteLogo} className="logo" alt="Vite logo" />
-                </a>
-                <a href="https://react.dev" target="_blank">
-                    <img src={reactLogo} className="logo react" alt="React logo" />
-                </a>
-            </div>
+        <Routes>
+            {/* Stripe return pages */}
+            <Route path="/payments/success" element={<PaymentSuccess />} />
+            <Route path="/payments/cancel" element={<PaymentCancel />} />
 
-            <h1>Vite + React + .NET API</h1>
+            {/* visa tavo aplikacija */}
+            <Route path="/*" element={<MainApp />} />
 
-            <div className="card">
-                <button onClick={() => setCount((count) => count + 1)}>
-                    count is {count}
-                </button>
-                <p>Edit <code>src/App.tsx</code> and save to test HMR</p>
-            </div>
-
-            <div className="card">
-                <h2>API test</h2>
-                <p>{apiMessage}</p>
-            </div>
-
-            <p className="read-the-docs">
-                If this shows "Hello from .NET API", your frontend ↔ backend connection works 🎉
-            </p>
-        </>
+            {/* fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
     );
 }
-
-export default App;

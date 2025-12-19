@@ -39,11 +39,7 @@ public class PaymentController : ControllerBase
     public async Task<ActionResult<PaymentResponse>> Create([FromBody] CreatePaymentRequest request)
     {
         var businessId = GetBusinessIdFromToken();
-
-        _logger.LogInformation(
-            "Creating payment for business {BusinessId}, order {OrderId}, currency {Currency}, giftCard: {GiftCardCode}",
-            businessId, request.OrderId, request.Currency, request.GiftCardCode
-        );
+        var callerEmployeeId = GetEmployeeIdFromToken();
 
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
@@ -52,66 +48,31 @@ public class PaymentController : ControllerBase
         {
             var baseUrl = $"{Request.Scheme}://{Request.Host}";
 
-            // 🚫 NEBESIUNČIAM amount iš kliento – servisas skaičiuoja iš Order
+            var frontendBaseUrl = "http://localhost:5173"; // dev
+// arba paimk iš config, žr. apačioj
+
             var result = await _payments.CreatePaymentAsync(
                 orderId: request.OrderId,
-                currency: request.Currency,
                 businessId: businessId,
+                callerEmployeeId: callerEmployeeId,
                 giftCardCode: request.GiftCardCode,
                 giftCardAmountCents: request.GiftCardAmountCents,
-                baseUrl: baseUrl
+                tipCents: request.TipCents,
+                baseUrl: frontendBaseUrl
             );
+
 
             return Ok(result);
         }
-        catch (ArgumentOutOfRangeException ex)
-        {
-            // pvz. giftCardAmountCents <= 0
-            _logger.LogWarning(ex, "Invalid argument when creating payment");
-            return BadRequest(new ApiErrorResponse("Invalid payment data", ex.Message));
-        }
         catch (InvalidOperationException ex)
         {
-            // pvz. invalid_gift_card / wrong_business / blocked / expired / order_not_found / invalid_order_total
-            _logger.LogWarning(ex, "Business rule violation when creating payment");
             return BadRequest(new ApiErrorResponse("Payment failed", ex.Message));
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unexpected error when creating payment");
-            return BadRequest(new ApiErrorResponse("Unexpected error while creating payment", ex.Message));
-        }
     }
 
-    /// <summary>
-    /// Stripe success callback (/api/payments/success?sessionId=...).
-    /// </summary>
-    [AllowAnonymous]
-    [HttpGet("success")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> Success([FromQuery] string sessionId)
-    {
-        _logger.LogInformation("Stripe payment success callback. SessionId: {SessionId}", sessionId);
 
-        await _payments.ConfirmStripeSuccessAsync(sessionId);
+   
 
-        // MVP: tiesiog text. Vėliau gali redirect'int į frontend.
-        return Ok("Payment successful.");
-    }
-
-    /// <summary>
-    /// Stripe cancel callback (/api/payments/cancel?sessionId=...).
-    /// </summary>
-    [AllowAnonymous]
-    [HttpGet("cancel")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    public IActionResult Cancel([FromQuery] string sessionId)
-    {
-        _logger.LogInformation("Stripe payment cancelled. SessionId: {SessionId}", sessionId);
-
-        // čia galėtum atnaujinti Payment.Status į "Cancelled", jei norėsi
-        return Ok("Payment cancelled.");
-    }
 
     /// <summary>
     /// Full refund (MVP). Galėtų būti tik Owner/Manager – jei nori, pridėk [Authorize(Roles="Owner,Manager")].
@@ -154,5 +115,13 @@ public class PaymentController : ControllerBase
         var list = await _payments.GetPaymentsForOrderAsync(businessId, orderId);
         return Ok(list);
     }
+    
+    private int GetEmployeeIdFromToken()
+    {
+        var claim = User.FindFirst("employeeId")
+                    ?? throw new InvalidOperationException("Missing employeeId claim");
+        return int.Parse(claim.Value);
+    }
+
 }
     
