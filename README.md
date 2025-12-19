@@ -1,203 +1,200 @@
-POS System (Beauty & Catering)
+# POS System (Beauty & Catering)
 
-This project is a Point of Sale (POS) system designed to support two business types:
+A multi-tenant Point of Sale (POS) system built for two business types:
 
-Beauty (services, reservations)
+- **Beauty**
+- **Catering**
 
-Catering (products, orders, payments)
+All tenants share a single **PostgreSQL** database, with strict data isolation by **Business/Tenant context** (every entity is scoped by `BusinessId`).
 
-The system is built as a multi-tenant application where all businesses share a single PostgreSQL database, with data isolated by business (tenant) context.
+---
 
-Tech Stack
+## Tech Stack
 
-Backend
+### Backend
+- **C# / .NET**
+- **REST API**
 
-C# / .NET
+### Frontend
+- **React**
+- **TypeScript**
+- **CSS**
 
-REST API
+### Database
+- **PostgreSQL** (Docker)
 
-Frontend
+### Payments
+- **Stripe** (payments + refunds)
+- **Gift Cards** (standalone or combined with Stripe)
 
-React
+---
 
-TypeScript
+## Core Features
 
-CSS
+### 1) Account System & Roles
 
-Database
+Authentication and authorization uses **role-based access control**.
 
-PostgreSQL (running in Docker)
+**Roles**
+- Business Owner
+- Manager
+- Staff
 
-Payments
+> Note: **Super Admin** is not implemented.
 
-Stripe (payments and refunds)
+**Business Creation**
+- A **Business Owner** and their **Business** are created via the backend (initialization is server-side).
 
-Gift Cards (can be combined with Stripe)
+**Employee Management**
+- Add employees with:
+  - user accounts
+  - assigned roles (Owner / Manager / Staff)
 
-Core Features
-1. Account System & Roles
+---
 
-Authentication and authorization are implemented with role-based access control.
+### 2) Catalog: Products & Services
 
-Available roles:
+**Products**
+- Full CRUD:
+  - create / edit / delete
+- Assign:
+  - name
+  - price
+  - inventory tracking (quantity)
+  - tax class
 
-Business Owner
+> Pricing, tax, and discount calculations are implemented to ensure accurate totals.
 
-Manager
+---
 
-Staff
-
-Note: Super Admin is not implemented.
-
-Business Creation
-
-A Business Owner and their business are created via the backend (business initialization is handled server-side).
-
-Employee Management
-
-Add new employees with:
-
-user accounts
-
-assigned roles (Owner / Manager / Staff)
-
-2. Catalog: Products & Services
-Products
-
-The system supports full CRUD operations for products:
-
-Create / edit / delete products
-
-Assign:
-
-name
-
-price
-
-inventory tracking (quantity)
-
-tax class
-
-Pricing, tax, and discount values are handled in a way that ensures accurate order calculations.
-
-3. Discounts
+### 3) Discounts
 
 Discounts can be created as:
+- **Order-level** (applies to the entire order)
+- **Product-level** (applies to selected products)
 
-Order-level discounts (applied to the entire order)
+Rules:
+- Discounts are calculated **before tax**
+- For product-level discounts, applicable products must be explicitly selected
 
-Product-level discounts (applied to selected products)
+---
 
-Discount rules
-
-Discounts are calculated before tax.
-
-When creating a product-level discount, applicable products must be explicitly selected.
-
-4. Gift Cards
+### 4) Gift Cards
 
 Gift cards act as stored-value (top-up) cards:
+- create gift cards
+- top-up balance
+- use as payment:
+  - gift card only
+  - gift card + Stripe (partial payment)
 
-Gift cards can be created
+---
 
-Gift cards can be topped up with additional balance
+### 5) Reservations (Beauty)
 
-Can be used as a payment method:
+Reservations support:
+- selecting a specific date
+- selecting a specific time
 
-alone
+Primarily intended for **Beauty** businesses.
 
-or combined with Stripe for partial payments
+---
 
-5. Reservations
+### 6) Orders & Order Flow
 
-The system supports reservations by:
+**Order Management**
+- Full lifecycle management (where applicable):
+  - create / update / delete
+- Add order lines consisting of:
+  - services
+  - catalog items (products)
 
-selecting a specific date
+**Order Statuses**
+- `Open`
+- `Closed`
+- `Cancelled`
+- `Refunded`
 
-selecting a specific time
+**Split / Move Order Lines (Bill Splitting)**
+Orders support splitting by moving selected lines (or partial quantities) to another open order:
+- Move one or more lines to a target order
+- Move partial quantities (clone line into target, reduce qty in source)
+- Validates inputs and prevents invalid operations (duplicates, exceeding available qty, etc.)
 
-This functionality is primarily intended for Beauty businesses.
+---
 
-6. Orders & Order Flow
-Order Management
+### 7) Payments & Refunds
 
-Orders support full lifecycle management and editing:
+**Payments**
+- Processed via **Stripe**
+- Combined payments supported:
+  - Stripe + Gift Card
 
-Create / update / delete (where applicable)
+**Refunds**
+- Full refund functionality implemented
+- Refunded orders are reflected:
+  - in **Stripe**
+  - in system state (payment status + order status)
+- Inventory is restored via **stock movements** when refunding (products only)
 
-Add order lines consisting of:
+---
 
-services
+### 8) Dashboard
 
-catalog items (products)
+Dashboard displays:
+- core business information
+- high-level operational data
 
-Order Statuses
+---
 
-An order can be in one of the following states:
+## Multi-Tenant Architecture
 
-open
+- Single shared PostgreSQL database
+- Data isolation by **Business / Tenant** context
+- Every business entity is scoped by a **Business identifier**
 
-closed
+---
 
-cancelled
-
-refunded
-
-7. Payments & Refunds
-Payments
-
-Payments are processed via Stripe
-
-Combined payments are supported:
-
-Stripe + Gift Card
-
-Refunds
-
-Refund functionality is implemented
-
-Refunded orders are reflected both in Stripe and within the system state
-
-8. Dashboard
-
-The system provides a dashboard displaying:
-
-core business information
-
-high-level operational data
 # Reasons for Deviating from the Original Design
 
-### 1. Gift cards were not defined
+### 1) Gift cards were not defined
+The original design document did not specify a **GiftCard entity** or describe how gift cards should be stored/audited. Without a clear data model and business rules, gift card behavior would be ambiguous.
 
-The original design document did not specify a **GiftCard entity** or describe how gift cards should be stored, audited. Due to the lack of a clear data model and business rules, implementing gift cards would be ambiguous and unreliable.
+### 2) Missing auditability and snapshots
+The design did not account for **immutable snapshots** of prices, taxes, or discounts. Real POS systems require historical accuracy, so values must be preserved as they were at transaction time.
 
-### 2. Missing auditability and snapshots
-
-The design did not account for **immutable snapshots** of prices, taxes, or discounts. In real-world POS systems, historical accuracy is critical, and values must be preserved as they were at the time of transaction.
-
-### 3. Employee entity created a bottleneck
-
+### 3) Employee entity created a bottleneck
 The original model over-centralized business logic around the **Employee** entity, which reduced flexibility for order and reservation management.
 
-### Because we used different data model we did not use their yamal.
+### 4) YAML contract not used due to different data model
+Because the implemented data model diverged significantly, the original YAML was not used directly.
 
-## Reasons for Deviating from our YAMAL:
+---
 
-Our YAML defines order modification via a single PATCH /orders/{id} endpoint, we split this into explicit endpoints for adding/updating/removing lines because each operation has critical side-effects (inventory movements, tax/discount snapshots) that must be validated deterministically. We also implemented a dedicated “move order lines” endpoint to support POS-style bill splitting, which is not defined in the YAML contract.
+## Reasons for Deviating from our YAML
 
+Our YAML defined order modification via a single `PATCH /orders/{id}` endpoint.
 
+We split this into explicit endpoints for:
+- adding lines
+- updating lines
+- removing lines
 
-#  Score for the design document: 5.5 / 10
+Because each operation has critical side-effects:
+- inventory movements
+- tax/discount snapshots
+- deterministic validations
 
-##  Why:
+We also implemented a dedicated **move order lines** endpoint to support POS-style bill splitting, which was not defined in the YAML contract.
 
--  Data model exists, but not deep enough (missing cardinalities, snapshot/audit rules, delete vs archive).
+---
 
--  No package diagram → architecture/module boundaries unclear (harder to map to code structure).
+# Score for the Design Document: **5.5 / 10**
 
--  No wireframes.
+## Why
+- Data model exists, but not deep enough (missing cardinalities, snapshot/audit rules, delete vs archive)
+- No package diagram → architecture/module boundaries unclear
+- No wireframes
+- Endpoint behavior is underwritten → lacks error cases
 
--  Endpoint behavior is underwritten → lacks error cases.
-
-
-Overall: reads like a high-level overview, not a “buildable spec.”
+Overall: it reads like a high-level overview, not a buildable spec.
