@@ -1,4 +1,170 @@
+POS System (Beauty & Catering)
 
+This project is a Point of Sale (POS) system designed to support two business types:
+
+Beauty (services, reservations)
+
+Catering (products, orders, payments)
+
+The system is built as a multi-tenant application where all businesses share a single PostgreSQL database, with data isolated by business (tenant) context.
+
+Tech Stack
+
+Backend
+
+C# / .NET
+
+REST API
+
+Frontend
+
+React
+
+TypeScript
+
+CSS
+
+Database
+
+PostgreSQL (running in Docker)
+
+Payments
+
+Stripe (payments and refunds)
+
+Gift Cards (can be combined with Stripe)
+
+Core Features
+1. Account System & Roles
+
+Authentication and authorization are implemented with role-based access control.
+
+Available roles:
+
+Business Owner
+
+Manager
+
+Staff
+
+Note: Super Admin is not implemented.
+
+Business Creation
+
+A Business Owner and their business are created via the backend (business initialization is handled server-side).
+
+Employee Management
+
+Add new employees with:
+
+user accounts
+
+assigned roles (Owner / Manager / Staff)
+
+2. Catalog: Products & Services
+Products
+
+The system supports full CRUD operations for products:
+
+Create / edit / delete products
+
+Assign:
+
+name
+
+price
+
+inventory tracking (quantity)
+
+tax class
+
+Pricing, tax, and discount values are handled in a way that ensures accurate order calculations.
+
+3. Discounts
+
+Discounts can be created as:
+
+Order-level discounts (applied to the entire order)
+
+Product-level discounts (applied to selected products)
+
+Discount rules
+
+Discounts are calculated before tax.
+
+When creating a product-level discount, applicable products must be explicitly selected.
+
+4. Gift Cards
+
+Gift cards act as stored-value (top-up) cards:
+
+Gift cards can be created
+
+Gift cards can be topped up with additional balance
+
+Can be used as a payment method:
+
+alone
+
+or combined with Stripe for partial payments
+
+5. Reservations
+
+The system supports reservations by:
+
+selecting a specific date
+
+selecting a specific time
+
+This functionality is primarily intended for Beauty businesses.
+
+6. Orders & Order Flow
+Order Management
+
+Orders support full lifecycle management and editing:
+
+Create / update / delete (where applicable)
+
+Add order lines consisting of:
+
+services
+
+catalog items (products)
+
+Order Statuses
+
+An order can be in one of the following states:
+
+open
+
+closed
+
+cancelled
+
+refunded
+
+7. Payments & Refunds
+Payments
+
+Payments are processed via Stripe
+
+Combined payments are supported:
+
+Stripe + Gift Card
+
+Refunds
+
+Refund functionality is implemented
+
+Refunded orders are reflected both in Stripe and within the system state
+
+8. Dashboard
+
+The system provides a dashboard displaying:
+
+core business information
+
+high-level operational data
 # Reasons for Deviating from the Original Design
 
 ### 1. Gift cards were not defined
