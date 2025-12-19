@@ -248,38 +248,53 @@ export default function BeautyServices() {
                     <div className="modal">
                         <h3>Add Service</h3>
 
-                        <input
-                            placeholder="Service name"
-                            value={name}
-                            onChange={e => setName(e.target.value)}
-                        />
+                        <div className="modal-field">
+                            <label>Service name</label>
+                            <input
+                                placeholder="e.g. Haircut"
+                                value={name}
+                                onChange={e => setName(e.target.value)}
+                            />
+                        </div>
 
-                        <input
-                            placeholder="Code (optional)"
-                            value={code}
-                            onChange={(e) => setCode(e.target.value)}
-                        />
+                        <div className="modal-field">
+                            <label>Code (optional)</label>
+                            <input
+                                placeholder="e.g. HAIRCUT"
+                                value={code}
+                                onChange={(e) => setCode(e.target.value)}
+                            />
+                        </div>
 
-                        <input
-                            placeholder="Price"
-                            type="number"
-                            inputMode="decimal"
-                            value={price}
-                            onChange={e => setPrice(e.target.value)}
-                        />
+                        <div className="modal-field">
+                            <label>Price</label>
+                            <input
+                                type="number"
+                                inputMode="decimal"
+                                placeholder="e.g. 25.00"
+                                value={price}
+                                onChange={e => setPrice(e.target.value)}
+                            />
+                        </div>
 
-                        <input
-                            placeholder="Tax class (e.g. STANDARD)"
-                            value={taxClass}
-                            onChange={(e) => setTaxClass(e.target.value)}
-                        />
+                        <div className="modal-field">
+                            <label>Tax class</label>
+                            <input
+                                placeholder="e.g. STANDARD"
+                                value={taxClass}
+                                onChange={(e) => setTaxClass(e.target.value)}
+                            />
+                        </div>
 
-                        <input
-                            placeholder="Default duration (min)"
-                            type="number"
-                            value={durationMin}
-                            onChange={(e) => setDurationMin(e.target.value)}
-                        />
+                        <div className="modal-field">
+                            <label>Default duration (min)</label>
+                            <input
+                                type="number"
+                                placeholder="e.g. 30"
+                                value={durationMin}
+                                onChange={(e) => setDurationMin(e.target.value)}
+                            />
+                        </div>
 
                         <div className="modal-actions">
                             <button className="btn" onClick={() => setShowAddModal(false)}>

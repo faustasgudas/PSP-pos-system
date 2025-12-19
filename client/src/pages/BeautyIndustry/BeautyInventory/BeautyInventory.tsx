@@ -522,18 +522,6 @@ export default function BeautyInventory() {
                                 />
                             </div>
 
-                            <div className="modal-field">
-                                <label style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={createTrackStock}
-                                        onChange={(e) => setCreateTrackStock(e.target.checked)}
-                                        disabled={saving}
-                                    />
-                                    Track stock for this product
-                                </label>
-                            </div>
-
                             {createTrackStock && (
                                 <>
                                     <div className="modal-field">
