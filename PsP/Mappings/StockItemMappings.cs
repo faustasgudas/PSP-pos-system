@@ -22,8 +22,7 @@ public static class StockItemMappings
         AverageUnitCost  = s.AverageUnitCost
     };
 
-    // Request -> Entity
-    // Note: StockItem entity (per your model) does NOT include BusinessId — scoping is via CatalogItem.
+ 
     public static StockItem ToNewEntity(this CreateStockItemRequest req)
     {
         if (string.IsNullOrWhiteSpace(req.Unit)) throw new ArgumentException("Unit required");
@@ -42,7 +41,7 @@ public static class StockItemMappings
     {
         if (!string.IsNullOrWhiteSpace(req.Unit))
             s.Unit = NormalizeUnit(req.Unit);
-        // Quantities/cost move only via StockMovements
+       
     }
 
     private static string NormalizeUnit(string unit)
@@ -51,6 +50,6 @@ public static class StockItemMappings
         return u.Equals("pcs", StringComparison.OrdinalIgnoreCase) ? "pcs" :
             u.Equals("ml",  StringComparison.OrdinalIgnoreCase) ? "ml"  :
             u.Equals("g",   StringComparison.OrdinalIgnoreCase) ? "g"   :
-            u; // allow custom but normalized
+            u; 
     }
 }

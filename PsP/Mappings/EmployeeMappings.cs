@@ -5,7 +5,7 @@ namespace PsP.Mappings;
 
 public static class EmployeeMappings
 {
-       // Entity -> Responses
+       
        public static EmployeeSummaryResponse ToSummaryResponse(this Employee e) => new()
        {
            EmployeeId = e.EmployeeId,
@@ -17,7 +17,7 @@ public static class EmployeeMappings
        };
 
     
-    // Request -> Entity
+   
     public static Employee ToNewEntity(this CreateEmployeeRequest req, int businessId)
     {
         if (string.IsNullOrWhiteSpace(req.Name))
@@ -43,7 +43,7 @@ public static class EmployeeMappings
         };
     }
 
-    // Apply partial update
+   
     public static void ApplyUpdate(this UpdateEmployeeRequest req, Employee e)
     {
         if (!string.IsNullOrWhiteSpace(req.Name))
@@ -62,7 +62,7 @@ public static class EmployeeMappings
         return r.Equals("owner", StringComparison.OrdinalIgnoreCase)   ? "Owner"   :
                r.Equals("manager", StringComparison.OrdinalIgnoreCase) ? "Manager" :
                r.Equals("staff", StringComparison.OrdinalIgnoreCase)   ? "Staff"   :
-               r; // leave as-is, DB/validation layer can reject unknowns
+               r; 
     }
 
     private static string NormalizeEmployeeStatus(string status)

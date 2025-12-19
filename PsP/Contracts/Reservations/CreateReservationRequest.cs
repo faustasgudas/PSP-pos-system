@@ -7,5 +7,5 @@ public class CreateReservationRequest
     public DateTime AppointmentStart { get; set; }
   
     public string? Notes { get; set; }
-    public string? TableOrArea { get; set; }       // optional for café
+    public string? TableOrArea { get; set; }      
 }

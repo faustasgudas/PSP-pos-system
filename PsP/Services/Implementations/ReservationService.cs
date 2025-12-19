@@ -13,9 +13,7 @@ public class ReservationService : IReservationService
 
     public ReservationService(AppDbContext db) => _db = db;
 
-    // -----------------------------
-    // Security / lookups
-    // -----------------------------
+   
     private async Task<Employee> GetCallerAsync(int businessId, int callerEmployeeId, CancellationToken ct)
     {
         var caller = await _db.Employees
@@ -96,7 +94,7 @@ public class ReservationService : IReservationService
             throw new InvalidOperationException("reservation_not_cancellable");
     }
 
-    // Staff can only act on their own reservation; managers/owners can act on any.
+  
     private static void EnsureCanTouchReservation(Employee caller, Reservation r)
     {
         if (IsOwnerOrManager(caller)) return;
@@ -105,20 +103,20 @@ public class ReservationService : IReservationService
             throw new InvalidOperationException("forbidden");
     }
 
-    // Staff can only create for themselves; managers/owners can create for anyone.
+  
     private static int ResolveAssignedEmployeeId(Employee caller, CreateReservationRequest req)
     {
         if (IsOwnerOrManager(caller))
             return req.EmployeeId ?? caller.EmployeeId;
 
-        // staff
+      
         if (req.EmployeeId.HasValue && req.EmployeeId.Value != caller.EmployeeId)
             throw new InvalidOperationException("forbidden");
 
         return caller.EmployeeId;
     }
 
-    // Staff cannot reassign reservation to another employee.
+   
     private static void EnsureCanChangeEmployee(Employee caller, int currentEmployeeId, int newEmployeeId)
     {
         if (IsOwnerOrManager(caller)) return;
@@ -127,9 +125,7 @@ public class ReservationService : IReservationService
             throw new InvalidOperationException("forbidden");
     }
 
-    // -----------------------------
-    // Public API
-    // -----------------------------
+    
     public async Task<IEnumerable<ReservationSummaryResponse>> ListAsync(
         int businessId,
         int callerEmployeeId,
@@ -144,7 +140,7 @@ public class ReservationService : IReservationService
 
         var q = _db.Reservations.AsNoTracking().Where(r => r.BusinessId == businessId);
 
-        // staff: only theirs
+        
         if (!IsOwnerOrManager(caller))
             q = q.Where(r => r.EmployeeId == caller.EmployeeId);
 
@@ -157,7 +153,7 @@ public class ReservationService : IReservationService
         if (dateTo.HasValue)
             q = q.Where(r => r.AppointmentStart <= dateTo.Value);
 
-        // these filters are most useful for managers/owners; staff will already be scoped
+        
         if (employeeId.HasValue)
             q = q.Where(r => r.EmployeeId == employeeId.Value);
 
@@ -241,27 +237,27 @@ public class ReservationService : IReservationService
         EnsureCanTouchReservation(caller, reservation);
         EnsureStatusModifiable(reservation.Status);
 
-        // Employee reassignment rules
+       
         var effectiveEmployeeId = request.EmployeeId ?? reservation.EmployeeId;
         EnsureCanChangeEmployee(caller, reservation.EmployeeId, effectiveEmployeeId);
 
-        // validate employee if it’s changing (or manager sets it)
+        
         if (effectiveEmployeeId != reservation.EmployeeId)
             _ = await GetEmployeeAsync(businessId, effectiveEmployeeId, ct);
 
-        // Catalog item rules
+        
         var effectiveCatalogItemId = request.CatalogItemId ?? reservation.CatalogItemId;
         var effectiveCatalog = await GetCatalogItemAsync(businessId, effectiveCatalogItemId, ct);
         EnsureServiceCatalogItem(effectiveCatalog);
 
-        // Start
+    
         var newStart = request.AppointmentStart ?? reservation.AppointmentStart;
         EnsureStartValid(newStart);
 
-        // Duration ALWAYS from catalog (after update)
+        
         var newDuration = ResolveDurationFromCatalog(effectiveCatalog);
 
-        // Apply fields
+        
         reservation.AppointmentStart = newStart;
         reservation.PlannedDurationMin = newDuration;
         reservation.EmployeeId = effectiveEmployeeId;

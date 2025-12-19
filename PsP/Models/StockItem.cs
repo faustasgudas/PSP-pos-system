@@ -7,11 +7,11 @@ public class StockItem
     
     public int CatalogItemId { get; set; }
 
-    public string Unit { get; set; } = "pcs";  // "pcs" / "ml" / "g"
+    public string Unit { get; set; } = "pcs";  
     public decimal QtyOnHand { get; set; }
     public decimal AverageUnitCost { get; set; }
 
-    // Nav
+    
     public CatalogItem? CatalogItem { get; set; }
     public ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();
 

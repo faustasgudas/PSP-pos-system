@@ -14,21 +14,21 @@ public class DiscountsServiceTests
         await using var db = TestHelpers.NewContext();
         var (biz, _) = TestHelpers.SeedBusinessAndEmployee(db);
 
-        // older
+     
         db.Discounts.Add(new Discount {
             BusinessId = biz.BusinessId, Code = "ORD10-OLD",
             Type = "Percent", Scope = "Order", Value = 10m,
             StartsAt = DateTime.UtcNow.AddDays(-10), EndsAt = DateTime.UtcNow.AddDays( -1 ),
             Status = "Active"
         });
-        // active but older start
+       
         db.Discounts.Add(new Discount {
             BusinessId = biz.BusinessId, Code = "ORD5",
             Type = "Amount", Scope = "Order", Value = 5m,
             StartsAt = DateTime.UtcNow.AddDays(-5), EndsAt = DateTime.UtcNow.AddDays(  5 ),
             Status = "Active"
         });
-        // active with newer start (should win)
+       
         db.Discounts.Add(new Discount {
             BusinessId = biz.BusinessId, Code = "ORD7-NEW",
             Type = "Amount", Scope = "Order", Value = 7m,
@@ -92,7 +92,7 @@ public class DiscountsServiceTests
             Type = "Percent", Scope = "Line", Value = 10m,
             StartsAt = DateTime.UtcNow.AddDays(-1), EndsAt = DateTime.UtcNow.AddDays(1),
             Status = "Active",
-            Eligibilities = new List<DiscountEligibility>() // empty -> not eligible
+            Eligibilities = new List<DiscountEligibility>() 
         };
         db.Discounts.Add(d);
         await db.SaveChangesAsync();
@@ -127,7 +127,7 @@ public class DiscountsServiceTests
     [Fact]
     public void Snapshot_Writers_And_TryParse_RoundTrip()
     {
-        // minimal fake discount to serialize
+        
         var d = new Discount {
             DiscountId = 42,
             Code = "LINE25",
@@ -138,7 +138,7 @@ public class DiscountsServiceTests
             EndsAt   = DateTime.UtcNow.AddDays( 1 ),
             Status = "Active",
         };
-        var svc = NewSvc(TestHelpers.NewContext()); // context not used here
+        var svc = NewSvc(TestHelpers.NewContext()); 
 
         var json = svc.MakeLineDiscountSnapshot(d, catalogItemId: 123);
         Assert.False(string.IsNullOrWhiteSpace(json));

@@ -14,8 +14,8 @@ public class OrderServiceTests2
     {
         var db = TestDb.NewInMemory();
         var discounts = new DiscountsService(db);
-        var stocks = new StockMovementService(db);// real discounts service
-        var orders = new OrdersService(db, discounts,stocks); // real orders service (matches prod logic)
+        var stocks = new StockMovementService(db);
+        var orders = new OrdersService(db, discounts,stocks); 
         return (db, orders,discounts);
     }
 
@@ -26,12 +26,12 @@ public class OrderServiceTests2
         var (biz, emp) = Seed.BizAndStaff(db);
         var other = Seed.AddEmployee(db, biz.BusinessId, "Staff", "E2");
 
-        // mine (Open & Closed)
+       
         db.Orders.AddRange(
             new Order { BusinessId = biz.BusinessId, EmployeeId = emp.EmployeeId, Status="Open",    CreatedAt=DateTime.UtcNow.AddMinutes(-1) },
             new Order { BusinessId = biz.BusinessId, EmployeeId = emp.EmployeeId, Status="Closed",  CreatedAt=DateTime.UtcNow.AddMinutes(-2) }
         );
-        // not mine
+        
         db.Orders.Add(new Order { BusinessId = biz.BusinessId, EmployeeId = other.EmployeeId, Status="Open", CreatedAt=DateTime.UtcNow.AddMinutes(-3) });
         await db.SaveChangesAsync();
 
@@ -44,7 +44,7 @@ public class OrderServiceTests2
     public async Task ListAll_Requires_ManagerOrOwner()
     {
         var (db, svc,_) = Boot();
-        var (biz, emp) = Seed.BizAndStaff(db); // Staff
+        var (biz, emp) = Seed.BizAndStaff(db); 
 
         await FluentActions.Invoking(() => svc.ListAllAsync(biz.BusinessId, emp.EmployeeId, null, null, null))
             .Should().ThrowAsync<InvalidOperationException>()
@@ -74,14 +74,14 @@ public class OrderServiceTests2
     {
         var (db, svc,_) = Boot();
         var (biz, emp) = Seed.BizAndStaff(db);
-        // add an order-level discount (active newest)
+       
         Seed.OrderDiscount(db, biz.BusinessId, 7.5m);
 
         var dto = await svc.CreateOrderAsync(biz.BusinessId, emp.EmployeeId,
             new CreateOrderRequest { EmployeeId = emp.EmployeeId, TableOrArea = "T1" });
 
         dto.EmployeeId.Should().Be(emp.EmployeeId);
-        dto.OrderDiscountSnapshot.Should().NotBeNullOrEmpty(); // snapshot present
+        dto.OrderDiscountSnapshot.Should().NotBeNullOrEmpty(); 
     }
 
     [Fact]
@@ -92,13 +92,13 @@ public class OrderServiceTests2
         var other = Seed.AddEmployee(db, biz.BusinessId, "Staff", "E2");
         var mgr = Seed.AddEmployee(db, biz.BusinessId, "Manager", "Boss");
 
-        // staff trying to assign different employee -> forbidden
+        
         await FluentActions.Invoking(() => svc.CreateOrderAsync(biz.BusinessId, staff.EmployeeId,
             new CreateOrderRequest { EmployeeId = other.EmployeeId }))
             .Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*managers/owners*");
 
-        // manager can
+        
         var ok = await svc.CreateOrderAsync(biz.BusinessId, mgr.EmployeeId,
             new CreateOrderRequest { EmployeeId = other.EmployeeId });
         ok.EmployeeId.Should().Be(other.EmployeeId);
@@ -117,7 +117,7 @@ public class OrderServiceTests2
 
         dto.ReservationId.Should().Be(res.ReservationId);
 
-        // wrong business / non-existent
+       
         await FluentActions.Invoking(() => svc.CreateOrderAsync(biz.BusinessId, emp.EmployeeId,
             new CreateOrderRequest { EmployeeId = emp.EmployeeId, ReservationId = res.ReservationId + 999 }))
             .Should().ThrowAsync<InvalidOperationException>()
@@ -146,9 +146,9 @@ public class OrderServiceTests2
         var (db, svc,_) = Boot();
         var (biz, emp) = Seed.BizAndStaff(db, country: "LT");
         var item = Seed.Item(db, biz.BusinessId, taxClass: "Food", price: 20m);
-        // tax rule
+        
         Seed.Tax(db, country: biz.CountryCode, taxClass: item.TaxClass, rate: 21m);
-        // item-level discount
+        
         Seed.LineDiscountForItem(db, biz.BusinessId, item.CatalogItemId, 10m);
 
         var order = await svc.CreateOrderAsync(biz.BusinessId, emp.EmployeeId,
@@ -157,10 +157,10 @@ public class OrderServiceTests2
         var line = await svc.AddLineAsync(biz.BusinessId, order.OrderId, emp.EmployeeId,
             new AddLineRequest { CatalogItemId = item.CatalogItemId, Qty = 2m });
 
-        // verify stored snapshots
+      
         var row = await db.OrderLines.AsNoTracking().FirstAsync(l => l.OrderLineId == line.OrderLineId);
         row.TaxRateSnapshotPct.Should().Be(21m);
-        row.UnitDiscountSnapshot.Should().NotBeNull(); // snapshot present because discount exists
+        row.UnitDiscountSnapshot.Should().NotBeNull(); 
         row.DiscountId.Should().NotBeNull();
     }
 
@@ -191,13 +191,13 @@ public class OrderServiceTests2
         var order = await svc.CreateOrderAsync(biz.BusinessId, staff.EmployeeId,
             new CreateOrderRequest { EmployeeId = staff.EmployeeId });
 
-        // staff attempts to assign to someone else -> forbidden
+       
         await FluentActions.Invoking(() => svc.UpdateOrderAsync(biz.BusinessId, order.OrderId, staff.EmployeeId,
             new UpdateOrderRequest { EmployeeId = other.EmployeeId }))
             .Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*only managers/owners can update order for others*");
 
-        // manager can reassign
+        
         var ok = await svc.UpdateOrderAsync(biz.BusinessId, order.OrderId, mgr.EmployeeId,
             new UpdateOrderRequest { EmployeeId = other.EmployeeId });
         ok.EmployeeId.Should().Be(other.EmployeeId);
@@ -251,7 +251,7 @@ public class OrderServiceTests2
         closed.Status.Should().Be("Closed");
         closed.ClosedAt.Should().NotBeNull();
 
-        // cancel now should fail (not open)
+       
         await FluentActions.Invoking(() =>
             svc.CancelOrderAsync(biz.BusinessId, order.OrderId, emp.EmployeeId, new CancelOrderRequest()))
             .Should().ThrowAsync<InvalidOperationException>()
@@ -357,7 +357,7 @@ public class OrderServiceTests2
             .WithMessage("*Order not found*");
     }
 
-    // ---------- AddLine / UpdateLine edge cases (exercise discount math branches) ----------
+    
 
     [Fact]
     public async Task AddLine_WithPercentDiscount_ComputesSnapshot_AndUsesTaxRule()
@@ -366,9 +366,9 @@ public class OrderServiceTests2
         var (biz, emp) = Seed.BizAndStaff(db, country: "LT");
 
         var item = Seed.Item(db, biz.BusinessId, taxClass: "Food", price: 100m);
-        // tax
+        
         Seed.Tax(db, biz.CountryCode, item.TaxClass, rate: 21m);
-        // percent line discount
+        
         var d = Seed.LineDiscountForItem(db, biz.BusinessId, item.CatalogItemId, val: 10m);
 
         var order = await svc.CreateOrderAsync(biz.BusinessId, emp.EmployeeId,
@@ -377,7 +377,7 @@ public class OrderServiceTests2
         var line = await svc.AddLineAsync(biz.BusinessId, order.OrderId, emp.EmployeeId,
             new AddLineRequest { CatalogItemId = item.CatalogItemId, Qty = 1m });
 
-        // verify the snapshot JSON carries the discount definition we expect
+       
         var row = await db.OrderLines.AsNoTracking().FirstAsync(x => x.OrderLineId == line.OrderLineId);
         row.UnitPriceSnapshot.Should().Be(100m);
         row.TaxRateSnapshotPct.Should().Be(21m);
@@ -402,7 +402,7 @@ public class OrderServiceTests2
         var line = await svc.AddLineAsync(biz.BusinessId, order.OrderId, emp.EmployeeId,
             new AddLineRequest { CatalogItemId = item.CatalogItemId, Qty = 2m });
 
-        // create an AMOUNT line discount by setting Type="Amount"
+       
         var disc = new Discount
         {
             BusinessId = biz.BusinessId, Code = "AMT5", Type = "Amount", Scope = "Line", Value = 5m,
@@ -435,7 +435,7 @@ public class OrderServiceTests2
         var line = await svc.AddLineAsync(biz.BusinessId, order.OrderId, emp.EmployeeId,
             new AddLineRequest { CatalogItemId = item.CatalogItemId, Qty = 1m });
 
-        // discount not eligible for this item
+        
         var disc = new Discount
         {
             BusinessId = biz.BusinessId, Code = "NOPE", Type = "Percent", Scope = "Line", Value = 12m,
@@ -451,14 +451,14 @@ public class OrderServiceTests2
             .WithMessage("*eligible*");
     }
 
-    // ---------- Wrong business / not found / bad state ----------
+   
 
     [Fact]
     public async Task AddLine_WrongBusiness_Throws()
     {
         var (db, svc,discounts) = Boot();
         var (biz, emp) = Seed.BizAndStaff(db);
-        var otherBiz = Seed.BizAndStaff(db).biz; // second business
+        var otherBiz = Seed.BizAndStaff(db).biz; 
         var item = Seed.Item(db, biz.BusinessId);
 
         var order = await svc.CreateOrderAsync(biz.BusinessId, emp.EmployeeId,
@@ -512,7 +512,7 @@ public class OrderServiceTests2
         var svc = new DiscountsService(db);
         var (biz, _) = Seed.BizAndStaff(db);
 
-        // inactive
+       
         db.Discounts.Add(new PsP.Models.Discount
         {
             BusinessId = biz.BusinessId, Code = "ORD", Type = "Percent", Scope = "Order", Value = 5m,
@@ -524,7 +524,7 @@ public class OrderServiceTests2
             svc.EnsureOrderDiscountEligibleAsync(biz.BusinessId, discountId: 1))
             .Should().ThrowAsync<InvalidOperationException>();
 
-        // out of window
+       
         db.Discounts.Add(new PsP.Models.Discount
         {
             BusinessId = biz.BusinessId, Code = "ORD2", Type = "Percent", Scope = "Order", Value = 5m,
@@ -553,13 +553,13 @@ public class OrderServiceTests2
         db.Discounts.Add(disc);
         await db.SaveChangesAsync();
 
-        // item not found in business
+       
         await FluentActions.Invoking(() =>
             svc.EnsureLineDiscountEligibleAsync(biz.BusinessId, disc.DiscountId, catalogItemId: 999))
             .Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*Catalog item not found*");
 
-        // still not eligible (no eligibility row)
+       
         await FluentActions.Invoking(() =>
             svc.EnsureLineDiscountEligibleAsync(biz.BusinessId, disc.DiscountId, item.CatalogItemId))
             .Should().ThrowAsync<InvalidOperationException>()

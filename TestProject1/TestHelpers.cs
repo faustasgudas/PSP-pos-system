@@ -9,12 +9,10 @@ namespace TestProject1;
 
 public static class TestHelpers
 {
-    /// <summary>
-    /// Tikra PostgreSQL DB – integration testams.
-    /// </summary>
+  
     public static AppDbContext NewContext()
     {
-        // Same connection string as your appsettings (include error detail for easier debugging)
+        
         var cs = Environment.GetEnvironmentVariable("PSP_TEST_CS")
                  ?? "Host=localhost;Port=5432;Database=pspdb;Username=postgres;Password=postgres;Include Error Detail=true";
 
@@ -26,9 +24,7 @@ public static class TestHelpers
         return new AppDbContext(opts);
     }
 
-    /// <summary>
-    /// InMemory DB – greitiems unit testams (be tikros DB).
-    /// </summary>
+   
     public static AppDbContext NewInMemoryContext()
     {
         var opts = new DbContextOptionsBuilder<AppDbContext>()
@@ -84,12 +80,12 @@ public static class TestHelpers
         db.CatalogItems.Add(item);
         db.SaveChanges();
 
-        // 🔥 NEW: auto-seed stock so OrderService does not crash
+    
         db.StockItems.Add(new StockItem
         {
             CatalogItemId = item.CatalogItemId,
             Unit = "pcs",
-            QtyOnHand = 999,           // large enough for all tests
+            QtyOnHand = 999,          
             AverageUnitCost = 1m
         });
 
@@ -117,7 +113,7 @@ public static class TestHelpers
     {
         public static async Task<(AppDbContext db, DbConnection conn)> NewAsync()
         {
-            // One context, one connection, pure in-memory
+         
             var conn = new SqliteConnection("Data Source=:memory:");
             await conn.OpenAsync();
 
@@ -127,7 +123,7 @@ public static class TestHelpers
                 .Options;
 
             var db = new AppDbContext(opts);
-            await db.Database.EnsureCreatedAsync(); // build schema in this connection
+            await db.Database.EnsureCreatedAsync(); 
 
             return (db, conn);
         }

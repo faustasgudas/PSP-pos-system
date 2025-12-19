@@ -13,17 +13,17 @@ using PsP.Settings;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ========== DATABASE ==========
+
 builder.Services.AddDbContext<AppDbContext>(opt =>
     opt.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 
-// ========== STRIPE ==========
+
 builder.Services.Configure<StripeSettings>(builder.Configuration.GetSection("Stripe"));
 Stripe.StripeConfiguration.ApiKey = builder.Configuration["Stripe:SecretKey"];
 
 
-// ========== JWT SETTINGS ==========
+
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
 var jwt = builder.Configuration.GetSection("Jwt").Get<JwtSettings>();
 
@@ -45,14 +45,14 @@ builder.Services
                                        ),
 
             ValidateLifetime         = true,
-            ClockSkew                = TimeSpan.Zero   // NO 5 min tolerance
+            ClockSkew                = TimeSpan.Zero   
         };
     });
 
 builder.Services.AddAuthorization();
 
 
-// ========== SERVICE LAYER ==========
+
 builder.Services.AddScoped<IGiftCardService, GiftCardService>();
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
@@ -66,15 +66,15 @@ builder.Services.AddScoped<IStockItemService, StockItemService>();
 builder.Services.AddScoped<IStockMovementService, StockMovementService>();
 builder.Services.AddScoped<IReservationService, ReservationService>();
 
-// TIK vienas Stripe service
+
 builder.Services.AddScoped<StripePaymentService>();
 
 
-// ========== MVC / API ==========
+
 builder.Services.AddControllers();
 
 
-// ========== SWAGGER ==========
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -84,7 +84,7 @@ builder.Services.AddSwaggerGen(c =>
         Version = "v1"
     });
 
-    // JWT auth schema (HTTP bearer)
+    
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -112,7 +112,7 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 
-// ========== CORS ==========
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowClient", policy =>
@@ -126,7 +126,7 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 
-// ========== PIPELINE ==========
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

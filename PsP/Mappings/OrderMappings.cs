@@ -58,7 +58,7 @@ public static class OrderMappings
                 PerformedByEmployeeId = l.PerformedByEmployeeId
             };
 
-        // Input mapping (Request -> Entity)
+      
         public static Order ToNewEntity(this CreateOrderRequest req, int businessId, int? discountId, string? discountSnapshot) =>
             new Order
             {
@@ -82,11 +82,11 @@ public static class OrderMappings
                     o.TipAmount = tip;
         
                 o.DiscountId = req.DiscountId;
-                // If you also create/refresh OrderDiscountSnapshot, do it in the service before saving.
+               
                 o.EmployeeId = req.EmployeeId;
             }
         
-            // Order: apply "close" action (controller already ensures it's allowed)
+           
             public static void ApplyClose(this Order o)
             {
                 
@@ -94,19 +94,19 @@ public static class OrderMappings
                 o.ClosedAt = DateTime.UtcNow;
             }
         
-            // Order: apply "cancel" action
+           
             public static void ApplyCancel(this Order o)
             {
                 o.Status = "Cancelled";
                 o.ClosedAt = DateTime.UtcNow;
-                // If you log a cancel reason, do it in a separate audit table (no field on Order).
+                
             }
             public static void ApplyRefund(this Order o)
             {
                 o.Status = "Refunded";
                 
             }
-            // OrderLine: create from AddLineRequest + server-resolved snapshots
+           
             public static OrderLine ToNewLineEntity(
                 this AddLineRequest req,
                 int businessId,
@@ -129,20 +129,20 @@ public static class OrderMappings
                     DiscountId           = discountId,
                     Qty                  = req.Qty,
         
-                    // snapshots resolved by your domain/service layer
+                   
                     ItemNameSnapshot     = itemNameSnapshot,
                     UnitPriceSnapshot    = unitPriceSnapshot,
                     TaxClassSnapshot     = taxClassSnapshot,
                     TaxRateSnapshotPct   = taxRateSnapshotPct,
                     UnitDiscountSnapshot = unitDiscountSnapshot,
                     CatalogTypeSnapshot = catalogTypeSnapshot,
-                    // audit
+                    
                     PerformedAt          = nowUtc ?? DateTime.UtcNow,
                     PerformedByEmployeeId = performedByEmployeeId
                 };
             }
         
-            // OrderLine: apply updates from UpdateLineRequest (+ optional refreshed discount snapshot)
+         
             public static void ApplyUpdate(
                 this UpdateLineRequest req,
                 OrderLine line,
@@ -151,15 +151,15 @@ public static class OrderMappings
                 string? unitDiscountSnapshot = null)
             {
                       line.Qty = req.Qty;
-                line.DiscountId = req.DiscountId; // set or clear
+                line.DiscountId = req.DiscountId; 
                 line.UnitDiscountSnapshot = unitDiscountSnapshot;
                 
-                // audit
+                
                 line.PerformedByEmployeeId = performedByEmployeeId;
                 line.PerformedAt = nowUtc ?? DateTime.UtcNow;
             }
         
-            // Convenience: collections
+            
             public static IEnumerable<OrderSummaryResponse> ToSummaryResponses(this IEnumerable<Order> orders) =>
                 orders.Select(o => o.ToSummaryResponse());
         

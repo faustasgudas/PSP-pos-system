@@ -7,7 +7,7 @@ public class AppDbContext : DbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
     
-    // ===== DbSets =====
+   
     public DbSet<Business> Businesses => Set<Business>();
     public DbSet<Employee> Employees => Set<Employee>();
 
@@ -31,7 +31,7 @@ public class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
-        // ==== Business ====
+       
         mb.Entity<Business>(e =>
         {
             e.HasKey(x => x.BusinessId);
@@ -85,7 +85,7 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
-        // ==== Employee ====
+        
         mb.Entity<Employee>(e =>
         {
             e.HasKey(x => x.EmployeeId);
@@ -136,7 +136,7 @@ public class AppDbContext : DbContext
                 .IsUnique(); 
         });
 
-        // ==== CatalogItem ====
+        
         mb.Entity<CatalogItem>(e =>
         {
             e.HasKey(x => x.CatalogItemId);
@@ -160,7 +160,7 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // ==== TaxRule (read-only/reference; kept simple) ====
+       
         mb.Entity<TaxRule>(e =>
         {
             e.HasKey(x => x.TaxRuleId);
@@ -183,11 +183,11 @@ public class AppDbContext : DbContext
 
             e.Property(x => x.Type)
                 .HasMaxLength(16)
-                .IsRequired();   // "Percent" | "Amount"
+                .IsRequired();  
 
             e.Property(x => x.Scope)
                 .HasMaxLength(16)
-                .IsRequired();  // "Order" | "Line"
+                .IsRequired();  
 
             e.Property(x => x.Status)
                 .HasMaxLength(16)
@@ -346,17 +346,14 @@ public class AppDbContext : DbContext
             e.HasIndex(x => new { x.BusinessId, x.OrderId });
         });
 
-        // ==== Reservation ====
+        
         mb.Entity<Reservation>(e =>
         {
             e.HasKey(x => x.ReservationId);
             e.Property(x => x.Status).HasMaxLength(16).IsRequired();
             e.Property(x => x.TableOrArea).HasMaxLength(64);
 
-            // e.HasOne(x => x.Business!)
-            //  .WithMany(x => x.Reservations)
-            //  .HasForeignKey(x => x.BusinessId)
-            //  .OnDelete(DeleteBehavior.Restrict);
+        
 
             e.HasOne(x => x.Employee!)
              .WithMany(x => x.Reservations)
@@ -369,7 +366,7 @@ public class AppDbContext : DbContext
              .OnDelete(DeleteBehavior.Restrict);
         });
 
-        // ==== GiftCard ====
+     
         mb.Entity<GiftCard>(e =>
         {e.HasKey(x => x.GiftCardId);
 
@@ -408,7 +405,7 @@ public class AppDbContext : DbContext
 
     e.Property(x => x.Currency)
         .HasMaxLength(8)
-        .IsRequired(); // e.g. "EUR", "USD"
+        .IsRequired(); 
 
     e.Property(x => x.Method)
         .HasMaxLength(16)
@@ -448,7 +445,7 @@ public class AppDbContext : DbContext
     e.HasIndex(x => new { x.BusinessId, x.OrderId, x.CreatedAt });
         });
 
-        // ==== StockItem (per CatalogItem) ====
+      
         mb.Entity<StockItem>(e =>
         {
             e.HasKey(x => x.StockItemId);
@@ -470,11 +467,10 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // ==== StockMovement (audit; link to OrderLine when sale/refund) ====
         mb.Entity<StockMovement>(e =>
         {
             e.HasKey(x => x.StockMovementId);
-            e.Property(x => x.Type).HasMaxLength(16).IsRequired(); // Receive / Sale / RefundReturn / Waste / Adjust
+            e.Property(x => x.Type).HasMaxLength(16).IsRequired(); 
             e.Property(x => x.Delta).HasColumnType("numeric(18,3)");
             e.Property(x => x.UnitCostSnapshot).HasColumnType("numeric(18,4)");
 

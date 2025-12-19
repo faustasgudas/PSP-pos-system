@@ -13,15 +13,15 @@ public class CreateOrderFlowTests
     [Fact]
     public async Task CreateOrder_WithTwoLines_Saves_AndLoadsWithLines()
     {
-        // Seed a business, employee, and a catalog item
+        
         var biz = new Business
         {
             Name = "Test Biz",
-            Address = "Any Street 1",       // add this
-            Phone = "+3700000000",          // if required in your model
+            Address = "Any Street 1",       
+            Phone = "+3700000000",          
             Email = "biz@test.local",
             CountryCode = "LT",
-            PriceIncludesTax = false        // if present/required
+            PriceIncludesTax = false        
         };        var emp = new Employee { Name = "Alice", Role = "Staff", Status = "Active", Business = biz,Email = "a@b.c",PasswordHash = "whatever" };
         var item = new CatalogItem
         {
@@ -37,7 +37,7 @@ public class CreateOrderFlowTests
         _db.AddRange(biz, emp, item);
         await _db.SaveChangesAsync();
 
-        // Create order
+        
         var order = new Order
         {
             BusinessId = biz.BusinessId,
@@ -50,7 +50,7 @@ public class CreateOrderFlowTests
         _db.Orders.Add(order);
         await _db.SaveChangesAsync();
 
-        // Add two lines (snapshots resolved by server in real app)
+        
         var line1 = new OrderLine
         {
             OrderId = order.OrderId,
@@ -80,7 +80,7 @@ public class CreateOrderFlowTests
         _db.AddRange(line1, line2);
         await _db.SaveChangesAsync();
 
-        // Load back with lines and assert
+       
         var loaded = await _db.Orders
             .Include(o => o.Lines)
             .SingleAsync(o => o.OrderId == order.OrderId);

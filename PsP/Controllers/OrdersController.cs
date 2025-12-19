@@ -8,16 +8,14 @@ namespace PsP.Controllers;
 
 [ApiController]
 [Route("api/orders")]
-[Authorize] // All endpoints require authentication
+[Authorize] 
 public class OrdersController : ControllerBase
 {
     private readonly IOrdersService _orders;
 
     public OrdersController(IOrdersService orders) => _orders = orders;
 
-    // -------------------------------
-    // GET /api/orders  (Managers+Owners)
-    // -------------------------------
+
     [HttpGet]
     [Authorize(Roles = "Manager,Owner")]
     public async Task<ActionResult<IEnumerable<OrderSummaryResponse>>> ListAll(
@@ -37,9 +35,7 @@ public class OrdersController : ControllerBase
         catch (InvalidOperationException ex) { return ForbidOrBadRequest(ex); }
     }
 
-    // -------------------------------
-    // GET /api/orders/mine
-    // -------------------------------
+ 
     [HttpGet("mine")]
     [Authorize(Roles = "Owner,Manager,Staff")]
     public async Task<ActionResult<IEnumerable<OrderSummaryResponse>>> ListMine()
@@ -56,9 +52,7 @@ public class OrdersController : ControllerBase
         catch (InvalidOperationException ex) { return ForbidOrBadRequest(ex); }
     }
 
-    // -------------------------------
-    // GET /api/orders/{orderId}
-    // -------------------------------
+
     [HttpGet("{orderId:int}")]
     [Authorize(Roles = "Owner,Manager,Staff")]
     public async Task<ActionResult<OrderDetailResponse>> GetOrder(int orderId)
@@ -75,9 +69,7 @@ public class OrdersController : ControllerBase
         catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
     }
 
-    // -------------------------------
-    // GET /api/orders/{orderId}/lines
-    // -------------------------------
+
     [HttpGet("{orderId:int}/lines")]
     [Authorize(Roles = "Owner,Manager,Staff")]
     public async Task<ActionResult<IEnumerable<OrderLineResponse>>> ListLines(int orderId)
@@ -94,9 +86,7 @@ public class OrdersController : ControllerBase
         catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
     }
 
-    // -------------------------------
-    // GET /api/orders/{orderId}/lines/{lineId}
-    // -------------------------------
+
     [HttpGet("{orderId:int}/lines/{lineId:int}")]
     [Authorize(Roles = "Owner,Manager,Staff")]
     public async Task<ActionResult<OrderLineResponse>> GetLine(int orderId, int lineId)
@@ -113,9 +103,7 @@ public class OrdersController : ControllerBase
         catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
     }
 
-    // -------------------------------
-    // POST /api/orders
-    // -------------------------------
+
     [HttpPost]
     [Authorize(Roles = "Owner,Manager,Staff")]
     public async Task<ActionResult<OrderDetailResponse>> CreateOrder([FromBody] CreateOrderRequest body)
@@ -134,9 +122,7 @@ public class OrdersController : ControllerBase
         catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
     }
 
-    // -------------------------------
-    // PUT /api/orders/{orderId}
-    // -------------------------------
+
     [HttpPut("{orderId:int}")]
     [Authorize(Roles = "Owner,Manager,Staff")]
     public async Task<ActionResult<OrderDetailResponse>> UpdateOrder(
@@ -154,9 +140,7 @@ public class OrdersController : ControllerBase
         catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
     }
 
-    // -------------------------------
-    // POST /api/orders/{orderId}/close
-    // -------------------------------
+
     [HttpPost("{orderId:int}/close")]
     [Authorize(Roles = "Owner,Manager,Staff")]
     public async Task<ActionResult<OrderDetailResponse>> CloseOrder(int orderId)
@@ -173,9 +157,7 @@ public class OrdersController : ControllerBase
         catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
     }
 
-    // -------------------------------
-    // POST /api/orders/{orderId}/cancel
-    // -------------------------------
+
     [HttpPost("{orderId:int}/cancel")]
     [Authorize(Roles = "Owner,Manager,Staff")]
     public async Task<ActionResult<OrderDetailResponse>> CancelOrder(
@@ -213,9 +195,7 @@ public class OrdersController : ControllerBase
     
     
 
-    // -------------------------------
-    // POST /api/orders/{orderId}/lines
-    // -------------------------------
+ 
     [HttpPost("{orderId:int}/lines")]
     [Authorize(Roles = "Owner,Manager,Staff")]
     public async Task<ActionResult<OrderLineResponse>> AddLine(
@@ -235,9 +215,7 @@ public class OrdersController : ControllerBase
         catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
     }
 
-    // -------------------------------
-    // PUT /api/orders/{orderId}/lines/{lineId}
-    // -------------------------------
+
     [HttpPut("{orderId:int}/lines/{lineId:int}")]
     [Authorize(Roles = "Owner,Manager,Staff")]
     public async Task<ActionResult<OrderLineResponse>> UpdateLine(
@@ -255,9 +233,7 @@ public class OrdersController : ControllerBase
         catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
     }
 
-    // -------------------------------
-    // DELETE /api/orders/{orderId}/lines/{lineId}
-    // -------------------------------
+
     [HttpDelete("{orderId:int}/lines/{lineId:int}")]
     [Authorize(Roles = "Owner,Manager,Staff")]
     public async Task<IActionResult> RemoveLine(int orderId, int lineId)
@@ -274,9 +250,7 @@ public class OrdersController : ControllerBase
         catch (InvalidOperationException ex) { return NotFoundOrBadRequest(ex); }
     }
 
-    // -------------------------------
-    // POST /api/orders/{orderId}/reopen
-    // -------------------------------
+
     [HttpPost("{orderId:int}/reopen")]
     [Authorize(Roles = "Manager,Owner")]
     public async Task<ActionResult<OrderDetailResponse>> ReopenOrder(int orderId)
@@ -322,9 +296,7 @@ public class OrdersController : ControllerBase
     
     
 
-    // -------------------------------
-    // Helpers
-    // -------------------------------
+
     private ActionResult NotFoundOrBadRequest(InvalidOperationException ex)
         => ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase)
             ? NotFound(ex.Message)

@@ -65,7 +65,7 @@ public static class Seed
         db.CatalogItems.Add(item);
         db.SaveChanges();
 
-        // NEW: automatically create stock if item is a product
+       
         if (string.Equals(item.Type, "Product", StringComparison.OrdinalIgnoreCase))
         {
             db.StockItems.Add(new StockItem

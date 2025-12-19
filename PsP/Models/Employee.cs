@@ -8,15 +8,15 @@ public class Employee
     
     public string PasswordHash { get; set; } = null!;
     
-    // Roles: Owner, Manager, Staff
+    
     public string Role { get; set; } = null!;
 
-    // Active, OnLeave, Terminated
+ 
     public string Status { get; set; } = "Active";
 
     public int BusinessId { get; set; } 
     public Business  Business { get; set; } 
 
-    public ICollection<Order> Orders { get; set; } = new List<Order>();          // created-by
+    public ICollection<Order> Orders { get; set; } = new List<Order>();         
     public ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
 }

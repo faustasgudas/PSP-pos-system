@@ -30,7 +30,7 @@ namespace PsP.Services.Implementations
 
         public async Task<Business> CreateAsync(Business business)
         {
-            // jei nori, čia gali užtikrinti default statusą
+           
             if (string.IsNullOrWhiteSpace(business.BusinessStatus))
                 business.BusinessStatus = "Active";
 
@@ -52,7 +52,7 @@ namespace PsP.Services.Implementations
             existing.CountryCode = updated.CountryCode;
             existing.PriceIncludesTax = updated.PriceIncludesTax;
             existing.BusinessType     = updated.BusinessType;
-            // BusinessStatus specialiai neliečiam – atskiras concern
+           
 
             await _db.SaveChangesAsync();
             return existing;

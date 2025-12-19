@@ -14,11 +14,10 @@ public static class StockMovementMappings
         UnitCostSnapshot  = m.UnitCostSnapshot,
         OrderLineId       = m.OrderLineId,
         At                = m.At
-        // Note: entity has no Note field; contract Note (if you keep it) is ignored
+        
     };
 
-    // Request -> Entity
-    // Caller passes resolved stockItemId (from route) and optional nowUtc.
+  
     public static StockMovement ToNewEntity(this CreateStockMovementRequest req, int stockItemId, DateTime? nowUtc = null)
     {
         if (string.IsNullOrWhiteSpace(req.Type)) throw new ArgumentException("Type required");
@@ -26,7 +25,7 @@ public static class StockMovementMappings
         var type = NormalizeType(req.Type);
         var delta = req.Delta;
 
-        // basic guardrails: receive/waste/adjust can be +/- ; sale typically negative; refund positive
+        
         if (type == "Sale" && delta > 0) delta = -delta;
         if (type == "RefundReturn" && delta < 0) delta = -delta;
 

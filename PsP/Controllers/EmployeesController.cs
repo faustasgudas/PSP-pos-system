@@ -36,7 +36,7 @@ public class EmployeesController : ControllerBase
         return int.Parse(bizClaim.Value);
     }
 
-    // Managers/Owners list; staff blocked in service
+   
     [HttpGet]
     public async Task<ActionResult<IEnumerable<EmployeeSummaryResponse>>> ListAll(
         [FromRoute] int businessId,
@@ -47,7 +47,7 @@ public class EmployeesController : ControllerBase
         {
             var tokenBizId = GetBusinessIdFromToken();
             if (tokenBizId != businessId)
-                return Forbid(); // negalima krapštyti kito biznio
+                return Forbid(); 
 
             var callerEmployeeId = GetCallerEmployeeId();
 

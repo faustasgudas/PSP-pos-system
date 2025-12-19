@@ -10,16 +10,14 @@ namespace TestProject1;
 
 public class StockMovementTests
 {
-    // --------------------------------------------------------
-    // Helper: boot an in-memory db + services + seeded product
-    // --------------------------------------------------------
+   
     private static (AppDbContext db, StockMovementService sms, OrdersService orders, 
                     Business biz, Employee emp, CatalogItem item, StockItem stock)
         Boot(decimal initialQty = 100m)
     {
         var db = TestDb.NewInMemory();
 
-        // Business
+        
         var biz = new Business
         {
             Name = "Biz",
@@ -33,7 +31,7 @@ public class StockMovementTests
         db.Businesses.Add(biz);
         db.SaveChanges();
 
-        // Employee
+        
         var emp = new Employee
         {
             BusinessId = biz.BusinessId,
@@ -46,7 +44,7 @@ public class StockMovementTests
         db.Employees.Add(emp);
         db.SaveChanges();
 
-        // CatalogItem (PRODUCT)
+        
         var item = new CatalogItem
         {
             BusinessId = biz.BusinessId,
@@ -60,7 +58,7 @@ public class StockMovementTests
         db.CatalogItems.Add(item);
         db.SaveChanges();
 
-        // StockItem
+      
         var stock = new StockItem
         {
             CatalogItemId = item.CatalogItemId,
@@ -71,7 +69,7 @@ public class StockMovementTests
         db.StockItems.Add(stock);
         db.SaveChanges();
 
-        // Services
+     
         var discounts = new DiscountsService(db);
         var sms = new StockMovementService(db);
         var orders = new OrdersService(db, discounts, sms);
@@ -79,9 +77,7 @@ public class StockMovementTests
         return (db, sms, orders, biz, emp, item, stock);
     }
 
-    // --------------------------------------------------------
-    // 1. SALE reduces stock
-    // --------------------------------------------------------
+ 
     [Fact]
     public async Task SaleMovement_Decreases_Stock()
     {
@@ -102,9 +98,7 @@ public class StockMovementTests
         Assert.Equal(9m, updated!.QtyOnHand);
     }
 
-    // --------------------------------------------------------
-    // 2. Receive increases stock
-    // --------------------------------------------------------
+   
     [Fact]
     public async Task Receive_Increases_Stock()
     {
@@ -125,12 +119,10 @@ public class StockMovementTests
         var updated = await db.StockItems.FindAsync(stock.StockItemId);
 
         Assert.Equal(50m, updated!.QtyOnHand);
-        Assert.Equal(1.6m, updated.AverageUnitCost); // simplified avg cost rule
+        Assert.Equal(1.6m, updated.AverageUnitCost); 
     }
 
-    // --------------------------------------------------------
-    // 3. RefundReturn restores stock
-    // --------------------------------------------------------
+  
     [Fact]
     public async Task RefundReturn_Restores_Stock()
     {
@@ -151,9 +143,8 @@ public class StockMovementTests
         Assert.Equal(13m, updated!.QtyOnHand);
     }
 
-    // --------------------------------------------------------
-    // 4. AddLine performs SALE movement
-    // --------------------------------------------------------
+
+ 
     [Fact]
     public async Task AddLine_Creates_Sale_Movement()
     {
@@ -177,9 +168,7 @@ public class StockMovementTests
         Assert.Equal(line.OrderLineId, mv.OrderLineId);
     }
 
-    // --------------------------------------------------------
-    // 5. RemoveLine restores stock (reverse sale)
-    // --------------------------------------------------------
+  
     [Fact]
     public async Task RemoveLine_Restores_Stock()
     {
@@ -194,12 +183,11 @@ public class StockMovementTests
         await orders.RemoveLineAsync(biz.BusinessId, order.OrderId, line.OrderLineId, emp.EmployeeId);
 
         var updated = await db.StockItems.FindAsync(stock.StockItemId);
-        Assert.Equal(50m, updated!.QtyOnHand); // restored
+        Assert.Equal(50m, updated!.QtyOnHand); 
     }
 
-    // --------------------------------------------------------
-    // 6. CancelOrder restores all stock
-    // --------------------------------------------------------
+  
+ 
     [Fact]
     public async Task CancelOrder_Restores_All_Stock()
     {
@@ -220,9 +208,7 @@ public class StockMovementTests
         Assert.Equal(100m, updated2!.QtyOnHand);
     }
 
-    // --------------------------------------------------------
-    // 7. Fails if stock item not found
-    // --------------------------------------------------------
+  
     [Fact]
     public async Task CreateMovement_Throws_When_StockItemMissing()
     {
@@ -237,9 +223,7 @@ public class StockMovementTests
             ));
     }
 
-    // --------------------------------------------------------
-    // 8. Fails if not enough stock for sale
-    // --------------------------------------------------------
+   
     [Fact]
     public async Task AddLine_Throws_When_NotEnoughStock()
     {

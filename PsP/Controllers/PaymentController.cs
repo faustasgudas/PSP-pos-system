@@ -29,10 +29,7 @@ public class PaymentController : ControllerBase
         return int.Parse(claim.Value);
     }
 
-    /// <summary>
-    /// Sukuria naują apmokėjimą (Stripe + optional GiftCard).
-    /// Suma visada skaičiuojama backend'e pagal Order eilutes.
-    /// </summary>
+
     [HttpPost]
     [ProducesResponseType(typeof(PaymentResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
@@ -52,7 +49,7 @@ public class PaymentController : ControllerBase
         {
             var baseUrl = $"{Request.Scheme}://{Request.Host}";
 
-            // 🚫 NEBESIUNČIAM amount iš kliento – servisas skaičiuoja iš Order
+           
             var result = await _payments.CreatePaymentAsync(
                 orderId: request.OrderId,
                 currency: request.Currency,
@@ -66,13 +63,13 @@ public class PaymentController : ControllerBase
         }
         catch (ArgumentOutOfRangeException ex)
         {
-            // pvz. giftCardAmountCents <= 0
+           
             _logger.LogWarning(ex, "Invalid argument when creating payment");
             return BadRequest(new ApiErrorResponse("Invalid payment data", ex.Message));
         }
         catch (InvalidOperationException ex)
         {
-            // pvz. invalid_gift_card / wrong_business / blocked / expired / order_not_found / invalid_order_total
+           
             _logger.LogWarning(ex, "Business rule violation when creating payment");
             return BadRequest(new ApiErrorResponse("Payment failed", ex.Message));
         }
@@ -83,9 +80,7 @@ public class PaymentController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Stripe success callback (/api/payments/success?sessionId=...).
-    /// </summary>
+
     [AllowAnonymous]
     [HttpGet("success")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -95,13 +90,11 @@ public class PaymentController : ControllerBase
 
         await _payments.ConfirmStripeSuccessAsync(sessionId);
 
-        // MVP: tiesiog text. Vėliau gali redirect'int į frontend.
+     
         return Ok("Payment successful.");
     }
 
-    /// <summary>
-    /// Stripe cancel callback (/api/payments/cancel?sessionId=...).
-    /// </summary>
+
     [AllowAnonymous]
     [HttpGet("cancel")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -109,13 +102,11 @@ public class PaymentController : ControllerBase
     {
         _logger.LogInformation("Stripe payment cancelled. SessionId: {SessionId}", sessionId);
 
-        // čia galėtum atnaujinti Payment.Status į "Cancelled", jei norėsi
+     
         return Ok("Payment cancelled.");
     }
 
-    /// <summary>
-    /// Full refund (MVP). Galėtų būti tik Owner/Manager – jei nori, pridėk [Authorize(Roles="Owner,Manager")].
-    /// </summary>
+
     [HttpPost("{paymentId:int}/refund")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
@@ -133,20 +124,16 @@ public class PaymentController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Visi business payment'ai (pagal JWT businessId).
-    /// </summary>
+
     [HttpGet("history")]
     public async Task<IActionResult> GetPaymentsForBusiness()
     {
         var businessId = GetBusinessIdFromToken();
         var list = await _payments.GetPaymentsForBusinessAsync(businessId);
-        return Ok(list); // jei norėsi – perdaryk į DTO
+        return Ok(list);
     }
 
-    /// <summary>
-    /// Vieno order payment'ai (pagal JWT businessId).
-    /// </summary>
+ 
     [HttpGet("orders/{orderId:int}")]
     public async Task<IActionResult> GetPaymentsForOrder(int orderId)
     {

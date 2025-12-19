@@ -62,13 +62,13 @@ public class DiscountsServiceCRUDTests
         return (db, svc, biz, owner, manager, staff);
     }
 
-    // --------- list/get ---------
+   
     [Fact]
     public async Task ListDiscounts_AnyEmployee_Allowed()
     {
         var (db, svc, biz, _, _, staff) = Boot();
 
-        // seed one
+      
         db.Discounts.Add(new Discount
         {
             BusinessId = biz.BusinessId,
@@ -106,18 +106,18 @@ public class DiscountsServiceCRUDTests
         db.Discounts.Add(d);
         await db.SaveChangesAsync();
 
-        // ok
+        
         var dto = await svc.GetDiscountAsync(biz.BusinessId, staff.EmployeeId, d.DiscountId);
         dto.DiscountId.Should().Be(d.DiscountId);
         dto.Eligibilities.Should().NotBeNull();
 
-        // not found
+        
         await FluentActions.Invoking(() => svc.GetDiscountAsync(biz.BusinessId, staff.EmployeeId, 9999))
             .Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*not found*");
     }
 
-    // --------- create ---------
+ 
     [Fact]
     public async Task CreateDiscount_Staff_Forbidden()
     {
@@ -169,7 +169,7 @@ public class DiscountsServiceCRUDTests
     {
         var (db, svc, biz, _, owner, _) = Boot();
 
-        // End before Start
+       
         var bad = new CreateDiscountRequest
         {
             Code = "BADWIN",
@@ -185,8 +185,7 @@ public class DiscountsServiceCRUDTests
             .Should().ThrowAsync<ArgumentException>()
             .WithMessage("*StartsAt must be before EndsAt*");
 
-        // Missing dates cannot compile to null (DTO has non-nullable DateTime),
-        // but just in case someone passes default/min values—reject:
+     
         var minDates = new CreateDiscountRequest
         {
             Code = "MINDATES",
@@ -223,7 +222,7 @@ public class DiscountsServiceCRUDTests
 
         var dup = new CreateDiscountRequest
         {
-            Code = "codex", // different case, same normalized
+            Code = "codex",
             Type = "Percent",
             Scope = "Order",
             Value = 12m,
@@ -237,7 +236,7 @@ public class DiscountsServiceCRUDTests
             .WithMessage("*already exists*");
     }
 
-    // --------- update ---------
+   
     [Fact]
     public async Task UpdateDiscount_Staff_Forbidden()
     {
@@ -295,19 +294,19 @@ public class DiscountsServiceCRUDTests
         db.Discounts.AddRange(d1, d2);
         await db.SaveChangesAsync();
 
-        // change value ok
+       
         var updated = await svc.UpdateDiscountAsync(biz.BusinessId, manager.EmployeeId, d1.DiscountId,
             new UpdateDiscountRequest { Value = 9m });
         updated.Value.Should().Be(9m);
 
-        // change code to d2's code -> should fail
+       
         await FluentActions.Invoking(() => svc.UpdateDiscountAsync(biz.BusinessId, manager.EmployeeId, d1.DiscountId,
                 new UpdateDiscountRequest { Code = "b" }))
             .Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*already exists*");
     }
 
-    // --------- delete ---------
+   
     [Fact]
     public async Task DeleteDiscount_Staff_Forbidden_Manager_Ok()
     {
@@ -336,7 +335,7 @@ public class DiscountsServiceCRUDTests
         (await db.Discounts.FindAsync(d.DiscountId)).Should().BeNull();
     }
 
-    // --------- eligibilities (List/Add/Remove) ---------
+    
     [Fact]
     public async Task ListEligibilities_Works_And_OnlyForDiscountBusiness()
     {
@@ -393,23 +392,23 @@ public async Task AddEligibility_ManagerOnly_PreventsDuplicates_And_BusinessMism
 
     var body = new CreateDiscountEligibilityRequest { CatalogItemId = item.CatalogItemId };
 
-    // staff forbidden
+   
     await FluentActions.Invoking(() =>
             svc.AddEligibilityAsync(biz.BusinessId, staff.EmployeeId, d.DiscountId, body))
         .Should().ThrowAsync<InvalidOperationException>()
         .WithMessage("Forbidden*");
 
-    // manager ok first time
+    
     var row = await svc.AddEligibilityAsync(biz.BusinessId, manager.EmployeeId, d.DiscountId, body);
     row.CatalogItemId.Should().Be(item.CatalogItemId);
 
-    // duplicate
+    
     await FluentActions.Invoking(() =>
             svc.AddEligibilityAsync(biz.BusinessId, manager.EmployeeId, d.DiscountId, body))
         .Should().ThrowAsync<InvalidOperationException>()
         .WithMessage("*already exists*");
 
-    // --- BUSINESS MISMATCH (create another business IN THE SAME db) ---
+    
     var otherBiz = new Business
     {
         Name = "OtherBiz",
@@ -423,7 +422,7 @@ public async Task AddEligibility_ManagerOnly_PreventsDuplicates_And_BusinessMism
     db.Businesses.Add(otherBiz);
     await db.SaveChangesAsync();
 
-    var otherItem = SeedItem(db, otherBiz.BusinessId, "OtherItem"); // different business in SAME db
+    var otherItem = SeedItem(db, otherBiz.BusinessId, "OtherItem"); 
     var bad = new CreateDiscountEligibilityRequest { CatalogItemId = otherItem.CatalogItemId };
 
     await FluentActions.Invoking(() =>
@@ -460,22 +459,22 @@ public async Task AddEligibility_ManagerOnly_PreventsDuplicates_And_BusinessMism
         });
         await db.SaveChangesAsync();
 
-        // staff forbidden
+       
         await FluentActions.Invoking(() => svc.RemoveEligibilityAsync(biz.BusinessId, staff.EmployeeId, d.DiscountId, item.CatalogItemId))
             .Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("Forbidden*");
 
-        // manager ok
+       
         await svc.RemoveEligibilityAsync(biz.BusinessId, manager.EmployeeId, d.DiscountId, item.CatalogItemId);
         var still = await db.DiscountEligibilities
             .FirstOrDefaultAsync(e => e.DiscountId == d.DiscountId && e.CatalogItemId == item.CatalogItemId);
         still.Should().BeNull();
 
-        // idempotent: removing again should not throw
+       
         await svc.RemoveEligibilityAsync(biz.BusinessId, manager.EmployeeId, d.DiscountId, item.CatalogItemId);
     }
 
-    // --------- “engine” helpers on service (newest/ensure) ---------
+   
     [Fact]
     public async Task GetNewestLineDiscountForItem_Picks_Latest_Active_By_StartsAt()
     {
@@ -496,7 +495,7 @@ public async Task AddEligibility_ManagerOnly_PreventsDuplicates_And_BusinessMism
         db.Discounts.AddRange(dOld, dNew);
         await db.SaveChangesAsync();
 
-        // link only dNew to the item
+        
         db.DiscountEligibilities.Add(new DiscountEligibility { DiscountId = dNew.DiscountId, CatalogItemId = item.CatalogItemId });
         await db.SaveChangesAsync();
 
@@ -569,14 +568,14 @@ public async Task AddEligibility_ManagerOnly_PreventsDuplicates_And_BusinessMism
             found.Should().BeNull();
         }
 
-        // -------- ListEligibleItemsAsync --------
+       
 
         [Fact]
         public async Task ListEligibleItemsAsync_Returns_Joined_CatalogItems_For_Discount()
         {
             var (db, svc, biz, _,_,emp) = Boot();
 
-            // two catalog items
+            
             var itemA = new CatalogItem
             {
                 BusinessId = biz.BusinessId,
@@ -616,7 +615,7 @@ public async Task AddEligibility_ManagerOnly_PreventsDuplicates_And_BusinessMism
             db.Discounts.Add(d);
             await db.SaveChangesAsync();
 
-            // add eligibilities for both items
+            
             db.DiscountEligibilities.AddRange(
                 new DiscountEligibility { DiscountId = d.DiscountId, CatalogItemId = itemA.CatalogItemId },
                 new DiscountEligibility { DiscountId = d.DiscountId, CatalogItemId = itemB.CatalogItemId }
@@ -627,7 +626,7 @@ public async Task AddEligibility_ManagerOnly_PreventsDuplicates_And_BusinessMism
                 biz.BusinessId, emp.EmployeeId, d.DiscountId)).ToList();
 
             list.Should().HaveCount(2);
-            // ordered by Name in service; check order and fields
+           
             list[0].CatalogItemId.Should().Be(itemA.CatalogItemId);
             list[0].Name.Should().Be("Alpha Cut");
             list[1].CatalogItemId.Should().Be(itemB.CatalogItemId);
@@ -638,7 +637,7 @@ public async Task AddEligibility_ManagerOnly_PreventsDuplicates_And_BusinessMism
         public async Task ListEligibleItemsAsync_Throws_When_Discount_Not_In_Business()
         {
             var (db, svc, biz, _,_,emp) = Boot();
-            // discount in ANOTHER business
+            
             var otherBiz = new Business
             {
                 Name = "Other",
@@ -678,7 +677,7 @@ public async Task AddEligibility_ManagerOnly_PreventsDuplicates_And_BusinessMism
         {
             var (db, svc, biz, _,_,_) = Boot();
 
-            // discount belongs to biz
+            
             var d = new Discount
             {
                 BusinessId = biz.BusinessId,
@@ -693,7 +692,7 @@ public async Task AddEligibility_ManagerOnly_PreventsDuplicates_And_BusinessMism
             db.Discounts.Add(d);
             await db.SaveChangesAsync();
 
-            // caller from different business
+          
             var otherBiz = new Business
             {
                 Name = "Other",

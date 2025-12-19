@@ -13,7 +13,7 @@ public class StockTests
         var (biz, _) = TestHelpers.SeedBusinessAndEmployee(db1);
         var item = TestHelpers.SeedCatalogItem(db1, biz.BusinessId);
 
-        // First StockItem for this CatalogItemId
+      
         db1.StockItems.Add(new StockItem
         {
             CatalogItemId = item.CatalogItemId,
@@ -23,12 +23,12 @@ public class StockTests
         });
         await db1.SaveChangesAsync();
 
-        // Fresh context so the failure comes from the DB constraint (not EF tracking)
+        
         await using var db2 = TestHelpers.NewContext();
 
         db2.StockItems.Add(new StockItem
         {
-            CatalogItemId = item.CatalogItemId, // same catalog item -> should violate unique index
+            CatalogItemId = item.CatalogItemId, 
             Unit = "pcs",
             QtyOnHand = 0,
             AverageUnitCost = 0
@@ -36,8 +36,8 @@ public class StockTests
 
         var ex = await Assert.ThrowsAsync<DbUpdateException>(() => db2.SaveChangesAsync());
         var pg = ex.InnerException as PostgresException;
-        Assert.NotNull(pg);                 // we actually hit PostgreSQL
-        Assert.Equal("23505", pg!.SqlState); // 23505 = unique_violation
+        Assert.NotNull(pg);               
+        Assert.Equal("23505", pg!.SqlState); 
     }
 
     [Fact]
@@ -121,13 +121,13 @@ public class StockTests
         });
         db.StockItems.Add(new StockItem
         {
-            CatalogItemId = itemB.CatalogItemId, // different catalog item -> should be OK
+            CatalogItemId = itemB.CatalogItemId, 
             Unit = "pcs",
             QtyOnHand = 0,
             AverageUnitCost = 0
         });
 
-        await db.SaveChangesAsync(); // should NOT throw
+        await db.SaveChangesAsync(); 
     }
     
     [Fact]
@@ -137,7 +137,7 @@ public class StockTests
         var entity = db.Model.FindEntityType(typeof(StockItem))!;
         var indexes = entity.GetIndexes();
 
-        // Find the index that contains CatalogItemId and assert it's unique
+     
         var idx = indexes.Single(i => i.Properties.Any(p => p.Name == nameof(StockItem.CatalogItemId)));
         Assert.True(idx.IsUnique);
     }

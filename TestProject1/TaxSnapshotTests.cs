@@ -8,24 +8,18 @@ namespace TestProject1;
 
 public class TaxSnapshotTests
 {
-    /// <summary>
-    /// Boots a test context with:
-    ///  - Business + Employee
-    ///  - CatalogItem (Product)
-    ///  - StockItem (AUTO SEEDED – REQUIRED FOR AddLine)
-    ///  - Real DiscountsService + StockMovementService + OrdersService
-    /// </summary>
+   
     private static (AppDbContext db, OrdersService svc, Business biz, Employee emp, CatalogItem item)
         Boot(decimal basePrice = 10.00m, bool priceIncludesTax = true, string taxClass = "Food")
     {
         var db = TestHelpers.NewContext();
 
-        // business + employee
+     
         var (biz, emp) = TestHelpers.SeedBusinessAndEmployee(db);
         biz.PriceIncludesTax = priceIncludesTax;
         db.Update(biz);
 
-        // catalog item
+        
         var item = new CatalogItem
         {
             BusinessId = biz.BusinessId,
@@ -41,9 +35,7 @@ public class TaxSnapshotTests
         db.CatalogItems.Add(item);
         db.SaveChanges();
 
-        // -------------------------------
-        // 🔥 AUTO-SEED STOCK ITEM (fixes "stock_item_not_found")
-        // -------------------------------
+      
         db.StockItems.Add(new StockItem
         {
             CatalogItemId = item.CatalogItemId,
@@ -60,9 +52,8 @@ public class TaxSnapshotTests
         return (db, svc, biz, emp, item);
     }
 
-    // ---------------------------------------------------------------------
-    // TESTS
-    // ---------------------------------------------------------------------
+  
+
 
     [Fact]
     public async Task AddLine_CapturesTaxClass_And_CurrentRate_From_TaxRules()

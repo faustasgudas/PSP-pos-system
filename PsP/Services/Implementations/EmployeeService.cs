@@ -31,7 +31,7 @@ public class EmployeeService : IEmployeeService
         var isManager = caller.Role.Equals("Manager", StringComparison.OrdinalIgnoreCase);
 
         if (!isOwner && !isManager)
-            throw new InvalidOperationException("forbidden"); // Staff negali
+            throw new InvalidOperationException("forbidden"); 
 
         return caller;
     }
@@ -62,7 +62,7 @@ public class EmployeeService : IEmployeeService
         string? role = null,
         string? status = null)
     {
-        //await EnsureCallerIsManagerOrOwnerAsync(businessId, callerEmployeeId);
+        
 
         var query = _db.Employees
             .AsNoTracking()
@@ -80,8 +80,7 @@ public class EmployeeService : IEmployeeService
         int employeeId,
         int callerEmployeeId)
     {
-        //await EnsureCallerIsManagerOrOwnerAsync(businessId, callerEmployeeId);
-
+       
         return await _db.Employees
             .AsNoTracking()
             .FirstOrDefaultAsync(e =>
@@ -96,7 +95,7 @@ public class EmployeeService : IEmployeeService
     {
         await EnsureCallerIsManagerOrOwnerAsync(businessId, callerEmployeeId);
 
-        // užtikrinam businessId iš route, ne iš body
+        
         employee.BusinessId = businessId;
 
         _db.Employees.Add(employee);
@@ -147,8 +146,7 @@ public class EmployeeService : IEmployeeService
 
         if (!string.IsNullOrWhiteSpace(newStatus))
         {
-            // čia gali panaudoti tą pačią normalizaciją,
-            // kurią turi EmployeeMappings.NormalizeEmployeeStatus
+         
             var s = newStatus.Trim();
             employee.Status = s;
         }
@@ -173,10 +171,10 @@ public class EmployeeService : IEmployeeService
         if (employee is null)
             return null;
 
-        // Change status to Terminated
+        
         employee.Status = "Terminated";
 
-        // Jeigu norėsi, gali pridėti Reason į AuditLog ar EmployeeHistory ateityje.
+       
 
         await _db.SaveChangesAsync();
         return employee;

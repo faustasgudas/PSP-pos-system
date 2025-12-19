@@ -30,12 +30,12 @@ namespace PsP.Services.Implementations
     long? giftCardAmountCents,
     string baseUrl)
 {
-    // 1) Order + lines
+   
     var order = await _db.Orders
         .Include(o => o.Lines)
         .ThenInclude(ol => ol.CatalogItem)
         .AsNoTracking()
-        .FirstOrDefaultAsync(o => o.OrderId == (int)orderId); // 👈 cast į int, jei OrderId yra int
+        .FirstOrDefaultAsync(o => o.OrderId == (int)orderId); 
 
     if (order is null)
         throw new InvalidOperationException("order_not_found");
@@ -43,7 +43,7 @@ namespace PsP.Services.Implementations
     if (order.BusinessId != businessId)
         throw new InvalidOperationException("wrong_business");
 
-    // 2) server-side total
+    
     var amountCents = CalculateOrderTotal(order);
     if (amountCents <= 0)
         throw new InvalidOperationException("invalid_order_total");
@@ -52,7 +52,7 @@ namespace PsP.Services.Implementations
     long plannedFromGiftCard = 0;
     long remainingForStripe  = amountCents;
 
-    // 3) gift card logic
+    
     if (!string.IsNullOrWhiteSpace(giftCardCode))
     {
         card = await _giftCards.GetByCodeAsync(giftCardCode)
@@ -101,7 +101,7 @@ namespace PsP.Services.Implementations
         Method               = method,
         GiftCardId           = plannedFromGiftCard > 0 ? card?.GiftCardId : null,
         BusinessId           = businessId,
-        OrderId              = (int)orderId, // 👈 ir čia cast
+        OrderId              = (int)orderId, 
         GiftCardPlannedCents = plannedFromGiftCard
     };
 
@@ -165,10 +165,9 @@ private static long CalculateOrderTotal(Order order)
         if (line.UnitPriceSnapshot <= 0)
             throw new InvalidOperationException("missing_price_snapshot");
 
-        // 1) suma eurais už eilutę
+        
         decimal lineTotalEur = line.UnitPriceSnapshot * line.Qty;
 
-        // 2) paverčiam į centus
         long lineTotalCents = (long)Math.Round(
             lineTotalEur * 100m,
             MidpointRounding.AwayFromZero
@@ -204,7 +203,7 @@ private static long CalculateOrderTotal(Order order)
                         p.BusinessId
                     );
 
-                    // saugom realiai nuskaitytą sumą
+                    
                     p.GiftCardPlannedCents = charged;
                 }
                 catch
@@ -221,7 +220,7 @@ private static long CalculateOrderTotal(Order order)
 
         public async Task RefundFullAsync(int paymentId)
         {
-            // Pasiimam payment
+            
             var p = await _db.Payments
                 .FirstOrDefaultAsync(x => x.PaymentId == paymentId);
 
@@ -235,16 +234,15 @@ private static long CalculateOrderTotal(Order order)
             if (refundAmount <= 0)
                 throw new InvalidOperationException("nothing_to_refund");
 
-            // 1) Pirma Stripe – kad jei čia nepavyks, DB neliesim
+            
             if (!string.IsNullOrEmpty(p.StripeSessionId))
             {
                 await _stripe.RefundAsync(p.StripeSessionId, refundAmount);
             }
 
-            // 2) DB tranzakcija: GiftCard + Payment status
+            
             await using var tx = await _db.Database.BeginTransactionAsync();
 
-            // GiftCard refund – jei buvo naudota
             if (p.GiftCardId is not null && p.GiftCardPlannedCents > 0)
             {
                 var ok = await _giftCards.TopUpAsync(p.GiftCardId.Value, p.GiftCardPlannedCents);
@@ -253,7 +251,7 @@ private static long CalculateOrderTotal(Order order)
             }
 
             p.Status = "Refunded";
-            // p.RefundedAt = DateTime.UtcNow; // jei turi tokį lauką
+            
 
             await _db.SaveChangesAsync();
             await tx.CommitAsync();

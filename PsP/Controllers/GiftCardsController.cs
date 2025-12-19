@@ -39,7 +39,7 @@ namespace PsP.Controllers
             return null;
         }
 
-        // ========== LIST ==========
+       
 
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<GiftCardResponse>), StatusCodes.Status200OK)]
@@ -63,7 +63,7 @@ namespace PsP.Controllers
             return Ok(resp);
         }
 
-        // ========== GET OPERATIONS ==========
+       
 
         [HttpGet("{id:int}")]
         [ProducesResponseType(typeof(GiftCardResponse), StatusCodes.Status200OK)]
@@ -123,7 +123,7 @@ namespace PsP.Controllers
             return Ok(giftCard.ToResponse());
         }
 
-        // ========== CREATE OPERATIONS ==========
+       
 
         [HttpPost]
         [ProducesResponseType(typeof(GiftCardResponse), StatusCodes.Status201Created)]
@@ -167,7 +167,7 @@ namespace PsP.Controllers
             }
         }
 
-        // ========== UPDATE OPERATIONS ==========
+        
 
         [HttpPatch("{id:int}/balance")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -219,7 +219,7 @@ namespace PsP.Controllers
             }
         }
 
-        // ========== BUSINESS OPERATIONS ==========
+        
 
         [HttpPost("{id:int}/transactions")]
         [ProducesResponseType(typeof(RedeemResponse), StatusCodes.Status200OK)]

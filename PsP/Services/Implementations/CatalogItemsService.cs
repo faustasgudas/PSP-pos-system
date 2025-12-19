@@ -16,7 +16,7 @@ public class CatalogItemsService : ICatalogItemsService
         _db = db;
     }
 
-    // Helper: single item
+   
     private Task<CatalogItem?> GetItemAsync(int businessId, int catalogItemId, bool tracking = true)
     {
         var q = _db.CatalogItems
@@ -28,10 +28,10 @@ public class CatalogItemsService : ICatalogItemsService
         return q.FirstOrDefaultAsync();
     }
 
-    // LIST
+   
     public async Task<IEnumerable<CatalogItemSummaryResponse>> ListAllAsync(
         int businessId,
-        int callerEmployeeId,   // JWT, ignore
+        int callerEmployeeId,  
         string? type,
         string? status,
         string? code)
@@ -56,23 +56,22 @@ public class CatalogItemsService : ICatalogItemsService
         return items.Select(c => c.ToSummaryResponse());
     }
 
-    // GET BY ID
+    
     public async Task<CatalogItemDetailResponse?> GetByIdAsync(
         int businessId,
         int catalogItemId,
-        int callerEmployeeId) // JWT, ignore
+        int callerEmployeeId) 
     {
         var item = await GetItemAsync(businessId, catalogItemId, tracking: false);
         return item?.ToDetailResponse();
     }
 
-    // CREATE
     public async Task<CatalogItemDetailResponse> CreateAsync(
         int businessId,
-        int callerEmployeeId,   // JWT, ignore
+        int callerEmployeeId,   
         CreateCatalogItemRequest body)
     {
-        // 1) patikrinam ar Code jau nenaudojamas tame pačiame business
+        
         if (!string.IsNullOrWhiteSpace(body.Code))
         {
             var exists = await _db.CatalogItems
@@ -85,7 +84,7 @@ public class CatalogItemsService : ICatalogItemsService
                 throw new InvalidOperationException("catalog_item_code_already_exists");
         }
 
-        // 2) sukuriam entity
+        
         var entity = body.ToNewEntity(businessId);
 
         _db.CatalogItems.Add(entity);
@@ -94,18 +93,18 @@ public class CatalogItemsService : ICatalogItemsService
         return entity.ToDetailResponse();
     }
 
-    // UPDATE
+  
     public async Task<CatalogItemDetailResponse?> UpdateAsync(
         int businessId,
         int catalogItemId,
-        int callerEmployeeId,   // JWT, ignore
+        int callerEmployeeId,   
         UpdateCatalogItemRequest body)
     {
         var entity = await GetItemAsync(businessId, catalogItemId, tracking: true);
         if (entity is null)
             return null;
 
-        // Jei request'e keičiam Code – reikia vėl patikrint unikalumą
+     
         if (!string.IsNullOrWhiteSpace(body.Code) &&
             !string.Equals(body.Code, entity.Code, StringComparison.OrdinalIgnoreCase))
         {
@@ -126,18 +125,18 @@ public class CatalogItemsService : ICatalogItemsService
         return entity.ToDetailResponse();
     }
 
-    // ARCHIVE
+   
     public async Task<bool> ArchiveAsync(
         int businessId,
         int catalogItemId,
-        int callerEmployeeId)   // JWT, ignore
+        int callerEmployeeId)   
     {
         var entity = await GetItemAsync(businessId, catalogItemId, tracking: true);
         if (entity is null)
             return false;
 
         if (string.Equals(entity.Status, "Archived", StringComparison.OrdinalIgnoreCase))
-            return true; // idempotent
+            return true; 
 
         entity.Status = "Archived";
         await _db.SaveChangesAsync();

@@ -10,8 +10,8 @@ public static class DiscountMappings
         DiscountId = d.DiscountId,
         BusinessId = d.BusinessId,
         Code       = d.Code,
-        Type       = d.Type,     // "Percent" | "Amount"
-        Scope      = d.Scope,    // "Order" | "Line"
+        Type       = d.Type,     
+        Scope      = d.Scope,    
         Value      = d.Value,
         StartsAt   = d.StartsAt,
         EndsAt     = d.EndsAt,
@@ -29,13 +29,13 @@ public static class DiscountMappings
         StartsAt     = d.StartsAt,
         EndsAt       = d.EndsAt,
         Status       = d.Status,
-        // flatten eligibilities for convenience
+        
         Eligibilities = d.Eligibilities?
             .Select(e => e.ToResponse())
             .ToList() ?? new List<DiscountEligibilityResponse>()
     };
 
-    // ===== Request -> Entity (create) =====
+   
     public static Discount ToNewEntity(this CreateDiscountRequest req, int businessId)
     {
         if (string.IsNullOrWhiteSpace(req.Code))  throw new ArgumentException("Code is required");
@@ -66,7 +66,7 @@ public static class DiscountMappings
         };
     }
 
-    // ===== Apply partial update =====
+    
     public static void ApplyUpdate(this UpdateDiscountRequest req, Discount d)
     {
         if (!string.IsNullOrWhiteSpace(req.Code))
@@ -84,7 +84,7 @@ public static class DiscountMappings
             d.Value = req.Value.Value;
         }
 
-        // date-window integrity: we accept independent changes but ensure Start < End at the end
+      
         var startsAt = req.StartsAt ?? d.StartsAt;
         var endsAt   = req.EndsAt   ?? d.EndsAt;
         if (req.StartsAt.HasValue || req.EndsAt.HasValue)
@@ -99,7 +99,7 @@ public static class DiscountMappings
             d.Status = NormalizeStatus(req.Status!);
     }
 
-    // ===== helpers =====
+    
     private static string NormalizeType(string type)
     {
         var t = type.Trim();
@@ -124,7 +124,7 @@ public static class DiscountMappings
                s;
     }
 
-    // convenience for lists
+    
     public static IEnumerable<DiscountSummaryResponse> ToSummaryResponses(this IEnumerable<Discount> q)
         => q.Select(d => d.ToSummaryResponse());
 }

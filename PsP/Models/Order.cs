@@ -23,8 +23,7 @@ public class Order
     public int? DiscountId { get; set; }
     public ICollection<OrderLine> Lines { get; set; } = new List<OrderLine>();
     
-    public ICollection<Payment> Payments { get; set; } = new List<Payment>(); // ← add this
-
+    public ICollection<Payment> Payments { get; set; } = new List<Payment>(); 
     public Business Business { get; set; } = null!;
     
     public Employee? Employee { get; set; }

@@ -13,7 +13,7 @@ public class OrdersBasicsTests
     [Fact]
     public async Task CreateOrder_WithTwoLines_PersistsSnapshots_AndNavs()
     {
-        await using var db = TestHelpers.NewInMemoryContext();  // <<< čia InMemory
+        await using var db = TestHelpers.NewInMemoryContext();  
         var (biz, emp) = TestHelpers.SeedBusinessAndEmployee(db);
         var item1 = TestHelpers.SeedCatalogItem(db, biz.BusinessId, "Espresso", "Food");
         var item2 = TestHelpers.SeedCatalogItem(db, biz.BusinessId, "Haircut", "Service");
@@ -77,7 +77,7 @@ public class OrdersBasicsTests
     {
         await using var db = TestHelpers.NewInMemoryContext();
 
-        // Arrange
+        
         var (biz, emp) = TestHelpers.SeedBusinessAndEmployee(db);
         var item = TestHelpers.SeedCatalogItem(db, biz.BusinessId);
 
@@ -105,14 +105,14 @@ public class OrdersBasicsTests
         });
         await db.SaveChangesAsync();
 
-        // Act + Assert
+       
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
         {
             db.Orders.Remove(order);
             await db.SaveChangesAsync();
         });
 
-        // Ensure the order lines still exist
+     
         var count = await db.OrderLines
             .Where(l => l.OrderId == order.OrderId)
             .CountAsync();

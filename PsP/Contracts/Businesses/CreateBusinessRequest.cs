@@ -22,7 +22,7 @@ public class CreateBusinessRequest
     public string Email { get; set; } = string.Empty;
 
     [Required]
-    [StringLength(2, MinimumLength = 2)] // pvz. "LT", "LV", "PL"
+    [StringLength(2, MinimumLength = 2)] 
     public string CountryCode { get; set; } = string.Empty;
 
     public bool PriceIncludesTax { get; set; }

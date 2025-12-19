@@ -143,9 +143,7 @@ public class ReservationTests
             });
     }
 
-    // ------------------------------------------------------------
-    // CREATE
-    // ------------------------------------------------------------
+    
 
     [Fact]
     public async Task CreateAsync_SetsBookedStatus_Start_Notes_Table_AndDurationFromCatalog()
@@ -173,7 +171,6 @@ public class ReservationTests
         Assert.Equal("VIP", created.Notes);
         Assert.Equal("A1", created.TableOrArea);
 
-        // sanity: bookedAt should be non-default
         Assert.NotEqual(default, created.BookedAt);
     }
 
@@ -244,7 +241,7 @@ public class ReservationTests
     {
         var (db, biz, owner, _, _, _, _, _, _) = Boot();
 
-        // Make a service with DefaultDurationMin = 0 (invalid)
+       
         var bad = new CatalogItem
         {
             BusinessId = biz.BusinessId,
@@ -284,7 +281,7 @@ public class ReservationTests
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             svc.CreateAsync(
                 biz.BusinessId,
-                staff.EmployeeId, // staff tries to create
+                staff.EmployeeId, 
                 new CreateReservationRequest
                 {
                     CatalogItemId = service60.CatalogItemId,
@@ -298,9 +295,7 @@ public class ReservationTests
             ex.Message.Contains("manager", StringComparison.OrdinalIgnoreCase));
     }
 
-    // ------------------------------------------------------------
-    // UPDATE
-    // ------------------------------------------------------------
+ 
 
     [Fact]
     public async Task UpdateAsync_Updates_Start_AndKeepsDurationFromCatalog()
@@ -349,7 +344,7 @@ public class ReservationTests
             owner.EmployeeId,
             new UpdateReservationRequest
             {
-                CatalogItemId = service45.CatalogItemId // switch service
+                CatalogItemId = service45.CatalogItemId 
             });
 
         Assert.Equal(service45.CatalogItemId, updated.CatalogItemId);
@@ -387,7 +382,7 @@ public class ReservationTests
         var (db, biz, owner, _, _, service60, _, _, _) = Boot();
         var svc = new ReservationService(db);
 
-        // Create reservation directly with status not Booked
+        
         var entity = new Reservation
         {
             BusinessId = biz.BusinessId,
@@ -435,10 +430,8 @@ public class ReservationTests
             ex.Message.Contains("manager", StringComparison.OrdinalIgnoreCase));
     }
 
-    // ------------------------------------------------------------
-    // CANCEL
-    // ------------------------------------------------------------
-
+ 
+   
     [Fact]
     public async Task CancelAsync_SetsStatusCancelled_WhenBooked()
     {
@@ -480,9 +473,7 @@ public class ReservationTests
         Assert.Contains("cancel", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
-    // ------------------------------------------------------------
-    // GET / LIST permissions & filters
-    // ------------------------------------------------------------
+
 
     [Fact]
     public async Task GetAsync_StaffCanGetOnlyOwn_ForbiddenForOthers()
@@ -496,11 +487,11 @@ public class ReservationTests
             DateTime.UtcNow.AddHours(1),
             notes: "staff own");
 
-        // staff can read own reservation
+        
         var ok = await svc.GetAsync(biz.BusinessId, own.ReservationId, staff.EmployeeId);
         Assert.Equal(own.ReservationId, ok.ReservationId);
 
-        // staff cannot read owner's reservation
+     
         var owners = await CreateBookedAsync(
             svc, biz.BusinessId, owner.EmployeeId,
             service60.CatalogItemId, owner.EmployeeId,
@@ -549,15 +540,15 @@ public class ReservationTests
 
         var now = DateTime.UtcNow;
 
-        // Create 3 booked reservations (2 for staff, 1 for owner)
+        
         var r1 = await CreateBookedAsync(svc, biz.BusinessId, owner.EmployeeId, service60.CatalogItemId, staff.EmployeeId, now.AddHours(1));
         var r2 = await CreateBookedAsync(svc, biz.BusinessId, owner.EmployeeId, service45.CatalogItemId, staff.EmployeeId, now.AddHours(2));
         var r3 = await CreateBookedAsync(svc, biz.BusinessId, owner.EmployeeId, service60.CatalogItemId, owner.EmployeeId, now.AddHours(3));
 
-        // Cancel one (manager)
+       
         await svc.CancelAsync(biz.BusinessId, r2.ReservationId, owner.EmployeeId);
 
-        // Manager list only Cancelled
+        
         var cancelled = await svc.ListAsync(
             biz.BusinessId,
             manager.EmployeeId,
@@ -569,7 +560,7 @@ public class ReservationTests
 
         Assert.Single(cancelled);
 
-        // Manager list only staff reservations for service60
+        
         var filtered = await svc.ListAsync(
             biz.BusinessId,
             manager.EmployeeId,

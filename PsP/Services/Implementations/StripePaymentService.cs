@@ -68,7 +68,7 @@ public class StripePaymentService : IStripePaymentService
         var refundService = new RefundService();
         var options = new RefundCreateOptions
         {
-            PaymentIntent = session.PaymentIntent.Id, // 👈 čia ID
+            PaymentIntent = session.PaymentIntent.Id,
             Amount        = amountCents
         };
 

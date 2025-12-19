@@ -18,9 +18,7 @@ public class StockItemsController : ControllerBase
         _stockItems = stockItems;
     }
 
-    /// <summary>
-    /// Patikrina, kad businessId iš JWT sutaptų su route ir grąžina employeeId iš JWT.
-    /// </summary>
+
     private ActionResult? EnsureBusinessMatchesRoute(int routeBusinessId, out int callerEmployeeId)
     {
         var jwtBizId = User.GetBusinessId();
@@ -34,7 +32,7 @@ public class StockItemsController : ControllerBase
         return null;
     }
 
-    // ===== LIST =====
+ 
 
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<StockItemSummaryResponse>), StatusCodes.Status200OK)]
@@ -62,7 +60,7 @@ public class StockItemsController : ControllerBase
         }
     }
 
-    // ===== GET ONE =====
+  
 
     [HttpGet("{stockItemId:int}")]
     [ProducesResponseType(typeof(StockItemDetailResponse), StatusCodes.Status200OK)]
@@ -92,7 +90,7 @@ public class StockItemsController : ControllerBase
         }
     }
 
-    // ===== CREATE =====
+  
 
     [HttpPost]
     [ProducesResponseType(typeof(StockItemDetailResponse), StatusCodes.Status201Created)]
@@ -129,7 +127,7 @@ public class StockItemsController : ControllerBase
         }
     }
 
-    // ===== UPDATE =====
+ 
 
     [HttpPut("{stockItemId:int}")]
     [ProducesResponseType(typeof(StockItemDetailResponse), StatusCodes.Status200OK)]
@@ -165,7 +163,7 @@ public class StockItemsController : ControllerBase
         }
     }
 
-    // ===== COMMON ERROR MAPPING =====
+  
 
     private ActionResult MapException(InvalidOperationException ex)
     {

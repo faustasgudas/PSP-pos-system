@@ -5,7 +5,7 @@ namespace PsP.Mappings;
 
 public static class GiftCardMappings
 {
-    // Entity -> Response DTO
+    
     public static GiftCardResponse ToResponse(this GiftCard entity) =>
         new GiftCardResponse
         {
@@ -17,7 +17,7 @@ public static class GiftCardMappings
             IssuedAt   = entity.IssuedAt
         };
 
-    // CreateGiftCardRequest -> naujas GiftCard entity
+    
     public static GiftCard ToNewEntity(this CreateGiftCardRequest req) =>
         new GiftCard
         {

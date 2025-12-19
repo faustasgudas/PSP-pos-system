@@ -23,7 +23,7 @@ public class AuthController : ControllerBase
         _jwtTokenService = jwtTokenService;
     }
 
-    // ========= REGISTER BUSINESS + OWNER =========
+  
 
     [AllowAnonymous]
     [HttpPost("register-business")]
@@ -76,14 +76,14 @@ public class AuthController : ControllerBase
             OwnerEmployeeId = owner.EmployeeId,
             Token           = token,
             BusinessType    = biz.BusinessType
-            // jei nori, čia irgi gali pridėti BusinessType = biz.BusinessType
+           
         };
 
         return Ok(resp);
     }
 
 
-    // ========= LOGIN =========
+   
 
     [AllowAnonymous]
     [HttpPost("login")]
@@ -115,7 +115,7 @@ public class AuthController : ControllerBase
         return Ok(new LoginResponse
         {
             Token        = token,
-            BusinessType = emp.Business.BusinessType  // 👈 čia frontend ui selector’iui
+            BusinessType = emp.Business.BusinessType  
         });
     }
 

@@ -5,7 +5,7 @@ namespace PsP.Mappings;
 
 public static class CatalogMappings
 {
-       // Entity -> Responses
+     
     public static CatalogItemSummaryResponse ToSummaryResponse(this CatalogItem c) => new()
     {
         CatalogItemId = c.CatalogItemId,
@@ -31,7 +31,7 @@ public static class CatalogMappings
         DefaultDurationMin = c.DefaultDurationMin
     };
 
-    // Request -> Entity
+   
     public static CatalogItem ToNewEntity(this CreateCatalogItemRequest req, int businessId)
     {
         if (string.IsNullOrWhiteSpace(req.Name)) throw new ArgumentException("Name required");
@@ -43,7 +43,7 @@ public static class CatalogMappings
         {
             BusinessId         = businessId,
             Name               = req.Name.Trim(),
-            Code               = req.Code.Trim().ToUpperInvariant(), // keep code normalized
+            Code               = req.Code.Trim().ToUpperInvariant(), 
             Type               = NormalizeType(req.Type),
             BasePrice          = req.BasePrice,
             Status             = NormalizeCatalogStatus(req.Status ?? "Active"),
@@ -52,7 +52,7 @@ public static class CatalogMappings
         };
     }
 
-    // Apply partial update
+   
     public static void ApplyUpdate(this UpdateCatalogItemRequest req, CatalogItem c)
     {
         if (!string.IsNullOrWhiteSpace(req.Name)) c.Name = req.Name.Trim();

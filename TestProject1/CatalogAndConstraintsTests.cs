@@ -101,7 +101,7 @@ public class CatalogAndConstraintsTests
         db.Discounts.Add(discount);
         await db.SaveChangesAsync();
 
-        // 1) First insert succeeds
+        
         db.DiscountEligibilities.Add(new DiscountEligibility
         {
             DiscountId = discount.DiscountId,
@@ -109,7 +109,7 @@ public class CatalogAndConstraintsTests
         });
         await db.SaveChangesAsync();
 
-        // 2) Duplicate insert in a fresh context -> DB unique constraint -> DbUpdateException
+      
         await using var db2 = TestHelpers.NewContext();
         db2.DiscountEligibilities.Add(new DiscountEligibility
         {

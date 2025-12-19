@@ -18,7 +18,7 @@ public class OrdersStockIntegrationTests
     private static AppDbContext CreateDbContext()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString()) // isolated DB per test
+            .UseInMemoryDatabase(Guid.NewGuid().ToString()) 
             .Options;
 
         return new AppDbContext(options);
@@ -31,8 +31,7 @@ public class OrdersStockIntegrationTests
 
         var ct = CancellationToken.None;
 
-        // === Arrange base data: business + owner employee =====================
-
+        
         var business = new Business
         {
             Name = "Test Biz",
@@ -54,31 +53,31 @@ public class OrdersStockIntegrationTests
             Role       = "Owner",
             Status     = "Active",
 
-            // ✅ required properties on Employee entity:
+            
             Email        = "owner@test.local",
-            PasswordHash = "dummy-hash",   // any non-empty string is enough for tests
-            // add any other non-nullable props if your Employee model has them
+            PasswordHash = "dummy-hash",   
+           
         };
         db.Employees.Add(owner);
         await db.SaveChangesAsync(ct);
 
-        // === Arrange catalog item (product) ===================================
+       
 
         var catalogItem = new CatalogItem
         {
             BusinessId = business.BusinessId,
             Name       = "Beer 0.5L",
             Code       = "BEER-05",
-            Type       = "Product",      // important: product so stock is used
+            Type       = "Product",      
             Status     = "Active",
-            TaxClass   = "Food",         // or whatever you use
+            TaxClass   = "Food",         
             BasePrice  = 5.0m,
-            DefaultDurationMin = 0       // since it's a product
+            DefaultDurationMin = 0      
         };
         db.CatalogItems.Add(catalogItem);
         await db.SaveChangesAsync(ct);
 
-        // === Arrange StockItem with initial qty ===============================
+        
 
         var stockItem = new StockItem
         {
@@ -90,19 +89,19 @@ public class OrdersStockIntegrationTests
         db.StockItems.Add(stockItem);
         await db.SaveChangesAsync(ct);
 
-        // === Create services (using real EF) =================================
+        
 
         var discounts      = new DiscountsService(db);
         var stockMovements = new StockMovementService(db);
         var orders         = new OrdersService(db, discounts, stockMovements);
 
-        // === 1) Create order ==================================================
+        
 
         var createOrderReq = new CreateOrderRequest
         {
             EmployeeId  = owner.EmployeeId,
             TableOrArea = "T1"
-            // ReservationId = null
+           
         };
 
         var orderDetail = await orders.CreateOrderAsync(
@@ -113,7 +112,7 @@ public class OrdersStockIntegrationTests
 
         var orderId = orderDetail.OrderId;
 
-        // === 2) Add line (qty 2) -> stock 10 -> 8, Sale movement =============
+        
 
         var addLineReq = new AddLineRequest
         {
@@ -134,7 +133,7 @@ public class OrdersStockIntegrationTests
             .AsNoTracking()
             .FirstAsync(s => s.StockItemId == stockItem.StockItemId, ct);
 
-        Assert.Equal(8m, stockAfterFirstSale.QtyOnHand); // 10 - 2
+        Assert.Equal(8m, stockAfterFirstSale.QtyOnHand); 
 
         var movementsAfterFirstSale = await db.StockMovements
             .AsNoTracking()
@@ -147,7 +146,7 @@ public class OrdersStockIntegrationTests
         Assert.Equal(-2m,   movementsAfterFirstSale[0].Delta);
         Assert.Equal(orderLineId, movementsAfterFirstSale[0].OrderLineId);
 
-        // === 3) Update line: increase from 2 -> 3 ============================
+        
 
         var updateReq = new UpdateLineRequest
         {
@@ -166,7 +165,7 @@ public class OrdersStockIntegrationTests
             .AsNoTracking()
             .FirstAsync(s => s.StockItemId == stockItem.StockItemId, ct);
 
-        // diff = +1 → 8 - 1 = 7
+        
         Assert.Equal(7m, stockAfterUpdate.QtyOnHand);
 
         var movementsAfterUpdate = await db.StockMovements
@@ -182,11 +181,11 @@ public class OrdersStockIntegrationTests
         Assert.Equal(-1m,    secondMove.Delta);
         Assert.Equal(orderLineId, secondMove.OrderLineId);
 
-        // === 4) Cancel order -> stock restored with RefundReturn =============
+       
 
         var cancelReq = new CancelOrderRequest
         {
-            EmployeeId = owner.EmployeeId,             // just to be consistent with contract
+            EmployeeId = owner.EmployeeId,            
             Reason     = "Integration test cancel"
         };
 
@@ -201,7 +200,7 @@ public class OrdersStockIntegrationTests
             .AsNoTracking()
             .FirstAsync(s => s.StockItemId == stockItem.StockItemId, ct);
 
-        // 7 on hand, order qty 3 → 7 + 3 = 10
+       
         Assert.Equal(10m, stockAfterCancel.QtyOnHand);
 
         var movementsAfterCancel = await db.StockMovements
@@ -210,7 +209,7 @@ public class OrdersStockIntegrationTests
             .OrderBy(m => m.StockMovementId)
             .ToListAsync(ct);
 
-        // 1 Sale (-2) + 1 Sale (-1) + 1 RefundReturn (+3) = 3 rows
+       
         Assert.Equal(3, movementsAfterCancel.Count);
 
         var refundMove = movementsAfterCancel.Last();

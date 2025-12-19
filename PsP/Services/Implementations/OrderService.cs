@@ -76,10 +76,10 @@ public class OrdersService : IOrdersService
 
     private static decimal CalcUnitDiscount(decimal unitPrice, Discount d)
     {
-        // 2dp rounding — consistent with money
+       
         if (d.Type == "Percent")
             return Math.Round(unitPrice * d.Value / 100m, 2, MidpointRounding.AwayFromZero);
-        // "Amount"
+    
         return Math.Round(d.Value, 2, MidpointRounding.AwayFromZero);
     }
 
@@ -87,7 +87,7 @@ public class OrdersService : IOrdersService
 
     private async Task<decimal> ResolveTaxRatePctAsync(Business business, string taxClass, CancellationToken ct)
     {
-        // pick a currently valid rule if present; if none, 0
+       
         var now = DateTime.UtcNow;
         var rule = await _db.TaxRules
             .AsNoTracking()
@@ -140,11 +140,11 @@ public class OrdersService : IOrdersService
     {
         var caller = await GetCallerAsync(businessId, callerEmployeeId, ct);
 
-        // Staff: only own orders; Managers/Owners: also own (by design of this endpoint)
+        
         var q = _db.Orders.AsNoTracking()
             .Where(o => o.BusinessId == businessId && o.EmployeeId == caller.EmployeeId);
 
-        // Usually “mine” shows current work => only Open by default.
+       
         q = q.Where(o => o.Status == "Open");
 
         var orders = await q.OrderByDescending(o => o.CreatedAt).ToListAsync(ct);
@@ -217,7 +217,7 @@ public class OrdersService : IOrdersService
 
         CancellationToken ct = default)
     {
-        // validate caller exists & belongs to business
+        
         var caller = await GetCallerAsync(businessId, callerEmployeeId, ct);
 
         if (callerEmployeeId != request.EmployeeId)
@@ -260,7 +260,7 @@ public class OrdersService : IOrdersService
         _db.Orders.Add(entity);
         await _db.SaveChangesAsync(ct);
 
-        // empty lines for fresh order
+       
         return entity.ToDetailResponse(Enumerable.Empty<OrderLine>());
     }
 
@@ -362,7 +362,7 @@ public class OrdersService : IOrdersService
                                ci => ci.BusinessId == businessId && ci.CatalogItemId == line.CatalogItemId, ct)
                        ?? throw new InvalidOperationException("Catalog item not found in this business.");
             
-            // Only return stock for products, not services
+            
             if (string.Equals(item.Type, "Product", StringComparison.OrdinalIgnoreCase))
             {
                 var stockItem = await _db.StockItems
@@ -413,8 +413,7 @@ public class OrdersService : IOrdersService
         if (!string.Equals(order.Status, "closed", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("Order can only be refunded if it was closed");
         
-        
-        //EnsureOpen(order);
+       
 
         
         
@@ -430,7 +429,7 @@ public class OrdersService : IOrdersService
                                ci => ci.BusinessId == businessId && ci.CatalogItemId == line.CatalogItemId, ct)
                        ?? throw new InvalidOperationException("Catalog item not found in this business.");
             
-            // Only return stock for products, not services
+          
             if (string.Equals(item.Type, "Product", StringComparison.OrdinalIgnoreCase))
             {
                 var stockItem = await _db.StockItems
@@ -494,7 +493,7 @@ public class OrdersService : IOrdersService
         
         EnsureOpen(order);
 
-        // Resolve snapshots from CatalogItem (+ tax)
+       
         var item = await _db.CatalogItems
                        .AsNoTracking()
                        .FirstOrDefaultAsync(
@@ -517,7 +516,7 @@ public class OrdersService : IOrdersService
             snapshot = _discounts.MakeLineDiscountSnapshot(discount, request.CatalogItemId, null);
         }
 
-        // Only check stock for products, not services
+      
         StockItem? stockItem = null;
         if (string.Equals(item.Type, "Product", StringComparison.OrdinalIgnoreCase))
         {
@@ -548,7 +547,7 @@ public class OrdersService : IOrdersService
         _db.OrderLines.Add(line);
         await _db.SaveChangesAsync(ct);
         
-        // Only create stock movement for products (not services)
+       
         if (string.Equals(item.Type, "Product", StringComparison.OrdinalIgnoreCase) && stockItem != null)
         {
             await _stockMovement.CreateAsync(
@@ -580,9 +579,7 @@ public class OrdersService : IOrdersService
         var caller = await GetCallerAsync(businessId, callerEmployeeId, ct);
         var order = await GetOrderEntityAsync(businessId, orderId, ct);
         EnsureCallerCanSeeOrder(caller, order);
-        //---------------------------------------------------------------------------------------------------------------------
-        //ensure open tik staffui, manager ir owner galetu pakeisti update line ir t.t mental not reikia padaryti !!!!!!!!!
-        //---------------------------------------------------------------------------------------------------------------------
+      
         EnsureOpen(order);
         
         
@@ -615,7 +612,7 @@ public class OrdersService : IOrdersService
                                ci => ci.BusinessId == businessId && ci.CatalogItemId == line.CatalogItemId, ct)
                        ?? throw new InvalidOperationException("Catalog item not found in this business.");
 
-            // Only check/update stock for products, not services
+           
             if (string.Equals(item.Type, "Product", StringComparison.OrdinalIgnoreCase))
             {
                 var stockItem = await _db.StockItems
@@ -642,7 +639,7 @@ public class OrdersService : IOrdersService
                 }
                 else
                 {
-                    // Return stock
+                    
                     await _stockMovement.CreateAsync(
                         businessId,
                         stockItem.StockItemId,
@@ -734,8 +731,7 @@ public class OrdersService : IOrdersService
 
         var order = await GetOrderEntityAsync(businessId, orderId, ct);
 
-        // if (order.Status == "Open")
-        //     throw new InvalidOperationException("Order is already open.");
+       
         if (!string.Equals(order.Status, "Cancelled", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("Order can only be reopened when they were cancelled");
 
@@ -759,7 +755,7 @@ public class OrdersService : IOrdersService
                                ci => ci.BusinessId == businessId && ci.CatalogItemId == line.CatalogItemId, ct)
                        ?? throw new InvalidOperationException("Catalog item not found in this business.");
             
-            // Only return stock for products, not services
+            
             if (string.Equals(item.Type, "Product", StringComparison.OrdinalIgnoreCase))
             {
                 var stockItem = await _db.StockItems

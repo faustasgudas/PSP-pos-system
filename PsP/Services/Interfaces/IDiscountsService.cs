@@ -57,7 +57,6 @@ public interface IDiscountsService
        Task DeleteDiscountAsync(
            int businessId, int callerId, int discountId, CancellationToken ct = default);
    
-       // Eligibilities
        Task<IEnumerable<DiscountEligibilityResponse>> ListEligibilitiesAsync(
            int businessId, int callerId, int discountId, CancellationToken ct = default);
    

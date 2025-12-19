@@ -11,27 +11,22 @@ namespace TestProject1;
 
 public class MoveOrderLinesTests
 {
-    // -------------------------
-    // Option A: SQLite in-memory
-    // -------------------------
+ 
     private static async Task<(AppDbContext db, DbConnection conn)> NewSqliteAsync()
     {
-        // Reuse your helper if you already have it; it creates schema too. :contentReference[oaicite:3]{index=3}
+        
         return await TestHelpers.TestDbSqlite.NewAsync();
     }
 
     private static OrdersService NewOrdersService(AppDbContext db)
     {
-        // MoveLinesAsync doesn't touch discounts/stock, but OrdersService needs them.
-        // Real services are fine; they won't be called by MoveLinesAsync.
+       
         var discounts = new DiscountsService(db);
         var stock = new StockMovementService(db);
         return new OrdersService(db, discounts, stock);
     }
 
-    // -------------------------
-    // Seeding helpers (local)
-    // -------------------------
+  
     private static Business SeedBusiness(AppDbContext db)
     {
         var biz = new Business
@@ -54,7 +49,7 @@ public class MoveOrderLinesTests
         {
             BusinessId = businessId,
             Name = name,
-            Role = role, // "Staff" / "Manager" / "Owner"
+            Role = role,
             Status = "Active",
             Email = Guid.NewGuid().ToString("N")[..6] + "@t.local",
             PasswordHash = "x"
@@ -121,7 +116,7 @@ public class MoveOrderLinesTests
             CatalogItemId = item.CatalogItemId,
             Qty = qty,
 
-            // snapshots (important: MoveLines clones snapshot fields)
+            
             ItemNameSnapshot = item.Name,
             CatalogTypeSnapshot = item.Type,
             UnitPriceSnapshot = item.BasePrice,
@@ -136,9 +131,7 @@ public class MoveOrderLinesTests
         return line;
     }
 
-    // -------------------------
-    // Happy paths
-    // -------------------------
+    
 
     [Fact]
     public async Task Move_FullLine_Reassigns_OrderId_NoClone()
@@ -213,17 +206,14 @@ public class MoveOrderLinesTests
         Assert.Single(cloned);
         Assert.Equal(2m, cloned[0].Qty);
 
-        // Snapshot fields copied (the service clones snapshots; this verifies split-bill correctness)
+      
         Assert.Equal(source.ItemNameSnapshot, cloned[0].ItemNameSnapshot);
         Assert.Equal(source.UnitPriceSnapshot, cloned[0].UnitPriceSnapshot);
         Assert.Equal(source.TaxClassSnapshot, cloned[0].TaxClassSnapshot);
         Assert.Equal(source.TaxRateSnapshotPct, cloned[0].TaxRateSnapshotPct);
     }
 
-    // -------------------------
-    // Validation / corner cases
-    // -------------------------
-
+  
     [Fact]
     public async Task Move_Rejects_DuplicateOrderLineId_InRequest()
     {
@@ -300,7 +290,7 @@ public class MoveOrderLinesTests
         var from = SeedOpenOrder(db, biz.BusinessId, staff.EmployeeId);
         var to   = SeedOpenOrder(db, biz.BusinessId, staff.EmployeeId);
 
-        // line exists, but belongs to "to" already, not "from"
+        
         var foreignLine = SeedLine(db, biz.BusinessId, to.OrderId, item, staff.EmployeeId, 1m);
 
         var svc = NewOrdersService(db);
@@ -422,7 +412,7 @@ public class MoveOrderLinesTests
 
         var svc = NewOrdersService(db);
 
-        // staff (alice) tries to move bob's order lines => Forbidden
+       
         var ex1 = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             svc.MoveLinesAsync(
                 biz.BusinessId, from.OrderId, alice.EmployeeId,
@@ -433,7 +423,7 @@ public class MoveOrderLinesTests
                 }));
         Assert.Contains("Forbidden", ex1.Message, StringComparison.OrdinalIgnoreCase);
 
-        // manager can
+        
         await svc.MoveLinesAsync(
             biz.BusinessId, from.OrderId, mgr.EmployeeId,
             new MoveOrderLinesRequest
@@ -460,7 +450,7 @@ public async Task Move_Preserves_LineDiscountSnapshot_And_DiscountId_On_FullMove
     var from = SeedOpenOrder(db, biz.BusinessId, staff.EmployeeId);
     var to   = SeedOpenOrder(db, biz.BusinessId, staff.EmployeeId);
 
-    // Create a line that already has a discount snapshot (as if created by AddLineAsync)
+    
     var line = SeedLine(db, biz.BusinessId, from.OrderId, item, staff.EmployeeId, qty: 5m);
     line.DiscountId = 777;
     line.UnitDiscountSnapshot = "{\"v\":1,\"scope\":\"Line\",\"type\":\"Percent\",\"value\":10}";
@@ -469,7 +459,7 @@ public async Task Move_Preserves_LineDiscountSnapshot_And_DiscountId_On_FullMove
 
     var svc = NewOrdersService(db);
 
-    // Split 2 out of 5 => clone
+    
     await svc.MoveLinesAsync(
         biz.BusinessId, from.OrderId, staff.EmployeeId,
         new MoveOrderLinesRequest
@@ -484,7 +474,7 @@ public async Task Move_Preserves_LineDiscountSnapshot_And_DiscountId_On_FullMove
     Assert.Equal(3m, source.Qty);
     Assert.Equal(2m, moved.Qty);
 
-    // Both keep exact snapshots/ids
+ 
     Assert.Equal(777, source.DiscountId);
     Assert.Equal(777, moved.DiscountId);
     Assert.Equal(source.UnitDiscountSnapshot, moved.UnitDiscountSnapshot);
@@ -548,7 +538,7 @@ public async Task Move_IsAtomic_When_SecondLineFails_NothingChanges()
 
     var svc = NewOrdersService(db);
 
-    // First move OK, second tries to move too much => should rollback both
+    
     await Assert.ThrowsAsync<InvalidOperationException>(() =>
         svc.MoveLinesAsync(
             biz.BusinessId, from.OrderId, staff.EmployeeId,
@@ -562,7 +552,7 @@ public async Task Move_IsAtomic_When_SecondLineFails_NothingChanges()
                 }
             }));
 
-    // Verify NOTHING changed (atomic)
+   
     var lines = await db.OrderLines.AsNoTracking().Where(x => x.BusinessId == biz.BusinessId).ToListAsync();
     Assert.Equal(2, lines.Count);
     Assert.All(lines, x => Assert.Equal(from.OrderId, x.OrderId));

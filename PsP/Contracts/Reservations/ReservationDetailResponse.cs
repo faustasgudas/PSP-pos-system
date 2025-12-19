@@ -6,5 +6,5 @@ public class ReservationDetailResponse : ReservationSummaryResponse
     public int PlannedDurationMin { get; set; }
     public string? Notes { get; set; }
     public string? TableOrArea { get; set; }
-    public int? OrderId { get; set; }              // linked after check-in (nullable)
+    public int? OrderId { get; set; }             
 }

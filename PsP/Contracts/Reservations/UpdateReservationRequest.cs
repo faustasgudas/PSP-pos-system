@@ -9,5 +9,5 @@ public class UpdateReservationRequest
     
     public string? Notes { get; set; }
     public string? TableOrArea { get; set; }
-    public string? Status { get; set; }            // "Booked" | "Cancelled" | "Completed"
+    public string? Status { get; set; }           
 }

@@ -11,7 +11,7 @@ public class DiscountSnapshotTests
     [Fact]
     public void MakeOrderDiscountSnapshot_RoundTrips()
     {
-        // arrange
+        
         var svc = NewSvc();
         var d = new Discount
         {
@@ -27,16 +27,16 @@ public class DiscountSnapshotTests
         };
         var capturedAt = DateTime.UtcNow;
 
-        // act
+       
         var json = svc.MakeOrderDiscountSnapshot(d, capturedAtUtc: capturedAt);
 
-        // assert (basic shape: camelCase)
+        
         Assert.Contains("\"discountId\":", json);
         Assert.Contains("\"scope\":\"Order\"", json);
         Assert.Contains("\"type\":\"Percent\"", json);
         Assert.Contains("\"value\":10", json);
 
-        // parse and verify fields
+        
         var parsed = svc.TryParseDiscountSnapshot(json);
         Assert.NotNull(parsed);
         Assert.Equal(1, parsed!.Version);
@@ -54,7 +54,7 @@ public class DiscountSnapshotTests
     [Fact]
     public void MakeLineDiscountSnapshot_RoundTrips()
     {
-        // arrange
+       
         var svc = NewSvc();
         var d = new Discount
         {
@@ -71,16 +71,16 @@ public class DiscountSnapshotTests
         var catalogItemId = 1234;
         var capturedAt = DateTime.UtcNow;
 
-        // act
+       
         var json = svc.MakeLineDiscountSnapshot(d, catalogItemId, capturedAt);
 
-        // assert shape
+       
         Assert.Contains("\"discountId\":", json);
         Assert.Contains("\"scope\":\"Line\"", json);
         Assert.Contains("\"type\":\"Amount\"", json);
         Assert.Contains("\"catalogItemId\":", json);
 
-        // parse and verify fields
+       
         var parsed = svc.TryParseDiscountSnapshot(json);
         Assert.NotNull(parsed);
         Assert.Equal(1, parsed!.Version);
@@ -129,7 +129,7 @@ public class DiscountSnapshotTests
         };
 
         var json = svc.MakeOrderDiscountSnapshot(d);
-        // spot-check a few camelCase names
+        
         Assert.Contains("\"discountId\":", json);
         Assert.Contains("\"capturedAtUtc\":", json);
         Assert.Contains("\"validFrom\":", json);
@@ -137,7 +137,7 @@ public class DiscountSnapshotTests
 
     private static void AssertClose(DateTime actual, DateTime expected, double secondsTolerance = 1.5)
     {
-        // JSON round-trip can slightly shift ticks; allow a small tolerance
+       
         var delta = (actual.ToUniversalTime() - expected.ToUniversalTime()).Duration();
         Assert.True(delta.TotalSeconds <= secondsTolerance,
             $"Timestamps differ by {delta.TotalSeconds:F3}s; expected <= {secondsTolerance}s");

@@ -5,7 +5,7 @@ namespace PsP.Mappings;
 
 public static class BusinessMappings
 {
-    // Entity -> Response DTO
+  
     public static BusinessResponse ToResponse(this Business entity) =>
         new BusinessResponse
         {
@@ -20,7 +20,7 @@ public static class BusinessMappings
             BusinessType    = entity.BusinessType
         };
 
-    // CreateBusinessRequest -> naujas Business entity
+    
     public static Business ToNewEntity(this CreateBusinessRequest req) =>
         new Business
         {
@@ -34,8 +34,7 @@ public static class BusinessMappings
             BusinessType = req.BusinessType
         };
 
-    // UpdateBusinessRequest -> "detached" Business su atnaujintom reikšmėm
-    // (BusinessService.UpdateAsync vis tiek perkopijuoja laukus į existing entity)
+
     public static Business ToUpdatedEntity(this UpdateBusinessRequest req, int id) =>
         new Business
         {

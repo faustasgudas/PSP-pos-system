@@ -102,10 +102,10 @@ public class StockItemService : IStockItemService
     {
         _ = await EnsureCallerIsManagerOrOwnerAsync(businessId, callerEmployeeId, ct);
 
-        // 1) CatalogItem turi būti tame business
+       
         var catalogItem = await GetCatalogItemForBusinessAsync(businessId, request.CatalogItemId, ct);
 
-        // 2) 1:1 – tik vienas StockItem per CatalogItem
+        
         var exists = await _db.StockItems
             .AsNoTracking()
             .AnyAsync(s => s.CatalogItemId == catalogItem.CatalogItemId, ct);
@@ -113,7 +113,7 @@ public class StockItemService : IStockItemService
         if (exists)
             throw new InvalidOperationException("stock_item_already_exists");
 
-        // 3) sukurti entity iš request
+      
         var entity = request.ToNewEntity();
 
         _db.StockItems.Add(entity);
@@ -141,7 +141,7 @@ public class StockItemService : IStockItemService
         if (stockItem is null)
             return null;
 
-        // keičiam tik Unit, o ne QtyOnHand/Cost (tie eina per StockMovements)
+       
         request.ApplyUpdate(stockItem);
 
         await _db.SaveChangesAsync(ct);

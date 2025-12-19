@@ -15,7 +15,7 @@ namespace PsP.Services.Implementations
             _db = db;
         }
 
-        // ========== READ ==========
+       
 
         public Task<GiftCard?> GetByIdAsync(int id) =>
             _db.GiftCards
@@ -53,7 +53,7 @@ namespace PsP.Services.Implementations
                 .ToListAsync();
         }
 
-        // ========== CREATE ==========
+       
 
         public async Task<GiftCard> CreateAsync(GiftCard card)
         {
@@ -66,7 +66,7 @@ namespace PsP.Services.Implementations
             return card;
         }
 
-        // ========== TOP UP ==========
+        
 
         public async Task<bool> TopUpAsync(int id, long amount)
         {
@@ -103,7 +103,7 @@ namespace PsP.Services.Implementations
             return false;
         }
 
-        // ========== REDEEM ==========
+       
 
         public async Task<(long charged, long remaining)> RedeemAsync(
             int id,
@@ -145,11 +145,10 @@ namespace PsP.Services.Implementations
                 }
             }
 
-            // neturėtume čia nueit
+           
             return (0, 0);
         }
 
-        // ========== DEACTIVATE ==========
 
         public async Task<bool> DeactivateAsync(int id)
         {
@@ -166,7 +165,7 @@ namespace PsP.Services.Implementations
             return true;
         }
 
-        // ========== VALIDACIJA ==========
+       
 
         private static void EnsureActiveAndNotExpired(GiftCard c)
         {

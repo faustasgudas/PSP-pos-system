@@ -150,7 +150,7 @@ static readonly JsonSerializerOptions JsonOptions = new()
     DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
 };
 
-// --- Writers ---
+
 public string MakeOrderDiscountSnapshot(Discount d, DateTime? capturedAtUtc = null)
 {
    
@@ -161,7 +161,7 @@ public string MakeOrderDiscountSnapshot(Discount d, DateTime? capturedAtUtc = nu
         DiscountId = d.DiscountId,
         Code = d.Code,
         Type = d.Type,
-        Scope = d.Scope,           // "Order"
+        Scope = d.Scope,          
         Value = d.Value,
         ValidFrom = d.StartsAt,
         ValidTo   = d.EndsAt,
@@ -227,11 +227,11 @@ private async Task<Employee> GetCallerAsync(int businessId, int callerEmployeeId
         return d;
     }
 
-    // ---------- Discounts ----------
+  
     public async Task<IEnumerable<DiscountSummaryResponse>> ListDiscountsAsync(
         int businessId, int callerId, CancellationToken ct = default)
     {
-        // Any employee in the business can list
+       
         _ = await GetCallerAsync(businessId, callerId, ct);
 
         var q = await _db.Discounts
@@ -241,7 +241,7 @@ private async Task<Employee> GetCallerAsync(int businessId, int callerEmployeeId
             .ThenByDescending(d => d.DiscountId)
             .ToListAsync(ct);
 
-        return q.ToSummaryResponses(); // uses your mapper
+        return q.ToSummaryResponses(); 
     }
 
     public async Task<DiscountDetailResponse> GetDiscountAsync(
@@ -255,7 +255,7 @@ private async Task<Employee> GetCallerAsync(int businessId, int callerEmployeeId
             .FirstOrDefaultAsync(x => x.DiscountId == discountId && x.BusinessId == businessId, ct);
 
         if (d is null) throw new InvalidOperationException("Discount not found");
-        return d.ToDetailResponse(); // mapper
+        return d.ToDetailResponse(); 
     }
 
     public async Task<DiscountDetailResponse> CreateDiscountAsync(
@@ -265,18 +265,18 @@ private async Task<Employee> GetCallerAsync(int businessId, int callerEmployeeId
         if (!IsManagerOrOwner(caller))
             throw new InvalidOperationException("Forbidden: only Manager/Owner can create discounts");
 
-        // Validate uniqueness of code within business
+      
         var codeNorm = (body.Code ?? "").Trim().ToUpperInvariant();
         var exists = await _db.Discounts
             .AsNoTracking()
             .AnyAsync(d => d.BusinessId == businessId && d.Code == codeNorm, ct);
         if (exists) throw new InvalidOperationException("Discount code already exists for this business");
 
-        var entity = body.ToNewEntity(businessId); // mapper validates fields
+        var entity = body.ToNewEntity(businessId); 
         _db.Discounts.Add(entity);
         await _db.SaveChangesAsync(ct);
 
-        // reload with eligibilities (empty on create)
+        
         var created = await _db.Discounts
             .AsNoTracking()
             .Include(x => x.Eligibilities)
@@ -294,7 +294,7 @@ private async Task<Employee> GetCallerAsync(int businessId, int callerEmployeeId
 
         var d = await GetDiscountOr404(businessId, discountId, ct);
 
-        // If code changes, enforce uniqueness
+       
         if (!string.IsNullOrWhiteSpace(body.Code))
         {
             var newCode = body.Code.Trim().ToUpperInvariant();
@@ -304,11 +304,11 @@ private async Task<Employee> GetCallerAsync(int businessId, int callerEmployeeId
             if (taken) throw new InvalidOperationException("Discount code already exists for this business");
         }
 
-        body.ApplyUpdate(d); // safe partial update (enforces window/value) via mapper
+        body.ApplyUpdate(d);
 
         await _db.SaveChangesAsync(ct);
 
-        // Return fresh detail
+        
         var updated = await _db.Discounts
             .AsNoTracking()
             .Include(x => x.Eligibilities)
@@ -326,18 +326,18 @@ private async Task<Employee> GetCallerAsync(int businessId, int callerEmployeeId
         var d = await _db.Discounts
             .Include(x => x.Eligibilities)
             .FirstOrDefaultAsync(x => x.DiscountId == discountId && x.BusinessId == businessId, ct);
-        if (d is null) return; // idempotent
+        if (d is null) return; 
 
         _db.Discounts.Remove(d);
         await _db.SaveChangesAsync(ct);
     }
 
-    // ---------- Eligibilities ----------
+  
     public async Task<IEnumerable<DiscountEligibilityResponse>> ListEligibilitiesAsync(
         int businessId, int callerId, int discountId, CancellationToken ct = default)
     {
         _ = await GetCallerAsync(businessId, callerId, ct);
-        // Ensure discount belongs to business
+        
         var exists = await _db.Discounts
             .AsNoTracking()
             .AnyAsync(x => x.DiscountId == discountId && x.BusinessId == businessId, ct);
@@ -382,13 +382,13 @@ private async Task<Employee> GetCallerAsync(int businessId, int callerEmployeeId
 
         var d = await GetDiscountOr404(businessId, discountId, ct);
 
-        // Ensure the catalog item is in the same business
+       
         var itemExists = await _db.CatalogItems
             .AsNoTracking()
             .AnyAsync(ci => ci.CatalogItemId == body.CatalogItemId && ci.BusinessId == businessId, ct);
         if (!itemExists) throw new InvalidOperationException("Catalog item not found for this business");
 
-        // Prevent duplicates gracefully
+     
         var already = await _db.DiscountEligibilities
             .AsNoTracking()
             .AnyAsync(e => e.DiscountId == discountId && e.CatalogItemId == body.CatalogItemId, ct);
@@ -397,7 +397,7 @@ private async Task<Employee> GetCallerAsync(int businessId, int callerEmployeeId
         var entity = body.ToNewEntity(discountId);
         _db.DiscountEligibilities.Add(entity);
 
-        // Save & return response
+        
         await _db.SaveChangesAsync(ct);
         return entity.ToResponse();
     }
@@ -409,7 +409,7 @@ private async Task<Employee> GetCallerAsync(int businessId, int callerEmployeeId
         if (!IsManagerOrOwner(caller))
             throw new InvalidOperationException("Forbidden: only Manager/Owner can remove eligibilities");
 
-        // Ensure discount belongs to business
+      
         var ok = await _db.Discounts
             .AsNoTracking()
             .AnyAsync(x => x.DiscountId == discountId && x.BusinessId == businessId, ct);
@@ -418,7 +418,7 @@ private async Task<Employee> GetCallerAsync(int businessId, int callerEmployeeId
         var row = await _db.DiscountEligibilities
             .FirstOrDefaultAsync(e => e.DiscountId == discountId && e.CatalogItemId == catalogItemId, ct);
 
-        if (row is null) return; // idempotent
+        if (row is null) return; 
 
         _db.DiscountEligibilities.Remove(row);
         await _db.SaveChangesAsync(ct);

@@ -55,7 +55,7 @@ public class StockMovementService : IStockMovementService
         "Receive", "Sale", "RefundReturn", "Waste", "Adjust"
     };
 
-    // 👇 paprasta normalizacija, nereikia reflection
+ 
     private static string NormalizeType(string type)
     {
         var t = type.Trim();
