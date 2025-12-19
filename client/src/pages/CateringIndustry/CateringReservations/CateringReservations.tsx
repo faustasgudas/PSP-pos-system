@@ -182,8 +182,7 @@ export default function CateringReservations(props: { goToNewReservation: () => 
                 <button
                     className="btn btn-primary"
                     onClick={props.goToNewReservation}
-                    disabled={!canManage}
-                    title={!canManage ? "Manager/Owner only" : ""}
+
                 >
                     <span>➕</span> New Reservation
                 </button>

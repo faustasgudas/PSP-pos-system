@@ -1,39 +1,78 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import "./CateringSettings.css";
 import { BeautySelect } from "../../../components/ui/BeautySelect";
+import { getUserFromToken } from "../../../utils/auth";
+import { getBusiness, updateBusiness, type Business } from "../../../frontapi/businessApi";
 
 export default function CateringSettings(props?: { onBack?: () => void }) {
+    const user = getUserFromToken();
+    const role = user?.role ?? "";
+    const isOwner = role === "Owner";
+    
     const businessId = Number(localStorage.getItem("businessId"));
-    const keyPrefix = useMemo(() => `biz:${businessId || "unknown"}:settings:`, [businessId]);
 
-    const [businessName, setBusinessName] = useState("Catering");
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [business, setBusiness] = useState<Business | null>(null);
+
+    const [businessName, setBusinessName] = useState("");
+    const [address, setAddress] = useState("");
+    const [phone, setPhone] = useState("");
+    const [email, setEmail] = useState("");
     const [country, setCountry] = useState("LT");
-    const [taxCalc, setTaxCalc] = useState("PerLine");
-    const [priceIncludesTax, setPriceIncludesTax] = useState("true");
+    const [priceIncludesTax, setPriceIncludesTax] = useState(true);
+    const [businessType, setBusinessType] = useState("Catering");
 
     const [saving, setSaving] = useState(false);
     const [savedAt, setSavedAt] = useState<number | null>(null);
 
     useEffect(() => {
-        const bn = localStorage.getItem(`${keyPrefix}businessName`);
-        const c = localStorage.getItem(`${keyPrefix}country`);
-        const tc = localStorage.getItem(`${keyPrefix}taxCalc`);
-        const pit = localStorage.getItem(`${keyPrefix}priceIncludesTax`);
+        const load = async () => {
+            if (!businessId) {
+                setError("Missing businessId");
+                setLoading(false);
+                return;
+            }
 
-        if (bn) setBusinessName(bn);
-        if (c) setCountry(c);
-        if (tc) setTaxCalc(tc);
-        if (pit) setPriceIncludesTax(pit);
-    }, [keyPrefix]);
+            try {
+                const biz = await getBusiness(businessId);
+                setBusiness(biz);
+                setBusinessName(biz.name || "");
+                setAddress(biz.address || "");
+                setPhone(biz.phone || "");
+                setEmail(biz.email || "");
+                setCountry(biz.countryCode || "LT");
+                setPriceIncludesTax(biz.priceIncludesTax ?? true);
+                setBusinessType(biz.businessType || "Catering");
+            } catch (e: any) {
+                setError(e?.message || "Failed to load business settings");
+            } finally {
+                setLoading(false);
+            }
+        };
 
-    const save = () => {
+        load();
+    }, [businessId]);
+
+    const save = async () => {
+        if (!businessId || !isOwner) return;
+        
         setSaving(true);
+        setError(null);
         try {
-            localStorage.setItem(`${keyPrefix}businessName`, businessName.trim() || "Catering");
-            localStorage.setItem(`${keyPrefix}country`, country);
-            localStorage.setItem(`${keyPrefix}taxCalc`, taxCalc);
-            localStorage.setItem(`${keyPrefix}priceIncludesTax`, priceIncludesTax);
+            const updated = await updateBusiness(businessId, {
+                name: businessName.trim() || "Catering",
+                address: address.trim() || "",
+                phone: phone.trim() || "",
+                email: email.trim() || "",
+                countryCode: country,
+                priceIncludesTax,
+                businessType,
+            });
+            setBusiness(updated);
             setSavedAt(Date.now());
+        } catch (e: any) {
+            setError(e?.message || "Failed to save settings");
         } finally {
             setSaving(false);
         }
@@ -48,57 +87,105 @@ export default function CateringSettings(props?: { onBack?: () => void }) {
                 </button>
             </div>
 
-            <div className="settings-panel">
-                <h3 className="settings-card-title">Business Settings</h3>
-
-                <div className="settings-form-grid">
-                    <div className="settings-field">
-                        <label>Business Name</label>
-                        <input
-                            type="text"
-                            value={businessName}
-                            onChange={(e) => setBusinessName(e.target.value)}
-                            placeholder="e.g. My Catering"
-                        />
-                    </div>
-
-                    <div className="settings-field">
-                        <label>Country</label>
-                        <BeautySelect value={country} onChange={setCountry} options={[{ value: "LT", label: "Lithuania" }]} />
-                    </div>
-
-                    <div className="settings-field">
-                        <label>Tax Calculation</label>
-                        <BeautySelect
-                            value={taxCalc}
-                            onChange={setTaxCalc}
-                            options={[
-                                { value: "PerLine", label: "Round tax per line" },
-                                { value: "PerOrder", label: "Round tax per order" },
-                            ]}
-                        />
-                    </div>
-
-                    <div className="settings-field">
-                        <label>Price Includes Tax</label>
-                        <BeautySelect
-                            value={priceIncludesTax}
-                            onChange={setPriceIncludesTax}
-                            options={[
-                                { value: "true", label: "Yes" },
-                                { value: "false", label: "No" },
-                            ]}
-                        />
+            {!isOwner ? (
+                <div className="settings-panel">
+                    <div className="card" style={{ borderColor: "rgba(214,40,40,0.3)", background: "rgba(214,40,40,0.08)", color: "#b01d1d" }}>
+                        Only the business owner can modify settings.
                     </div>
                 </div>
-
-                <div className="settings-actions" style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                    <button className="btn btn-success" onClick={save} disabled={saving}>
-                        {saving ? "Saving…" : "Save Settings"}
-                    </button>
-                    {savedAt && <span className="muted">Saved</span>}
+            ) : loading ? (
+                <div className="settings-panel">
+                    <div className="muted">Loading settings...</div>
                 </div>
-            </div>
+            ) : (
+                <>
+                    {error && (
+                        <div className="card" style={{ borderColor: "rgba(214,40,40,0.3)", background: "rgba(214,40,40,0.08)", color: "#b01d1d", marginBottom: 12 }}>
+                            {error}
+                        </div>
+                    )}
+
+                    <div className="settings-panel">
+                        <h3 className="settings-card-title">Business Settings</h3>
+
+                        <div className="settings-form-grid">
+                            <div className="settings-field">
+                                <label>Business Name</label>
+                                <input
+                                    type="text"
+                                    value={businessName}
+                                    onChange={(e) => setBusinessName(e.target.value)}
+                                    placeholder="e.g. My Catering"
+                                    disabled={saving}
+                                />
+                            </div>
+
+                            <div className="settings-field">
+                                <label>Address</label>
+                                <input
+                                    type="text"
+                                    value={address}
+                                    onChange={(e) => setAddress(e.target.value)}
+                                    placeholder="e.g. 123 Main St"
+                                    disabled={saving}
+                                />
+                            </div>
+
+                            <div className="settings-field">
+                                <label>Phone</label>
+                                <input
+                                    type="text"
+                                    value={phone}
+                                    onChange={(e) => setPhone(e.target.value)}
+                                    placeholder="e.g. +370..."
+                                    disabled={saving}
+                                />
+                            </div>
+
+                            <div className="settings-field">
+                                <label>Email</label>
+                                <input
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="e.g. info@business.com"
+                                    disabled={saving}
+                                />
+                            </div>
+
+                            <div className="settings-field">
+                                <label>Country</label>
+                                <BeautySelect 
+                                    value={country} 
+                                    onChange={setCountry} 
+                                    disabled={saving}
+                                    options={[{ value: "LT", label: "Lithuania" }]} 
+                                />
+                            </div>
+
+                            <div className="settings-field">
+                                <label>Price Includes Tax</label>
+                                <BeautySelect
+                                    value={priceIncludesTax ? "true" : "false"}
+                                    onChange={(val) => setPriceIncludesTax(val === "true")}
+                                    disabled={saving}
+                                    options={[
+                                        { value: "true", label: "Yes" },
+                                        { value: "false", label: "No" },
+                                    ]}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="settings-actions" style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                            <button className="btn btn-success" onClick={save} disabled={saving}>
+                                {saving ? "Saving…" : "Save Settings"}
+                            </button>
+                            {savedAt && <span className="muted">Saved at {new Date(savedAt).toLocaleTimeString()}</span>}
+                        </div>
+                    </div>
+                </>
+            )}
         </div>
     );
 }

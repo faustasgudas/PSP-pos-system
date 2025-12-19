@@ -62,7 +62,7 @@ export default function BeautyDashboard() {
     const user = getUserFromToken();
     const role = user?.role ?? null;
 
-    const [activeScreen, setActiveScreen] = useState<Screen>("dashboard");
+    const [activeScreen, setActiveScreen] = useState<Screen>(role === "Staff" ? "reservations" : "dashboard");
     const [activeOrderId, setActiveOrderId] = useState<number | null>(null);
     const [activeTab, setActiveTab] = useState<DashboardTab>("upcoming");
     const [employeeCount, setEmployeeCount] = useState<number | null>(null);
@@ -216,20 +216,24 @@ export default function BeautyDashboard() {
 
                 <div className="user-info">
                     {user ? `${user.email} (${user.role})` : ""}
-                    <button className="nav-btn" onClick={() => setActiveScreen("settings")}>
-                        ⚙️ Settings
-                    </button>
+                    {role !== "Staff" && (
+                        <button className="nav-btn" onClick={() => setActiveScreen("settings")}>
+                            ⚙️ Settings
+                        </button>
+                    )}
                 </div>
             </div>
 
             {/* NAVBAR */}
             <div className="navbar">
-                <button
-                    className={`nav-btn ${activeScreen === "dashboard" ? "active" : ""}`}
-                    onClick={() => setActiveScreen("dashboard")}
-                >
-                    📊 Dashboard
-                </button>
+                {role !== "Staff" && (
+                    <button
+                        className={`nav-btn ${activeScreen === "dashboard" ? "active" : ""}`}
+                        onClick={() => setActiveScreen("dashboard")}
+                    >
+                        📊 Dashboard
+                    </button>
+                )}
 
                 <button
                     className={`nav-btn ${activeScreen === "reservations" ? "active" : ""}`}
@@ -254,19 +258,23 @@ export default function BeautyDashboard() {
                     📋 Services
                 </button>
 
-                <button
-                    className={`nav-btn ${activeScreen === "inventory" ? "active" : ""}`}
-                    onClick={() => setActiveScreen("inventory")}
-                >
-                    📦 Inventory
-                </button>
+                {role !== "Staff" && (
+                    <button
+                        className={`nav-btn ${activeScreen === "inventory" ? "active" : ""}`}
+                        onClick={() => setActiveScreen("inventory")}
+                    >
+                        📦 Inventory
+                    </button>
+                )}
 
-                <button
-                    className={`nav-btn ${activeScreen === "payments" ? "active" : ""}`}
-                    onClick={() => setActiveScreen("payments")}
-                >
-                    💳 Payments
-                </button>
+                {role !== "Staff" && (
+                    <button
+                        className={`nav-btn ${activeScreen === "payments" ? "active" : ""}`}
+                        onClick={() => setActiveScreen("payments")}
+                    >
+                        💳 Payments
+                    </button>
+                )}
 
                 <button
                     className={`nav-btn ${activeScreen === "giftcards" ? "active" : ""}`}
@@ -294,7 +302,7 @@ export default function BeautyDashboard() {
 
             {/* MAIN CONTENT */}
             <div className="dashboard-container">
-                {activeScreen === "dashboard" && (
+                {activeScreen === "dashboard" && role !== "Staff" && (
                     <>
                         <div className="action-bar">
                             <h2 className="section-title">Today's Overview</h2>
@@ -409,8 +417,8 @@ export default function BeautyDashboard() {
 
                 {activeScreen === "employees" && role !== "Staff" && <BeautyEmployees />}
                 {activeScreen === "services" && <BeautyServices />}
-                {activeScreen === "inventory" && <BeautyInventory />}
-                {activeScreen === "payments" && <BeautyPayments />}
+                {activeScreen === "inventory" && role !== "Staff" && <BeautyInventory />}
+                {activeScreen === "payments" && role !== "Staff" && <BeautyPayments />}
                 {activeScreen === "giftcards" && <BeautyGiftCards />}
                 {activeScreen === "discounts" && role !== "Staff" && <BeautyDiscounts />}
                 {activeScreen === "settings" && <BeautySettings onBack={() => setActiveScreen("dashboard")} />}
