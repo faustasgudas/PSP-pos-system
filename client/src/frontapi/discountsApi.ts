@@ -34,8 +34,8 @@ async function readErrorMessage(res: Response): Promise<string> {
     }
 }
 
-export type DiscountType = "Percent" | "Amount" | string;
-export type DiscountScope = "Order" | "Line" | string;
+export type DiscountType = "Percent" | "Amount";
+export type DiscountScope = "Order" | "Line";
 
 export type DiscountSummary = {
     discountId: number;

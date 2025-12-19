@@ -379,3 +379,125 @@
 .modal-actions .btn-success {
     padding: 12px 28px;
 }
+
+/* ========================= */
+/* ✅ STOCK MOVEMENT HISTORY */
+/* ========================= */
+
+.modal-card--wide {
+    max-width: 980px;
+}
+
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+}
+
+.history-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: #023047;
+}
+
+.history-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.history-filters {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.history-filter {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.history-filter label {
+    font-size: 12px;
+    font-weight: 700;
+    opacity: 0.75;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.history-filter select,
+.history-filter input {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid #d7d7d7;
+    background: #fff;
+}
+
+.history-filter--actions {
+    justify-content: flex-end;
+}
+
+.history-error {
+    margin-top: 8px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(214, 40, 40, 0.25);
+    background: rgba(214, 40, 40, 0.06);
+}
+
+.inventory-table-wrap.history-table-wrap {
+    overflow: auto;
+}
+
+.delta-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 12px;
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.delta-pill.is-pos {
+    background: rgba(22, 163, 74, 0.10);
+    border-color: rgba(22, 163, 74, 0.22);
+    color: #166534;
+}
+
+.delta-pill.is-neg {
+    background: rgba(214, 40, 40, 0.10);
+    border-color: rgba(214, 40, 40, 0.22);
+    color: #991b1b;
+}
+
+.history-more {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
+}
+
+@media (max-width: 900px) {
+    .history-filters {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 520px) {
+    .history-filters {
+        grid-template-columns: 1fr;
+    }
+    .history-more {
+        justify-content: stretch;
+    }
+    .history-more .btn {
+        width: 100%;
+    }
+}

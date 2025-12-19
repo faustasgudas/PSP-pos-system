@@ -18,6 +18,7 @@ import {
 import { getUserFromToken } from "../../../utils/auth";
 import { logout } from "../../../frontapi/authApi";
 import { BeautySelect } from "../../../components/ui/BeautySelect";
+import { StockMovementHistoryModal } from "../../../components/StockMovementHistoryModal";
 
 function formatMoney(amount: number, currency: string = "EUR") {
     const n = Number(amount) || 0;
@@ -56,6 +57,12 @@ export default function CateringInventory() {
     const [query, setQuery] = useState("");
 
     const [selected, setSelected] = useState<CatalogItem | null>(null);
+
+    // Stock movement history (managers/owners only)
+    const [historyOpen, setHistoryOpen] = useState(false);
+    const [historyProduct, setHistoryProduct] = useState<CatalogItem | null>(null);
+    const [historyStock, setHistoryStock] = useState<StockItemSummary | null>(null);
+    const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
 
     // CREATE
     const [showCreate, setShowCreate] = useState(false);
@@ -223,6 +230,21 @@ export default function CateringInventory() {
         setEditProductId(null);
     };
 
+    useEffect(() => {
+        if (!selected) {
+            setHistoryOpen(false);
+            setHistoryProduct(null);
+            setHistoryStock(null);
+        }
+    }, [selected]);
+
+    const openHistory = (product: CatalogItem, stock: StockItemSummary) => {
+        if (!canManage) return;
+        setHistoryProduct(product);
+        setHistoryStock(stock);
+        setHistoryOpen(true);
+    };
+
     const doSaveProduct = async () => {
         if (saving) return;
         setError(null);
@@ -279,6 +301,7 @@ export default function CateringInventory() {
             });
 
             await load();
+            setHistoryRefreshKey((k) => k + 1);
         } catch (e: any) {
             setError(e?.message || "Failed to enable stock tracking");
         } finally {
@@ -324,6 +347,7 @@ export default function CateringInventory() {
             });
 
             await load();
+            setHistoryRefreshKey((k) => k + 1);
         } catch (e: any) {
             setError(e?.message || "Failed to set stock");
         } finally {
@@ -354,6 +378,7 @@ export default function CateringInventory() {
             });
 
             await load();
+            setHistoryRefreshKey((k) => k + 1);
         } catch (e: any) {
             setError(e?.message || "Failed to receive stock");
         } finally {
@@ -610,6 +635,20 @@ export default function CateringInventory() {
                                                 </button>
                                             </div>
                                         </div>
+
+                                        {canManage && (
+                                            <div className="modal-field">
+                                                <label>History</label>
+                                                <button
+                                                    className="btn btn-ghost"
+                                                    type="button"
+                                                    onClick={() => openHistory(selected, stock)}
+                                                    disabled={saving}
+                                                >
+                                                    View stock movements
+                                                </button>
+                                            </div>
+                                        )}
                                     </>
                                 );
                             })()}
@@ -623,6 +662,18 @@ export default function CateringInventory() {
                     </div>
                 </div>
             )}
+
+            <StockMovementHistoryModal
+                open={historyOpen}
+                onClose={() => setHistoryOpen(false)}
+                businessId={businessId}
+                stockItemId={historyStock?.stockItemId ?? 0}
+                productName={historyProduct?.name}
+                productCode={historyProduct?.code}
+                unit={historyStock?.unit}
+                canView={canManage}
+                refreshKey={historyRefreshKey}
+            />
         </div>
     );
 }

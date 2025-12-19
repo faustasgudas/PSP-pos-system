@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import "./BeautySettings.css";
 import { BeautySelect } from "../../../components/ui/BeautySelect";
 import { getUserFromToken } from "../../../utils/auth";
-import { getBusiness, updateBusiness, type Business } from "../../../frontapi/businessApi";
+import { getBusiness, updateBusiness } from "../../../frontapi/businessApi";
 
 export default function BeautySettings(props?: { onBack?: () => void }) {
     const user = getUserFromToken();
@@ -13,7 +13,6 @@ export default function BeautySettings(props?: { onBack?: () => void }) {
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [business, setBusiness] = useState<Business | null>(null);
 
     const [businessName, setBusinessName] = useState("");
     const [address, setAddress] = useState("");
@@ -36,7 +35,6 @@ export default function BeautySettings(props?: { onBack?: () => void }) {
 
             try {
                 const biz = await getBusiness(businessId);
-                setBusiness(biz);
                 setBusinessName(biz.name || "");
                 setAddress(biz.address || "");
                 setPhone(biz.phone || "");
@@ -60,7 +58,7 @@ export default function BeautySettings(props?: { onBack?: () => void }) {
         setSaving(true);
         setError(null);
         try {
-            const updated = await updateBusiness(businessId, {
+            await updateBusiness(businessId, {
                 name: businessName.trim() || "Beauty Salon",
                 address: address.trim() || "",
                 phone: phone.trim() || "",
@@ -69,7 +67,6 @@ export default function BeautySettings(props?: { onBack?: () => void }) {
                 priceIncludesTax,
                 businessType,
             });
-            setBusiness(updated);
             setSavedAt(Date.now());
         } catch (e: any) {
             setError(e?.message || "Failed to save settings");
