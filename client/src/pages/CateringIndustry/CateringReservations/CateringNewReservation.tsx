@@ -142,8 +142,10 @@ export default function CateringNewReservation(props: { goBack: () => void }) {
 
         if (!tableOrArea.trim()) return setError("Table is required (e.g. T12)");
 
-        const empId = employeeId ? Number(employeeId) : null;
-        if (employeeId && (!Number.isFinite(empId) || !empId)) return setError("Invalid employee selection");
+        // NOTE: backend rule: Staff can only create reservations for themselves.
+        // So for Staff we always send null to let backend auto-assign callerEmployeeId.
+        const empId = role === "Staff" ? null : employeeId ? Number(employeeId) : null;
+        if (employeeId && role !== "Staff" && (!Number.isFinite(empId) || !empId)) return setError("Invalid employee selection");
 
         if (!date || !time) return setError("Select date and time");
         const start = new Date(`${date}T${time}:00`);
@@ -183,18 +185,12 @@ export default function CateringNewReservation(props: { goBack: () => void }) {
             )}
 
             <div className="card" style={{ textAlign: "left" }}>
-                {!canManage && (
-                    <div className="muted" style={{ marginBottom: 10 }}>
-                        Only Owner/Manager can create reservations.
-                    </div>
-                )}
-
                 <div className="muted">Table</div>
                 <input
                     className="dropdown"
                     value={tableOrArea}
                     onChange={(e) => setTableOrArea(e.target.value)}
-                    disabled={saving || !canManage}
+                    disabled={saving}
                     placeholder="e.g. T12 / Patio"
                 />
 
@@ -208,7 +204,7 @@ export default function CateringNewReservation(props: { goBack: () => void }) {
                 <BeautySelect
                     value={employeeId}
                     onChange={setEmployeeId}
-                    disabled={loading || saving || !canManage}
+                    disabled={loading || saving || role === "Staff"}
                     placeholder="Select employee"
                     options={[
                         { value: "", label: "Select employee" },
@@ -218,6 +214,11 @@ export default function CateringNewReservation(props: { goBack: () => void }) {
                         })),
                     ]}
                 />
+                {role === "Staff" && (
+                    <div className="muted" style={{ marginTop: 8 }}>
+                        Staff can only create reservations for themselves (employee is auto-assigned).
+                    </div>
+                )}
 
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                     <div style={{ flex: 1, minWidth: 220 }}>
@@ -225,7 +226,7 @@ export default function CateringNewReservation(props: { goBack: () => void }) {
                             label="Date"
                             value={date}
                             onChange={setDate}
-                            disabled={saving || !canManage}
+                            disabled={saving}
                         />
                     </div>
                     <div style={{ flex: 1, minWidth: 220 }}>
@@ -233,7 +234,7 @@ export default function CateringNewReservation(props: { goBack: () => void }) {
                             label="Time"
                             value={time}
                             onChange={setTime}
-                            disabled={saving || !canManage}
+                            disabled={saving}
                             allowTyping={false}
                             minuteStep={15}
                             minTime="09:00"
@@ -249,10 +250,10 @@ export default function CateringNewReservation(props: { goBack: () => void }) {
                     placeholder="Optional: customer name, phone (+370...), allergies, special requests…"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    disabled={saving || !canManage}
+                    disabled={saving}
                 />
 
-                <button className="btn btn-primary" onClick={save} disabled={saving || loading || !canManage}>
+                <button className="btn btn-primary" onClick={save} disabled={saving || loading}>
                     {saving ? "Saving…" : "Create reservation"}
                 </button>
             </div>

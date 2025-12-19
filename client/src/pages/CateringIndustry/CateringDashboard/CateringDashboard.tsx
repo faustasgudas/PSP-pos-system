@@ -44,7 +44,8 @@ function isSameDay(a: Date, b: Date) {
 }
 
 function CateringMain(){
-    const [activeScreen, setActiveScreen] = useState<Screen>("dashboard");
+    const user = getUserFromToken();
+    const [activeScreen, setActiveScreen] = useState<Screen>(user?.role === "Staff" ? "reservations" : "dashboard");
     const [activeTab, setActiveTab] = useState<DashboardTab>("upcoming");
     const [activeOrderId, setActiveOrderId] = useState<number | null>(null);
 
@@ -58,8 +59,6 @@ function CateringMain(){
     const [upcomingReservations, setUpcomingReservations] = useState<ReservationSummary[]>([]);
     const [recentPayments, setRecentPayments] = useState<PaymentHistoryItem[]>([]);
     const [openOrdersCount, setOpenOrdersCount] = useState<number>(0);
-    
-    const user = getUserFromToken();
 
     const handleLogout = () => {
         localStorage.clear();
@@ -177,12 +176,14 @@ function CateringMain(){
 
             {/* Navbar */}
             <div className="navbar">
-                <button
-                    className={`nav-btn ${activeScreen === "dashboard" ? "active" : ""}`}
-                    onClick={() => setActiveScreen("dashboard")}
-                >
-                    <span>📊</span> Dashboard
-                </button>
+                {user?.role !== "Staff" && (
+                    <button
+                        className={`nav-btn ${activeScreen === "dashboard" ? "active" : ""}`}
+                        onClick={() => setActiveScreen("dashboard")}
+                    >
+                        <span>📊</span> Dashboard
+                    </button>
+                )}
                 
                 <button
                     className={`nav-btn ${activeScreen === "reservations" ? "active" : ""}`}
@@ -191,12 +192,14 @@ function CateringMain(){
                     <span>📅</span> Reservations
                 </button>
 
-                <button
-                    className={`nav-btn ${activeScreen === "employees" ? "active" : ""}`}
-                    onClick={() => setActiveScreen("employees")}
-                >
-                    <span>👥</span> Employees
-                </button>
+                {user?.role !== "Staff" && (
+                    <button
+                        className={`nav-btn ${activeScreen === "employees" ? "active" : ""}`}
+                        onClick={() => setActiveScreen("employees")}
+                    >
+                        <span>👥</span> Employees
+                    </button>
+                )}
 
                 <button
                     className={`nav-btn ${activeScreen === "orders" ? "active" : ""}`}
@@ -205,19 +208,23 @@ function CateringMain(){
                     <span>🧾</span> Orders
                 </button>
 
-                <button
-                    className={`nav-btn ${activeScreen === "inventory" ? "active" : ""}`}
-                    onClick={() => setActiveScreen("inventory")}
-                >
-                    <span>📦</span> Inventory
-                </button>
+                {user?.role !== "Staff" && (
+                    <button
+                        className={`nav-btn ${activeScreen === "inventory" ? "active" : ""}`}
+                        onClick={() => setActiveScreen("inventory")}
+                    >
+                        <span>📦</span> Inventory
+                    </button>
+                )}
                 
-                <button 
-                    className={`nav-btn ${activeScreen === "payments" ? "active" : ""}`}
-                    onClick={() => setActiveScreen("payments")}
-                >
-                    <span>💳</span> Payments
-                </button>
+                {user?.role !== "Staff" && (
+                    <button 
+                        className={`nav-btn ${activeScreen === "payments" ? "active" : ""}`}
+                        onClick={() => setActiveScreen("payments")}
+                    >
+                        <span>💳</span> Payments
+                    </button>
+                )}
 
                 <button 
                     className={`nav-btn ${activeScreen === "gift-cards" ? "active" : ""}`}
@@ -239,7 +246,7 @@ function CateringMain(){
             {/* Screen Switch */}
             <div className="dashboard-container">
                 {/* Dashboard */}
-                {activeScreen === "dashboard" && (
+                {activeScreen === "dashboard" && user?.role !== "Staff" && (
                     <>
                         <div className="action-bar">
                             <h2 className="section-title">Today's Overview</h2>
@@ -424,11 +431,11 @@ function CateringMain(){
                         onBack={() => setActiveScreen("order-detail")}
                     />
                 )}
-                {activeScreen === "employees" && (<CateringEmployees />)}
-                {activeScreen === "inventory" && (<CateringInventory />)}
-                {activeScreen === "payments" && (<CateringPayments />)}
+                {activeScreen === "employees" && user?.role !== "Staff" && (<CateringEmployees />)}
+                {activeScreen === "inventory" && user?.role !== "Staff" && (<CateringInventory />)}
+                {activeScreen === "payments" && user?.role !== "Staff" && (<CateringPayments />)}
                 {activeScreen === "gift-cards" && (<CateringGiftCards />)}
-                {activeScreen === "discounts" && (<CateringDiscounts />)}
+                {activeScreen === "discounts" && user?.role !== "Staff" && (<CateringDiscounts />)}
                 {activeScreen === "settings" && <CateringSettings onBack={() => setActiveScreen("dashboard")} />}
             </div>
         </div>
