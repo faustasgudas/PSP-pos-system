@@ -76,7 +76,6 @@ public class AuthController : ControllerBase
             OwnerEmployeeId = owner.EmployeeId,
             Token           = token,
             BusinessType    = biz.BusinessType
-            // jei nori, čia irgi gali pridėti BusinessType = biz.BusinessType
         };
 
         return Ok(resp);

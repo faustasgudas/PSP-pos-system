@@ -18,9 +18,7 @@ public class StockItemsController : ControllerBase
         _stockItems = stockItems;
     }
 
-    /// <summary>
-    /// Patikrina, kad businessId iš JWT sutaptų su route ir grąžina employeeId iš JWT.
-    /// </summary>
+ 
     private ActionResult? EnsureBusinessMatchesRoute(int routeBusinessId, out int callerEmployeeId)
     {
         var jwtBizId = User.GetBusinessId();

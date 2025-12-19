@@ -16,7 +16,6 @@ public class CatalogItemsService : ICatalogItemsService
         _db = db;
     }
 
-    // Helper: single item
     private Task<CatalogItem?> GetItemAsync(int businessId, int catalogItemId, bool tracking = true)
     {
         var q = _db.CatalogItems
@@ -28,10 +27,9 @@ public class CatalogItemsService : ICatalogItemsService
         return q.FirstOrDefaultAsync();
     }
 
-    // LIST
     public async Task<IEnumerable<CatalogItemSummaryResponse>> ListAllAsync(
         int businessId,
-        int callerEmployeeId,   // JWT, ignore
+        int callerEmployeeId,
         string? type,
         string? status,
         string? code)
@@ -56,7 +54,6 @@ public class CatalogItemsService : ICatalogItemsService
         return items.Select(c => c.ToSummaryResponse());
     }
 
-    // GET BY ID
     public async Task<CatalogItemDetailResponse?> GetByIdAsync(
         int businessId,
         int catalogItemId,
@@ -66,13 +63,12 @@ public class CatalogItemsService : ICatalogItemsService
         return item?.ToDetailResponse();
     }
 
-    // CREATE
+
     public async Task<CatalogItemDetailResponse> CreateAsync(
         int businessId,
         int callerEmployeeId,   // JWT, ignore
         CreateCatalogItemRequest body)
     {
-        // 1) patikrinam ar Code jau nenaudojamas tame pačiame business
         if (!string.IsNullOrWhiteSpace(body.Code))
         {
             var exists = await _db.CatalogItems
@@ -85,7 +81,6 @@ public class CatalogItemsService : ICatalogItemsService
                 throw new InvalidOperationException("catalog_item_code_already_exists");
         }
 
-        // 2) sukuriam entity
         var entity = body.ToNewEntity(businessId);
 
         _db.CatalogItems.Add(entity);
@@ -94,7 +89,6 @@ public class CatalogItemsService : ICatalogItemsService
         return entity.ToDetailResponse();
     }
 
-    // UPDATE
     public async Task<CatalogItemDetailResponse?> UpdateAsync(
         int businessId,
         int catalogItemId,
@@ -105,7 +99,6 @@ public class CatalogItemsService : ICatalogItemsService
         if (entity is null)
             return null;
 
-        // Jei request'e keičiam Code – reikia vėl patikrint unikalumą
         if (!string.IsNullOrWhiteSpace(body.Code) &&
             !string.Equals(body.Code, entity.Code, StringComparison.OrdinalIgnoreCase))
         {
@@ -126,7 +119,6 @@ public class CatalogItemsService : ICatalogItemsService
         return entity.ToDetailResponse();
     }
 
-    // ARCHIVE
     public async Task<bool> ArchiveAsync(
         int businessId,
         int catalogItemId,

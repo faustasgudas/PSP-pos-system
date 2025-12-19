@@ -10,7 +10,6 @@ namespace PsP.Controllers;
 
 [ApiController]
 [Route("api/tax-rules")]
-//[Authorize(Roles = "Owner,Manager")]
 public class TaxRulesController : ControllerBase
 {
     private readonly AppDbContext _db;

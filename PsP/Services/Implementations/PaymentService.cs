@@ -23,10 +23,7 @@ public class PaymentService : IPaymentService
         _db = db;
         _stripe = stripe;
     }
-
-    // ============================================================
-    // PUBLIC API
-    // ============================================================
+    
 
     public async Task<PaymentResponse> CreatePaymentAsync(
         int orderId,
@@ -175,9 +172,7 @@ public class PaymentService : IPaymentService
         await tx.CommitAsync(ct);
     }
 
-    // ============================================================
-    // PAYMENT FINALIZATION
-    // ============================================================
+
 
     private async Task FinalizePaymentSuccessAsync(
         int paymentId,
@@ -219,9 +214,6 @@ public class PaymentService : IPaymentService
         await tx.CommitAsync(ct);
     }
 
-    // ============================================================
-    // TOTAL CALCULATION (CORE FIX)
-    // ============================================================
 
 private static long CalculateOrderTotalCents(Order order)
 {
@@ -246,15 +238,13 @@ private static long CalculateOrderTotalCents(Order order)
 
         if (type == "Percent")
         {
-            // value = percent (e.g. 10 => 10%)
             var pct = Math.Max(0m, value);
             var discounted = (decimal)netCents * (1m - pct / 100m);
-            return ClampLong(ToCents(discounted / 100m), 0, netCents); // discounted is in cents, convert carefully
+            return ClampLong(ToCents(discounted / 100m), 0, netCents);
         }
 
         if (type == "Amount")
         {
-            // value = money amount in major units (e.g. 5.00 => 5€)
             var discCents = Math.Max(0L, ToCents(value));
             return ClampLong(netCents - discCents, 0, netCents);
         }
@@ -269,17 +259,15 @@ private static long CalculateOrderTotalCents(Order order)
         return ToCents(tax);
     }
 
-    // 1) Build valid lines: net (after line discounts), tax rate
     var lines = new List<(long NetBeforeOrderCents, decimal TaxRatePct)>();
 
     foreach (var line in order.Lines)
     {
         if (line.Qty <= 0 || line.UnitPriceSnapshot <= 0) continue;
 
-        var gross = line.UnitPriceSnapshot * line.Qty;      // decimal money
+        var gross = line.UnitPriceSnapshot * line.Qty;      
         var grossCents = ToCents(gross);
-
-        // Apply line/unit discount snapshot (Percent or Amount)
+        
         var netCents = ApplyDiscountCents(grossCents, line.UnitDiscountSnapshot);
 
         var taxRate = Math.Max(0m, line.TaxRateSnapshotPct);
@@ -292,7 +280,6 @@ private static long CalculateOrderTotalCents(Order order)
     var netSubtotalCents = lines.Sum(l => l.NetBeforeOrderCents);
     if (netSubtotalCents <= 0) return 0;
 
-    // 2) Compute TOTAL order discount in cents (then allocate like Amount)
     var orderType = GetDiscountType(order.OrderDiscountSnapshot);
     var orderValue = GetDiscountValue(order.OrderDiscountSnapshot);
 
@@ -303,7 +290,6 @@ private static long CalculateOrderTotalCents(Order order)
         if (orderType == "Percent")
         {
             var pct = Math.Max(0m, orderValue);
-            // total discount = round(subtotal * pct)
             var disc = FromCents(netSubtotalCents) * (pct / 100m);
             orderDiscountTotalCents = ToCents(disc);
         }
@@ -315,30 +301,22 @@ private static long CalculateOrderTotalCents(Order order)
 
     orderDiscountTotalCents = ClampLong(orderDiscountTotalCents, 0, netSubtotalCents);
 
-    // 3) Allocate order discount across lines proportionally (exact cents)
     var discountedNetCents = new long[lines.Count];
     var discountShareCents = new long[lines.Count];
 
     if (orderDiscountTotalCents > 0)
     {
-        // Largest remainder method:
-        // share_i = floor(D * net_i / subtotal)
-        // distribute leftover cents to biggest remainders
         var remainders = new (int idx, long rem)[lines.Count];
 
         long allocated = 0;
         for (int i = 0; i < lines.Count; i++)
         {
             long net = lines[i].NetBeforeOrderCents;
-
-            // raw = D * net
-            // share = raw / subtotal
-            // rem = raw % subtotal
+            
             long raw = checked(orderDiscountTotalCents * net);
             long share = raw / netSubtotalCents;
             long rem = raw % netSubtotalCents;
 
-            // never discount more than the line net
             share = ClampLong(share, 0, net);
 
             discountShareCents[i] = share;
@@ -349,21 +327,18 @@ private static long CalculateOrderTotalCents(Order order)
         long leftover = orderDiscountTotalCents - allocated;
         if (leftover > 0)
         {
-            Array.Sort(remainders, (a, b) => b.rem.CompareTo(a.rem)); // desc by remainder
+            Array.Sort(remainders, (a, b) => b.rem.CompareTo(a.rem));
 
             for (int k = 0; k < remainders.Length && leftover > 0; k++)
             {
                 int i = remainders[k].idx;
-
-                // add 1 cent if line still has room
+                
                 if (discountShareCents[i] < lines[i].NetBeforeOrderCents)
                 {
                     discountShareCents[i] += 1;
                     leftover -= 1;
                 }
             }
-
-            // If still leftover (all lines hit zero), it effectively can't be applied — ignore.
         }
 
         for (int i = 0; i < lines.Count; i++)
@@ -378,7 +353,6 @@ private static long CalculateOrderTotalCents(Order order)
             discountedNetCents[i] = lines[i].NetBeforeOrderCents;
     }
 
-    // 4) Tax per line, totals
     long finalNetCents = 0;
     long taxTotalCents = 0;
 
@@ -391,9 +365,6 @@ private static long CalculateOrderTotalCents(Order order)
     return finalNetCents + taxTotalCents;
 }
 
-    // ============================================================
-    // HELPERS
-    // ============================================================
 
     private static decimal Round2(decimal v)
         => Math.Round(v, 2, MidpointRounding.AwayFromZero);
@@ -463,7 +434,6 @@ private static long CalculateOrderTotalCents(Order order)
 
         var totalCents = p.AmountCents + p.TipCents;
 
-        // Stripe refund
         if (!string.IsNullOrEmpty(p.StripeSessionId))
         {
             var stripeAmount = Math.Max(0, totalCents - p.GiftCardChargedCents);
@@ -474,7 +444,6 @@ private static long CalculateOrderTotalCents(Order order)
         await using var tx = await _db.Database.BeginTransactionAsync(
             System.Data.IsolationLevel.Serializable, ct);
 
-        // Refund gift card
         if (p.GiftCardId.HasValue && p.GiftCardChargedCents > 0)
         {
             var card = await _db.GiftCards
@@ -487,8 +456,6 @@ private static long CalculateOrderTotalCents(Order order)
         p.RefundedAt = DateTime.UtcNow;
         p.IsOpen = false;
 
-        var order = await _db.Orders.FirstAsync(o => o.OrderId == p.OrderId, ct);
-        order.ApplyRefund();
 
         
         await _db.SaveChangesAsync(ct);

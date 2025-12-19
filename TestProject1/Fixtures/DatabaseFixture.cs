@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PsP.Data;
+using Xunit;
 
 namespace TestProject1.Fixtures;
 
@@ -7,9 +8,9 @@ public class DatabaseFixture : IAsyncLifetime
 {
     public AppDbContext Db { get; private set; } = null!;
 
-    // Same connection you use in your appsettings (Docker Postgres)
+    // IMPORTANT: use a dedicated TEST database
     private const string Conn =
-        "Host=localhost;Port=5432;Database=pspdb;Username=postgres;Password=postgres";
+        "Host=localhost;Port=5432;Database=pspdb_test;Username=postgres;Password=postgres";
 
     public async Task InitializeAsync()
     {
@@ -19,10 +20,16 @@ public class DatabaseFixture : IAsyncLifetime
             .Options;
 
         Db = new AppDbContext(opts);
-        await Db.Database.MigrateAsync(); // applies your EF migrations
+
+        // Ensure a clean schema for each test run
+        await Db.Database.EnsureDeletedAsync();
+        await Db.Database.MigrateAsync();
     }
 
-    public async Task DisposeAsync() => await Db.DisposeAsync();
+    public async Task DisposeAsync()
+    {
+        await Db.DisposeAsync();
+    }
 }
 
 [CollectionDefinition("db")]

@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 using PsP.Contracts.Common;
-using PsP.Contracts.Payments;
+using PsP.Contracts.Orders;
+using PsP.Data;
 using PsP.Services.Interfaces;
+using PsP.Contracts.Payments;
+using PsP.Contracts.Orders;
 
 namespace PsP.Controllers;
 
@@ -15,10 +17,14 @@ public class PaymentController : ControllerBase
 {
     private readonly IPaymentService _payments;
     private readonly ILogger<PaymentController> _logger;
+    private readonly AppDbContext _db;
+    private readonly IOrdersService _orders;
 
-    public PaymentController(IPaymentService payments, ILogger<PaymentController> logger)
+    public PaymentController(IPaymentService payments, IOrdersService orders, AppDbContext db, ILogger<PaymentController> logger)
     {
         _payments = payments;
+        _orders = orders;
+        _db = db;
         _logger = logger;
     }
 
@@ -28,11 +34,7 @@ public class PaymentController : ControllerBase
                     ?? throw new InvalidOperationException("Missing businessId claim");
         return int.Parse(claim.Value);
     }
-
-    /// <summary>
-    /// Sukuria naują apmokėjimą (Stripe + optional GiftCard).
-    /// Suma visada skaičiuojama backend'e pagal Order eilutes.
-    /// </summary>
+    
     [HttpPost]
     [ProducesResponseType(typeof(PaymentResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
@@ -48,8 +50,7 @@ public class PaymentController : ControllerBase
         {
             var baseUrl = $"{Request.Scheme}://{Request.Host}";
 
-            var frontendBaseUrl = "http://localhost:5173"; // dev
-// arba paimk iš config, žr. apačioj
+            var frontendBaseUrl = "http://localhost:5173"; 
 
             var result = await _payments.CreatePaymentAsync(
                 orderId: request.OrderId,
@@ -69,34 +70,57 @@ public class PaymentController : ControllerBase
             return BadRequest(new ApiErrorResponse("Payment failed", ex.Message));
         }
     }
-
-
-   
-
-
-    /// <summary>
-    /// Full refund (MVP). Galėtų būti tik Owner/Manager – jei nori, pridėk [Authorize(Roles="Owner,Manager")].
-    /// </summary>
+    
     [HttpPost("{paymentId:int}/refund")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [Authorize(Roles = "Owner,Manager")]
+    [ProducesResponseType(typeof(OrderDetailResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Refund(int paymentId)
+    public async Task<IActionResult> Refund(
+        int paymentId,
+        [FromBody] CancelOrderRequest request,
+        CancellationToken ct)
     {
+        var businessId = GetBusinessIdFromToken();
+        var callerEmployeeId = GetEmployeeIdFromToken();
+
         try
         {
-            await _payments.RefundFullAsync(paymentId);
-            return Ok(new { message = "Refund processed" });
+            var p = await _db.Payments
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.PaymentId == paymentId, ct)
+                ?? throw new InvalidOperationException("payment_not_found");
+
+            if (p.BusinessId != businessId)
+                throw new InvalidOperationException("wrong_business");
+
+            var order = await _db.Orders
+                .AsNoTracking()
+                .FirstOrDefaultAsync(o => o.BusinessId == businessId && o.OrderId == p.OrderId, ct)
+                ?? throw new InvalidOperationException("order_not_found");
+
+            if (!string.Equals(order.Status, "Closed", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("order_not_closed");
+
+            await _payments.RefundFullAsync(paymentId, ct);
+
+            var result = await _orders.RefundOrderAsync(
+                businessId,
+                p.OrderId,
+                callerEmployeeId,
+                request,
+                ct);
+
+            return Ok(result);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Refund failed for {PaymentId}", paymentId);
+            _logger.LogWarning(ex, "Refund failed for PaymentId={PaymentId}", paymentId);
             return BadRequest(new ApiErrorResponse("Refund failed", ex.Message));
         }
     }
 
-    /// <summary>
-    /// Visi business payment'ai (pagal JWT businessId).
-    /// </summary>
+
+
     [HttpGet("history")]
     public async Task<IActionResult> GetPaymentsForBusiness()
     {
@@ -105,9 +129,7 @@ public class PaymentController : ControllerBase
         return Ok(list); // jei norėsi – perdaryk į DTO
     }
 
-    /// <summary>
-    /// Vieno order payment'ai (pagal JWT businessId).
-    /// </summary>
+
     [HttpGet("orders/{orderId:int}")]
     public async Task<IActionResult> GetPaymentsForOrder(int orderId)
     {
@@ -115,6 +137,18 @@ public class PaymentController : ControllerBase
         var list = await _payments.GetPaymentsForOrderAsync(businessId, orderId);
         return Ok(list);
     }
+    [AllowAnonymous]
+    [HttpPost("stripe/cancel")]
+    public async Task<IActionResult> CancelStripe([FromQuery] string sessionId, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(sessionId))
+            return BadRequest(new ApiErrorResponse("Cancel failed", "missing_sessionId"));
+
+        await _payments.CancelStripeAsync(sessionId, ct);
+        return Ok();
+    }
+
+
     
     private int GetEmployeeIdFromToken()
     {

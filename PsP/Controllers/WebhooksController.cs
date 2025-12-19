@@ -58,15 +58,8 @@ public class WebhooksController : ControllerBase
         {
             if (stripeEvent.Type == "checkout.session.completed")
             {
-                // ✅ patikimiausias būdas Stripe.NET'e
                 var session = stripeEvent.Data.Object as Session
                               ?? stripeEvent.Data.Object as Stripe.Checkout.Session;
-
-                // jei tavo Stripe.NET palaiko:
-                // var session = stripeEvent.Data.Object as Session ?? stripeEvent.Data.Object as Stripe.Checkout.Session;
-                // arba:
-                // var session = stripeEvent.Data.Object as Stripe.Checkout.Session;
-                // (aukščiau palikta su dviem tipais dėl versijų)
 
                 var sessionId = session?.Id;
 

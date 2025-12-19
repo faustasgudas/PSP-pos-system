@@ -107,6 +107,7 @@ export async function refundPayment(paymentId: number): Promise<{ message: strin
     const res = await fetch(`${API_URL}/payments/${paymentId}/refund`, {
         method: "POST",
         headers: authHeaders(),
+        body: JSON.stringify({})
     });
     if (!res.ok) throw new Error(await readErrorMessage(res));
     return res.json();

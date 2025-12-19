@@ -33,7 +33,6 @@ public class BusinessesController : ControllerBase
     }
 
     // ========== GET: /api/businesses ==========
-    // Grąžinam TIK prisijungusio employee business (ne visą sąrašą)
 
     [HttpGet]
     [ProducesResponseType(typeof(List<BusinessResponse>), StatusCodes.Status200OK)]
@@ -83,8 +82,6 @@ public class BusinessesController : ControllerBase
     }
 
     // ========== POST: /api/businesses ==========
-    // Šitą dažniausiai pakeičia /api/auth/register-business,
-    // bet paliekam, jei norėsi kurti biz'us iš vidaus (pvz. admin)
 
     [HttpPost]
     [ProducesResponseType(typeof(BusinessResponse), StatusCodes.Status201Created)]

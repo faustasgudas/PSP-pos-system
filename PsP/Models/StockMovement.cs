@@ -3,8 +3,7 @@ namespace PsP.Models;
 public class StockMovement
 {
     public int StockMovementId { get; set; }
-
-    // FK
+    
     public int StockItemId { get; set; }
     public int? OrderLineId { get; set; }   // audit link for sale/refund movements
 
@@ -13,7 +12,6 @@ public class StockMovement
     public decimal? UnitCostSnapshot { get; set; }    // set on Receive; optional otherwise
     public DateTime At { get; set; }
 
-    // Nav
     public StockItem? StockItem { get; set; }
     
     public OrderLine? OrderLine { get; set; }

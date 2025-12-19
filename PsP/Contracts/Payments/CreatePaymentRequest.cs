@@ -13,5 +13,5 @@ public class CreatePaymentRequest
     public long? GiftCardAmountCents { get; set; }
 
     [Range(0, long.MaxValue)]
-    public long? TipCents { get; set; } // optional
+    public long? TipCents { get; set; }
 }

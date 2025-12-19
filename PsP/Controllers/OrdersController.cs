@@ -8,16 +8,14 @@ namespace PsP.Controllers;
 
 [ApiController]
 [Route("api/orders")]
-[Authorize] // All endpoints require authentication
+[Authorize]
 public class OrdersController : ControllerBase
 {
     private readonly IOrdersService _orders;
 
     public OrdersController(IOrdersService orders) => _orders = orders;
 
-    // -------------------------------
     // GET /api/orders  (Managers+Owners)
-    // -------------------------------
     [HttpGet]
     [Authorize(Roles = "Manager,Owner")]
     public async Task<ActionResult<IEnumerable<OrderSummaryResponse>>> ListAll(
@@ -36,10 +34,7 @@ public class OrdersController : ControllerBase
         }
         catch (InvalidOperationException ex) { return ForbidOrBadRequest(ex); }
     }
-
-    // -------------------------------
-    // GET /api/orders/mine
-    // -------------------------------
+    
     [HttpGet("mine")]
     [Authorize(Roles = "Owner,Manager,Staff")]
     public async Task<ActionResult<IEnumerable<OrderSummaryResponse>>> ListMine()
