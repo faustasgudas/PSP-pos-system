@@ -50,7 +50,8 @@ export default function CateringNewReservation(props: { goBack: () => void }) {
                     fetchEmployees(businessId),
                 ]);
 
-                const activeServices = (Array.isArray(svc) ? svc : []).filter(
+                const allServices = Array.isArray(svc) ? svc : [];
+                const activeServices = allServices.filter(
                     (s) => String(s.status).toLowerCase() === "active"
                 );
                 setServices(activeServices);
@@ -58,16 +59,24 @@ export default function CateringNewReservation(props: { goBack: () => void }) {
 
                 // Backend requires catalogItemId; we keep a single internal “Reservation” service.
                 let reservationSvc =
-                    activeServices.find((s) => String(s.code).toUpperCase() === "RESERVATION") ??
-                    activeServices.find((s) => String(s.name).toLowerCase() === "reservation") ??
+                    allServices.find((s) => String(s.code).toUpperCase() === "RESERVATION") ??
+                    allServices.find((s) => String(s.name).toLowerCase() === "reservation") ??
                     null;
 
                 const REQUIRED_DURATION_MIN = 90;
 
-                // If the internal service exists but has invalid duration (<= 0), fix it (Owner/Manager only).
-                if (reservationSvc && (Number(reservationSvc.defaultDurationMin ?? 0) <= 0) && canManage) {
+                const reservationNeedsFix =
+                    !!reservationSvc &&
+                    (
+                        String(reservationSvc.status).toLowerCase() !== "active" ||
+                        Number(reservationSvc.defaultDurationMin ?? 0) <= 0
+                    );
+
+                // If the internal service exists but is inactive or has invalid duration (<= 0), fix it (Owner/Manager only).
+                if (reservationSvc && reservationNeedsFix && canManage) {
                     try {
                         const updated = await updateCatalogItem(businessId, reservationSvc.catalogItemId, {
+                            status: "Active",
                             defaultDurationMin: REQUIRED_DURATION_MIN,
                         });
                         reservationSvc = updated;
@@ -100,7 +109,12 @@ export default function CateringNewReservation(props: { goBack: () => void }) {
                 const firstValidServiceId =
                     activeServices.find((s) => Number(s.defaultDurationMin ?? 0) > 0)?.catalogItemId ?? null;
 
-                const fallbackId = reservationSvc?.catalogItemId ?? firstValidServiceId;
+                const reservationIsUsable =
+                    !!reservationSvc &&
+                    String(reservationSvc.status).toLowerCase() === "active" &&
+                    Number(reservationSvc.defaultDurationMin ?? 0) > 0;
+
+                const fallbackId = (reservationIsUsable ? reservationSvc!.catalogItemId : null) ?? firstValidServiceId;
                 setReservationCatalogItemId(fallbackId);
 
                 if (!fallbackId) {
@@ -117,7 +131,7 @@ export default function CateringNewReservation(props: { goBack: () => void }) {
         };
 
         load();
-    }, [businessId]);
+    }, [businessId, canManage]);
 
     const save = async () => {
         if (!businessId) return setError("Missing businessId");
@@ -220,6 +234,10 @@ export default function CateringNewReservation(props: { goBack: () => void }) {
                             value={time}
                             onChange={setTime}
                             disabled={saving || !canManage}
+                            allowTyping={false}
+                            minuteStep={15}
+                            minTime="09:00"
+                            maxTime="18:00"
                         />
                     </div>
                 </div>

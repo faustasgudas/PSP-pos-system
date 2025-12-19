@@ -7,15 +7,13 @@ import CateringEmployees from "../CateringEmployees/CateringEmployees";
 import CateringGiftCards from "../CateringGiftCards/CateringGiftCards";
 import CateringInventory from "../CateringInventory/CateringInventory";
 import CateringPayments from "../CateringPayments/CateringPayments";
-import CateringProducts from "../CateringProducts/CateringProducts";
 import CateringReservations from "../CateringReservations/CateringReservations";
 import CateringSettings from "../CateringSettings/CateringSettings";
-import CateringTables from "../CateringTables/CateringTables";
 import CateringOrders from "../CateringOrders/CateringOrders";
 import CateringOrderCreate from "../CateringOrders/CateringOrderCreate";
 import CateringOrderDetails from "../CateringOrders/CateringOrderDetails";
 import CateringNewReservation from "../CateringReservations/CateringNewReservation";
-import CateringCatalogItems from "../CateringCatalogItems/CateringCatalogItems";
+import CateringDiscounts from "../CateringDiscounts/CateringDiscounts";
 import BeautyOrderPayment from "../../BeautyIndustry/BeautyOrders/BeautyOrderPayment";
 import { listReservations, type ReservationSummary } from "../../../frontapi/reservationsApi";
 import { listPaymentsForBusiness, type PaymentHistoryItem } from "../../../frontapi/paymentApi";
@@ -28,8 +26,7 @@ type Screen =
     | "gift-cards"
     | "inventory"
     | "payments"
-    | "products"
-    | "catalog"
+    | "discounts"
     | "reservations"
     | "reservation-create"
     | "orders"
@@ -38,7 +35,7 @@ type Screen =
     | "order-payment"
     | "employees"
     | "settings"
-    | "tables";
+    ;
 
 type DashboardTab = "upcoming" | "payments";
 
@@ -202,27 +199,6 @@ function CateringMain(){
                 </button>
 
                 <button
-                    className={`nav-btn ${activeScreen === "tables" ? "active" : ""}`}
-                    onClick={() => setActiveScreen("tables")}
-                >
-                    <span>🪑</span> Tables
-                </button>
-                
-                <button 
-                    className={`nav-btn ${activeScreen === "products" ? "active" : ""}`}
-                    onClick={() => setActiveScreen("products")}
-                >
-                    <span>📋</span> Products
-                </button>
-
-                <button
-                    className={`nav-btn ${activeScreen === "catalog" ? "active" : ""}`}
-                    onClick={() => setActiveScreen("catalog")}
-                >
-                    <span>🗂️</span> Catalog
-                </button>
-
-                <button
                     className={`nav-btn ${activeScreen === "orders" ? "active" : ""}`}
                     onClick={() => setActiveScreen("orders")}
                 >
@@ -249,6 +225,15 @@ function CateringMain(){
                 >
                     <span>🎁</span> Gift Cards
                 </button>
+
+                {user?.role !== "Staff" && (
+                    <button
+                        className={`nav-btn ${activeScreen === "discounts" ? "active" : ""}`}
+                        onClick={() => setActiveScreen("discounts")}
+                    >
+                        <span>🏷️</span> Discounts
+                    </button>
+                )}
             </div>
 
             {/* Screen Switch */}
@@ -439,14 +424,11 @@ function CateringMain(){
                         onBack={() => setActiveScreen("order-detail")}
                     />
                 )}
-
-                {activeScreen === "catalog" && <CateringCatalogItems />}
                 {activeScreen === "employees" && (<CateringEmployees />)}
-                {activeScreen === "tables" && (<CateringTables />)}
-                {activeScreen === "products" && (<CateringProducts />)}
                 {activeScreen === "inventory" && (<CateringInventory />)}
                 {activeScreen === "payments" && (<CateringPayments />)}
                 {activeScreen === "gift-cards" && (<CateringGiftCards />)}
+                {activeScreen === "discounts" && (<CateringDiscounts />)}
                 {activeScreen === "settings" && <CateringSettings onBack={() => setActiveScreen("dashboard")} />}
             </div>
         </div>
