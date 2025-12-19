@@ -8,6 +8,7 @@ import {
     listDiscounts,
     listEligibilities,
     removeEligibility,
+    updateDiscount,
     type DiscountScope,
     type DiscountSummary,
     type DiscountType,
@@ -81,6 +82,16 @@ export default function BeautyDiscounts() {
     const [manageEligibleIds, setManageEligibleIds] = useState<Set<number>>(new Set());
     const [manageQuery, setManageQuery] = useState("");
     const [manageLoading, setManageLoading] = useState(false);
+    
+    // Edit fields for manage modal
+    const [editCode, setEditCode] = useState("");
+    const [editStatus, setEditStatus] = useState("");
+    const [editType, setEditType] = useState<DiscountType>("Percent");
+    const [editValue, setEditValue] = useState("");
+    const [editStartsDate, setEditStartsDate] = useState("");
+    const [editStartsTime, setEditStartsTime] = useState("");
+    const [editEndsDate, setEditEndsDate] = useState("");
+    const [editEndsTime, setEditEndsTime] = useState("");
 
     const authProblem =
         (error ?? "").toLowerCase().includes("unauthorized") ||
@@ -202,6 +213,18 @@ export default function BeautyDiscounts() {
         setSelected(d);
         setError(null);
         setManageQuery("");
+        
+        // Populate edit fields
+        setEditCode(d.code || "");
+        setEditStatus(d.status || "Active");
+        setEditType(d.type || "Percent");
+        setEditValue(String(d.value || 0));
+        const starts = splitLocalDateTime(d.startsAt);
+        setEditStartsDate(starts.date);
+        setEditStartsTime(starts.time);
+        const ends = splitLocalDateTime(d.endsAt);
+        setEditEndsDate(ends.date);
+        setEditEndsTime(ends.time);
 
         if (String(d.scope) === "Line") {
             (async () => {
@@ -255,6 +278,43 @@ export default function BeautyDiscounts() {
             await load();
         } catch (e: any) {
             setError(e?.message || "Delete failed");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const doUpdate = async () => {
+        if (!selected || !canManage || saving) return;
+
+        const val = parseFloat(editValue);
+        if (isNaN(val) || val <= 0) {
+            setError("Value must be a positive number");
+            return;
+        }
+
+        const startsAtStr = joinLocalDateTime(editStartsDate, editStartsTime);
+        const endsAtStr = joinLocalDateTime(editEndsDate, editEndsTime);
+
+        if (!startsAtStr || !endsAtStr) {
+            setError("Please provide valid start and end date/time");
+            return;
+        }
+
+        setError(null);
+        try {
+            setSaving(true);
+            await updateDiscount(selected.discountId, {
+                code: editCode.trim() || selected.code,
+                type: editType,
+                value: val,
+                startsAt: startsAtStr,
+                endsAt: endsAtStr,
+                status: editStatus,
+            });
+            setSelected(null);
+            await load();
+        } catch (e: any) {
+            setError(e?.message || "Update failed");
         } finally {
             setSaving(false);
         }
@@ -515,10 +575,10 @@ export default function BeautyDiscounts() {
                                     <label>Value</label>
                                     <input
                                         type="number"
-                                        inputMode="decimal"
                                         placeholder={type === "Percent" ? "e.g. 10" : "e.g. 5.00"}
                                         value={value}
                                         onChange={(e) => setValue(e.target.value)}
+                                        step="0.01"
                                     />
                                     <div className="muted" style={{ fontSize: 12 }}>
                                         Percent: 10 = 10%. Amount: 5.00 = €5.00 off.
@@ -598,17 +658,37 @@ export default function BeautyDiscounts() {
                         <div className="modal-form">
                             <div className="modal-field">
                                 <label>Code</label>
-                                <input value={selected.code} readOnly />
+                                <input 
+                                    value={editCode} 
+                                    onChange={(e) => setEditCode(e.target.value)}
+                                    disabled={!canManage || saving}
+                                />
                             </div>
 
                             <div className="modal-field">
                                 <label>Status</label>
-                                <input value={String(selected.status)} readOnly />
+                                <BeautySelect
+                                    value={editStatus}
+                                    onChange={setEditStatus}
+                                    disabled={!canManage || saving}
+                                    options={[
+                                        { value: "Active", label: "Active" },
+                                        { value: "Inactive", label: "Inactive" },
+                                    ]}
+                                />
                             </div>
 
                             <div className="modal-field">
                                 <label>Type</label>
-                                <input value={String(selected.type)} readOnly />
+                                <BeautySelect
+                                    value={editType}
+                                    onChange={(val) => setEditType(val as DiscountType)}
+                                    disabled={!canManage || saving}
+                                    options={[
+                                        { value: "Percent", label: "Percent (%)" },
+                                        { value: "Amount", label: "Amount (€)" },
+                                    ]}
+                                />
                             </div>
 
                             <div className="modal-field">
@@ -618,17 +698,45 @@ export default function BeautyDiscounts() {
 
                             <div className="modal-field">
                                 <label>Value</label>
-                                <input value={String(selected.value)} readOnly />
+                                <input 
+                                    type="number"
+                                    value={editValue} 
+                                    onChange={(e) => setEditValue(e.target.value)}
+                                    disabled={!canManage || saving}
+                                    step="0.01"
+                                />
                             </div>
 
                             <div className="modal-field">
-                                <label>Active window</label>
-                                <input
-                                    value={`${new Date(selected.startsAt).toLocaleString()} → ${new Date(
-                                        selected.endsAt
-                                    ).toLocaleString()}`}
-                                    readOnly
-                                />
+                                <label>Starts At</label>
+                                <div style={{ display: "flex", gap: 10 }}>
+                                    <BeautyDatePicker
+                                        value={editStartsDate}
+                                        onChange={setEditStartsDate}
+                                        disabled={!canManage || saving}
+                                    />
+                                    <BeautyTimePicker
+                                        value={editStartsTime}
+                                        onChange={setEditStartsTime}
+                                        disabled={!canManage || saving}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="modal-field">
+                                <label>Ends At</label>
+                                <div style={{ display: "flex", gap: 10 }}>
+                                    <BeautyDatePicker
+                                        value={editEndsDate}
+                                        onChange={setEditEndsDate}
+                                        disabled={!canManage || saving}
+                                    />
+                                    <BeautyTimePicker
+                                        value={editEndsTime}
+                                        onChange={setEditEndsTime}
+                                        disabled={!canManage || saving}
+                                    />
+                                </div>
                             </div>
 
                             {String(selected.scope) === "Line" && (
@@ -694,9 +802,14 @@ export default function BeautyDiscounts() {
                                 Close
                             </button>
                             {canManage && (
-                                <button className="btn btn-danger" onClick={() => doDelete(selected)} disabled={saving}>
-                                    Delete
-                                </button>
+                                <>
+                                    <button className="btn btn-primary" onClick={doUpdate} disabled={saving}>
+                                        {saving ? "Saving..." : "Save Changes"}
+                                    </button>
+                                    <button className="btn btn-danger" onClick={() => doDelete(selected)} disabled={saving}>
+                                        Delete
+                                    </button>
+                                </>
                             )}
                         </div>
                     </div>

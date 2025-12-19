@@ -216,9 +216,11 @@ export default function BeautyDashboard() {
 
                 <div className="user-info">
                     {user ? `${user.email} (${user.role})` : ""}
-                    <button className="nav-btn" onClick={() => setActiveScreen("settings")}>
-                        ⚙️ Settings
-                    </button>
+                    {role !== "Staff" && (
+                        <button className="nav-btn" onClick={() => setActiveScreen("settings")}>
+                            ⚙️ Settings
+                        </button>
+                    )}
                 </div>
             </div>
 

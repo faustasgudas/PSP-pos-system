@@ -165,12 +165,14 @@ function CateringMain(){
                 </div>
                 <div className="user-info">
                     {user ? `${user.email} (${user.role})` : ""}
-                    <button 
-                        className="nav-btn"
-                        onClick={() => setActiveScreen("settings")}
-                    >
-                        <span>⚙️</span> Settings
-                    </button>
+                    {user?.role !== "Staff" && (
+                        <button 
+                            className="nav-btn"
+                            onClick={() => setActiveScreen("settings")}
+                        >
+                            <span>⚙️</span> Settings
+                        </button>
+                    )}
                 </div>
             </div>
 
